@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/kru_model.dart';
@@ -64,6 +66,10 @@ class FirestoreService {
   }
 
   // ------------------------------------------------------------------ orders
+
+  /// Jam slot layanan harian (P5 Hi-Fi build): 08.00, 10.00, 13.00, 15.00,
+  /// 17.00, 19.00 WIB.
+  static const jamSlot = [8, 10, 13, 15, 17, 19];
 
   /// ID dokumen order deterministik dari slot jadwal. Transaction klien tidak
   /// bisa menjalankan query, jadi kunci slot diwujudkan sebagai ID dokumen:
@@ -137,6 +143,48 @@ class FirestoreService {
       tx.set(orderRef, order.toMap());
       return order;
     });
+  }
+
+  /// Slot yang sudah terisi pada [hari] — untuk menampilkan slot disabled +
+  /// ikon gembok di P5 (kaidah Pencegahan Kesalahan). Memakai `get` per ID
+  /// slot deterministik, BUKAN query — Security Rules mengizinkan `get`
+  /// dokumen order untuk pengguna masuk, sementara `list` tetap owner-only.
+  Stream<Set<DateTime>> watchSlotTerisi(DateTime hari) {
+    final slots = jamSlot
+        .map((jam) => DateTime(hari.year, hari.month, hari.day, jam))
+        .toList(growable: false);
+    final streams = slots
+        .map((s) => _orders.doc(slotOrderId(s)).snapshots())
+        .toList(growable: false);
+
+    late final StreamController<Set<DateTime>> controller;
+    final adaDoc = List<bool>.filled(slots.length, false);
+    final sudahEmit = List<bool>.filled(slots.length, false);
+    final subs = <StreamSubscription<dynamic>>[];
+    controller = StreamController<Set<DateTime>>(
+      onListen: () {
+        for (var i = 0; i < streams.length; i++) {
+          subs.add(streams[i].listen((snap) {
+            adaDoc[i] = snap.exists;
+            sudahEmit[i] = true;
+            // Tunggu snapshot pertama SEMUA slot supaya emisi awal tidak
+            // parsial (slot terisi sempat tampak kosong).
+            if (sudahEmit.every((e) => e)) {
+              controller.add({
+                for (var j = 0; j < slots.length; j++)
+                  if (adaDoc[j]) slots[j],
+              });
+            }
+          }, onError: controller.addError));
+        }
+      },
+      onCancel: () async {
+        for (final s in subs) {
+          await s.cancel();
+        }
+      },
+    );
+    return controller.stream;
   }
 
   Stream<OrderModel> watchOrder(String orderId) => _orders

@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:tk_core/tk_core.dart';
 
 import 'app_providers.dart';
@@ -31,9 +33,55 @@ class AuthController extends AutoDisposeAsyncNotifier<UserModel?> {
             password: password,
           ));
 
+  static var _googleSiap = false;
+
+  /// Masuk/daftar dengan akun Google (page-inventory P2 — akun pihak
+  /// ketiga). Pembatalan oleh pengguna bukan error — kembali diam-diam.
+  Future<bool> masukDenganGoogle() async {
+    if (!ref.read(firebaseSiapProvider)) {
+      state = AsyncError(
+        kDebugMode
+            ? pesanFirebaseBelumSiap
+            : 'Terjadi kendala. Coba beberapa saat lagi.',
+        StackTrace.current,
+      );
+      return false;
+    }
+    final GoogleSignInAccount akun;
+    try {
+      final gsi = GoogleSignIn.instance;
+      if (!_googleSiap) {
+        await gsi.initialize();
+        _googleSiap = true;
+      }
+      akun = await gsi.authenticate();
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return false;
+      state = AsyncError(
+        'Masuk dengan Google tidak berhasil. Coba lagi atau gunakan email.',
+        StackTrace.current,
+      );
+      return false;
+    }
+    final credential = GoogleAuthProvider.credential(
+      idToken: akun.authentication.idToken,
+    );
+    return _jalankan(() => ref
+        .read(authServiceProvider)
+        .signInWithCredentialPelanggan(credential));
+  }
+
   Future<bool> _jalankan(Future<UserModel> Function() aksi) async {
     if (!ref.read(firebaseSiapProvider)) {
-      state = AsyncError(pesanFirebaseBelumSiap, StackTrace.current);
+      // Detail teknis hanya untuk build debug; di release (yang seharusnya
+      // selalu punya firebase_options hasil flutterfire configure) pengguna
+      // melihat pesan umum bernada brand.
+      state = AsyncError(
+        kDebugMode
+            ? pesanFirebaseBelumSiap
+            : 'Terjadi kendala. Coba beberapa saat lagi.',
+        StackTrace.current,
+      );
       return false;
     }
     state = const AsyncLoading();

@@ -81,7 +81,7 @@ class _P1SplashScreenState extends ConsumerState<P1SplashScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Image.asset('assets/brand/logo-color.png', width: 190),
+                      Image.asset('assets/brand/logo-color.webp', width: 190),
                       const SizedBox(height: 20),
                       Text(
                         'Tuntaskilat',

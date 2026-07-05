@@ -79,6 +79,36 @@ class AuthService {
     return user;
   }
 
+  /// Masuk dengan credential pihak ketiga (mis. Google) pada Aplikasi
+  /// Pelanggan. Akun baru otomatis dibuatkan dokumen `users` dengan
+  /// role `pelanggan`; akun lama divalidasi role-nya seperti [signIn].
+  Future<UserModel> signInWithCredentialPelanggan(
+    AuthCredential credential,
+  ) async {
+    final userCred = await _auth.signInWithCredential(credential);
+    final authUser = userCred.user!;
+    final ref = _db.collection('users').doc(authUser.uid);
+    final snap = await ref.get();
+    if (!snap.exists) {
+      final user = UserModel(
+        userId: authUser.uid,
+        nama: authUser.displayName ?? '',
+        email: authUser.email ?? '',
+        noTelepon: authUser.phoneNumber ?? '',
+        alamat: '',
+        role: UserRole.pelanggan,
+      );
+      await ref.set(user.toMap());
+      return user;
+    }
+    final user = UserModel.fromMap(authUser.uid, snap.data()!);
+    if (user.role != UserRole.pelanggan) {
+      await _auth.signOut();
+      throw RoleTidakSesuaiException(UserRole.pelanggan, user.role);
+    }
+    return user;
+  }
+
   Future<UserModel?> fetchProfile(String uid) async {
     final snap = await _db.collection('users').doc(uid).get();
     if (!snap.exists) return null;

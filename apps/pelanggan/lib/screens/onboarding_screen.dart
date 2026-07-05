@@ -339,7 +339,7 @@ class _KartuLayananMini extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(shape: BoxShape.circle, color: warnaIkon),
             alignment: Alignment.center,
-            child: Image.asset('assets/brand/brandmark.png', height: 18),
+            child: Image.asset('assets/brand/brandmark.webp', height: 18),
           ),
           const SizedBox(height: 8),
           Text(
@@ -551,7 +551,7 @@ class _IlustrasiOB3 extends StatelessWidget {
                     ),
                     alignment: Alignment.center,
                     child:
-                        Image.asset('assets/brand/brandmark.png', height: 13),
+                        Image.asset('assets/brand/brandmark.webp', height: 13),
                   ),
                 ),
                 Positioned(

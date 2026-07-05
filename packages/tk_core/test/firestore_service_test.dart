@@ -167,6 +167,32 @@ void main() {
     });
   });
 
+  group('P5 — slot terisi tampil disabled (Pencegahan Kesalahan)', () {
+    test('watchSlotTerisi memuat slot yang dokumennya ada', () async {
+      await service.createOrder(
+        pelanggan: pelanggan,
+        serviceId: 's1',
+        jadwal: DateTime(2026, 7, 10, 13, 0),
+        kuantitas: 2,
+        alamatLayanan: 'Jl. Ahmad Yani, Sampit',
+        lokasi: lokasiSampit,
+      );
+
+      // snapshots() bisa memancarkan state cache yang basi lebih dulu
+      // (perilaku Firestore asli juga) — tunggu sampai event yang memuat
+      // slot terkunci muncul, jangan pakai .first.
+      await expectLater(
+        service.watchSlotTerisi(DateTime(2026, 7, 10)),
+        emitsThrough(equals({DateTime(2026, 7, 10, 13)})),
+      );
+
+      await expectLater(
+        service.watchSlotTerisi(DateTime(2026, 7, 11)),
+        emitsThrough(isEmpty),
+      );
+    });
+  });
+
   group('Skenario Black-Box #7 — kru offline hilang dari daftar tersedia', () {
     test('watchAvailableKru hanya memuat statusKetersediaan == true', () async {
       await db.collection('kru').doc('k1').set({

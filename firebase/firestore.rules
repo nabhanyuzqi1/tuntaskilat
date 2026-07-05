@@ -24,7 +24,12 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      allow read: if isSignedIn() && (
+      // `get` per-dokumen dibuka untuk pengguna masuk: dibutuhkan cek slot
+      // deterministik (P5 "kalender slot penuh (disabled)" + Atomic Locking
+      // membaca dokumen slot di dalam transaction). Query massal (`list`)
+      // tetap owner-only sesuai prinsip skema TA.
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && (
         resource.data.userId == request.auth.uid ||
         resource.data.cleanerId == request.auth.uid ||
         isAdmin()

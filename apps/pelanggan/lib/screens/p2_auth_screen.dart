@@ -57,7 +57,7 @@ class _P2AuthScreenState extends ConsumerState<P2AuthScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Image.asset('assets/brand/logo-color.png', width: 64),
+              Image.asset('assets/brand/logo-color.webp', width: 64),
               const SizedBox(height: 18),
               Text(
                 'Selamat Datang',
@@ -108,6 +108,9 @@ class _ToggleMasukDaftar extends StatelessWidget {
     Widget tab(String label, {required bool aktif, required bool daftar}) =>
         Expanded(
           child: GestureDetector(
+            // opaque: seluruh area tab (bukan hanya teksnya) menangkap tap —
+            // target sentuh ≥ 48dp (kaidah Aksesibilitas).
+            behavior: HitTestBehavior.opaque,
             onTap: () => onChanged(daftar),
             child: Container(
               height: 44,
@@ -249,16 +252,14 @@ class _FormMasukState extends ConsumerState<_FormMasuk> {
           ),
           const SizedBox(height: 16),
           OutlinedButton(
-            // Login pihak ketiga bersifat opsional (page-inventory P2);
-            // diaktifkan setelah konfigurasi SHA-1/OAuth di Firebase console.
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Masuk dengan Google tersedia setelah konfigurasi '
-                  'Firebase selesai.',
-                ),
-              ),
-            ),
+            onPressed: loading
+                ? null
+                : () async {
+                    final sukses = await ref
+                        .read(authControllerProvider.notifier)
+                        .masukDenganGoogle();
+                    if (sukses && context.mounted) widget.onSukses();
+                  },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -293,14 +294,19 @@ class _FormMasukState extends ConsumerState<_FormMasuk> {
                 ),
                 children: [
                   WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
                     child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: widget.keDaftar,
-                      child: Text(
-                        'Daftar',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: TkColors.primary,
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          'Daftar',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: TkColors.primary,
+                          ),
                         ),
                       ),
                     ),

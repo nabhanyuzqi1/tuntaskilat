@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'tk_colors.dart';
 import 'tk_typography.dart';
@@ -8,6 +9,20 @@ import 'tk_typography.dart';
 /// nav aktif/badge, sementara warna aksi utama tetap hijau brand.
 class TkTheme {
   TkTheme._();
+
+  /// Status/navigation bar sinkron dengan latar putih app: transparan +
+  /// ikon gelap. Android 15+ (target SDK 35/36) memberlakukan edge-to-edge,
+  /// jadi warna bar TIDAK boleh di-set dari sisi native — hanya lewat sini.
+  /// Pakai via AppBarTheme (layar ber-AppBar) dan AnnotatedRegion di root
+  /// MaterialApp.builder (layar tanpa AppBar seperti P1/OB/P2).
+  static const systemOverlayStyle = SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark, // Android: ikon gelap
+    statusBarBrightness: Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.dark,
+    systemNavigationBarContrastEnforced: false,
+  );
 
   static ThemeData light({Color identity = TkColors.identityPelanggan}) {
     final textTheme = TkTypography.textTheme();
@@ -29,6 +44,7 @@ class TkTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: textTheme.titleLarge,
+        systemOverlayStyle: systemOverlayStyle,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

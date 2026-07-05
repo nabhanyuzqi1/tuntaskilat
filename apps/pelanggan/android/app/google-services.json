@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "429452141588",
+    "project_id": "tuntaskilat-homeservices",
+    "storage_bucket": "tuntaskilat-homeservices.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:429452141588:android:d57e6fd4db1f200c1ab301",
+        "android_client_info": {
+          "package_name": "com.tuntaskilat.pelanggan"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "429452141588-dru5smen0cidq9q7aiuo954pd07gikhf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tuntaskilat.pelanggan",
+            "certificate_hash": "93da0ce2262686a477619ef38377ac1e7eeb8456"
+          }
+        },
+        {
+          "client_id": "429452141588-07vcu9fniaem41as3tlpsp23lb6a66g2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOsm9_FiQevW-HRxqsGUh8cDmvAd_1BJk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "429452141588-07vcu9fniaem41as3tlpsp23lb6a66g2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
