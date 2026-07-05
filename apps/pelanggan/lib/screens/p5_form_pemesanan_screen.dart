@@ -7,7 +7,7 @@ import 'package:tk_core/tk_core.dart';
 
 import '../providers/pemesanan_providers.dart';
 import '../widgets/service_icon.dart';
-import 'p3_beranda_screen.dart';
+import 'p6_rincian_tagihan_screen.dart';
 
 /// P5 — Form Pemesanan (Gambar TA 3.15 & 4.2). Input kuantitas, jadwal
 /// (kalender + slot; slot terisi disabled + gembok — wujud visual Atomic
@@ -149,38 +149,11 @@ class _P5FormPemesananScreenState
       return;
     }
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(TkRadius.sheet),
-        ),
-        icon: const Icon(Icons.check_circle_rounded,
-            color: TkColors.primary, size: 48),
-        title: Text('Pesanan Dibuat',
-            style: GoogleFonts.montserrat(
-                fontWeight: FontWeight.w700, color: TkColors.inkSoft)),
-        content: Text(
-          'Slot ${_JudulHari.format(_jadwal!)} berhasil dikunci untuk Anda. '
-          'Rincian tagihan & pembayaran (P6-P7) menyusul di milestone '
-          'berikutnya.',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.montserrat(
-              fontSize: 14, color: TkColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Selesai'),
-          ),
-        ],
-      ),
+    // Slot terkunci (Atomic Locking sukses) → P6 Rincian Tagihan.
+    Navigator.of(context).pushReplacementNamed(
+      P6RincianTagihanScreen.route,
+      arguments: hasil.order,
     );
-    if (mounted) {
-      Navigator.of(context)
-          .popUntil(ModalRoute.withName(P3BerandaScreen.route));
-    }
   }
 
   @override
@@ -431,7 +404,9 @@ class _Stepper extends StatelessWidget {
   }
 }
 
-class _JudulHari {
+/// Format tanggal/jadwal berbahasa Indonesia — dipakai P5, P6, dan
+/// layar-layar berikutnya (tanpa dependensi intl).
+class JudulHariID {
   static const hari = [
     'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu',
   ];
@@ -440,9 +415,13 @@ class _JudulHari {
     'Agustus', 'September', 'Oktober', 'November', 'Desember',
   ];
 
+  /// "Sabtu, 11 Juli 2026"
+  static String tanggal(DateTime t) =>
+      '${hari[t.weekday - 1]}, ${t.day} ${bulan[t.month - 1]} ${t.year}';
+
+  /// "Sabtu, 11 Juli 2026 10.00"
   static String format(DateTime t) =>
-      '${hari[t.weekday - 1]}, ${t.day} ${bulan[t.month - 1]} '
-      '${t.year} ${t.hour.toString().padLeft(2, '0')}.00';
+      '${tanggal(t)} ${t.hour.toString().padLeft(2, '0')}.00';
 }
 
 class _Kalender extends StatelessWidget {
@@ -506,7 +485,7 @@ class _Kalender extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${_JudulHari.bulan[bulan.month - 1]} ${bulan.year}',
+                '${JudulHariID.bulan[bulan.month - 1]} ${bulan.year}',
                 style: GoogleFonts.montserrat(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

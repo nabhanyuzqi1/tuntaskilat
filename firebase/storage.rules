@@ -1,0 +1,30 @@
+rules_version = '2';
+// Storage Tuntaskilat — prinsip sejalan firestore-schema.md: tulis hanya
+// oleh pengguna masuk, dibatasi tipe gambar & ukuran 5MB (P7: "JPG/PNG
+// maks 5MB"). Baca oleh pengguna masuk (admin A3 memverifikasi bukti,
+// pelanggan meninjau miliknya, foto laporan dilihat pelanggan terkait).
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() { return request.auth != null; }
+    function isImageMax5MB() {
+      return request.resource.contentType.matches('image/.*')
+          && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // Bukti pembayaran (P7) — path: bukti_bayar/{orderId}.jpg
+    match /bukti_bayar/{file} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isImageMax5MB();
+    }
+
+    // Foto laporan kerja kru (K4) — path: laporan/{orderId}/...
+    match /laporan/{orderId}/{file} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isImageMax5MB();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
