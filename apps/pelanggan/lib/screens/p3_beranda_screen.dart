@@ -7,10 +7,11 @@ import '../providers/app_providers.dart';
 import '../providers/beranda_providers.dart';
 import '../widgets/service_icon.dart';
 import '../widgets/tk_bottom_nav.dart';
+import 'home_shell.dart';
 
 /// P3 — Beranda (Gambar TA 3.14 & 4.1). Katalog layanan real-time dari
 /// koleksi `services` + lencana tarif tetap (kaidah Transparansi harga),
-/// section Pesan Ulang, bottom nav glass.
+/// section Pesan Ulang. Dirender sebagai tab pertama [HomeShell].
 class P3BerandaScreen extends ConsumerWidget {
   const P3BerandaScreen({super.key});
 
@@ -27,14 +28,6 @@ class P3BerandaScreen extends ConsumerWidget {
     final pesanUlang = ref.watch(pesanUlangProvider);
 
     return Scaffold(
-      extendBody: true, // konten tampak di balik nav glass (blur berarti)
-      bottomNavigationBar: TkBottomNav(
-        aktif: TkNavTab.beranda,
-        // P9 Riwayat / P12 Notifikasi / P11 Profil: milestone berikutnya.
-        onPilih: (tab) {
-          if (tab != TkNavTab.beranda) _menyusul(context);
-        },
-      ),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -61,7 +54,9 @@ class P3BerandaScreen extends ConsumerWidget {
                               _JudulSection(
                                 'Pesan Ulang',
                                 aksi: 'Riwayat',
-                                onAksi: () => _menyusul(context),
+                                onAksi: () => ref
+                                    .read(tabAktifProvider.notifier)
+                                    .state = TkNavTab.riwayat,
                               ),
                               _DeretPesanUlang(orders: orders),
                             ],
@@ -150,11 +145,10 @@ class _HeaderBeranda extends ConsumerWidget {
                     ],
                   ),
                 ),
-                _TombolNotifikasi(onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Halaman ini segera hadir.')),
-                  );
-                }),
+                _TombolNotifikasi(
+                  onTap: () => ref.read(tabAktifProvider.notifier).state =
+                      TkNavTab.notifikasi,
+                ),
               ],
             ),
           ),

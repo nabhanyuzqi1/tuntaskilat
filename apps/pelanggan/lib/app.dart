@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tk_core/tk_core.dart';
 
+import 'screens/home_shell.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/p1_splash_screen.dart';
+import 'screens/p10_form_ulasan_screen.dart';
+import 'screens/p13_ubah_kata_sandi_screen.dart';
+import 'screens/p14_bantuan_screen.dart';
+import 'screens/p15_edit_profil_screen.dart';
 import 'screens/p2_auth_screen.dart';
 import 'screens/p3_beranda_screen.dart';
 import 'screens/p4_detail_layanan_screen.dart';
 import 'screens/p5_form_pemesanan_screen.dart';
 import 'screens/p6_rincian_tagihan_screen.dart';
 import 'screens/p7_form_pembayaran_screen.dart';
+import 'screens/p8_tracking_screen.dart';
 
 /// Aplikasi Pelanggan — identitas warna hijau utama #0A874D
 /// (design-tokens.md § Identitas warna per aplikasi).
@@ -33,11 +39,17 @@ class TkPelangganApp extends StatelessWidget {
         P1SplashScreen.route: (_) => const P1SplashScreen(),
         OnboardingScreen.route: (_) => const OnboardingScreen(),
         P2AuthScreen.route: (_) => const P2AuthScreen(),
-        P3BerandaScreen.route: (_) => const P3BerandaScreen(),
+        // '/p3' membuka shell 4 tab (Beranda/Riwayat/Notifikasi/Profil).
+        P3BerandaScreen.route: (_) => const HomeShell(),
         P4DetailLayananScreen.route: (_) => const P4DetailLayananScreen(),
         P5FormPemesananScreen.route: (_) => const P5FormPemesananScreen(),
         P6RincianTagihanScreen.route: (_) => const P6RincianTagihanScreen(),
         P7FormPembayaranScreen.route: (_) => const P7FormPembayaranScreen(),
+        P8TrackingScreen.route: (_) => const P8TrackingScreen(),
+        P10FormUlasanScreen.route: (_) => const P10FormUlasanScreen(),
+        P13UbahKataSandiScreen.route: (_) => const P13UbahKataSandiScreen(),
+        P14BantuanScreen.route: (_) => const P14BantuanScreen(),
+        P15EditProfilScreen.route: (_) => const P15EditProfilScreen(),
       },
     );
   }

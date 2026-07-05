@@ -23,8 +23,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.tuntaskilat.tk_pelanggan"
+        // Harus sama dengan app Android yang terdaftar di Firebase project
+        // tuntaskilat-homeservices (google-services.json).
+        applicationId = "com.tuntaskilat.pelanggan"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

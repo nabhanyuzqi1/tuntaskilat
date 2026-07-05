@@ -1,0 +1,341 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:tk_core/tk_core.dart';
+
+import '../providers/app_providers.dart';
+import '../providers/beranda_providers.dart';
+import 'p13_ubah_kata_sandi_screen.dart';
+import 'p14_bantuan_screen.dart';
+import 'p15_edit_profil_screen.dart';
+import 'p2_auth_screen.dart';
+
+/// P11 — Profil / Akun. Data akun ringkas, entry ke Edit Profil (P15),
+/// Ubah Kata Sandi (P13), Bantuan (P14), dan Keluar dengan dialog
+/// konfirmasi (kaidah konfirmasi ulang aksi destruktif).
+class P11ProfilScreen extends ConsumerWidget {
+  const P11ProfilScreen({super.key});
+
+  static const _latarLembut = Color(0xFFF6F8F5);
+
+  Future<void> _konfirmasiKeluar(BuildContext context, WidgetRef ref) async {
+    final keluar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(TkRadius.card)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: TkColors.error.withValues(alpha: 0.10),
+                ),
+                child: const Icon(Icons.logout_rounded,
+                    size: 28, color: TkColors.error),
+              ),
+              const SizedBox(height: 14),
+              Text('Keluar dari akun?',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                      color: TkColors.inkSoft)),
+              const SizedBox(height: 6),
+              Text(
+                'Anda perlu masuk kembali dengan email dan kata sandi '
+                'untuk mengakses akun.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    color: TkColors.textSecondary,
+                    height: 1.5),
+              ),
+              const SizedBox(height: 18),
+              Row(children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 52,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: Text('Batal',
+                          style: GoogleFonts.montserrat(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF33403A))),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: TkColors.error),
+                      child: const Text('Ya, Keluar'),
+                    ),
+                  ),
+                ),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (keluar != true || !context.mounted) return;
+    await ref.read(authServiceProvider).signOut();
+    if (context.mounted) {
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil(P2AuthScreen.route, (_) => false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profil = ref.watch(profilSayaProvider).valueOrNull;
+    final inisial = profil == null || profil.nama.isEmpty
+        ? 'TK'
+        : profil.nama
+            .trim()
+            .split(RegExp(r'\s+'))
+            .take(2)
+            .map((k) => k[0].toUpperCase())
+            .join();
+
+    return Scaffold(
+      backgroundColor: _latarLembut,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [TkColors.primaryDark, TkColors.primary],
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 30),
+                child: Row(children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(inisial,
+                        style: GoogleFonts.montserrat(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            color: TkColors.primaryDark)),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(profil?.nama ?? '—',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.montserrat(
+                                fontSize: 21,
+                                fontWeight: FontWeight.w700,
+                                color: TkColors.surface)),
+                        const SizedBox(height: 4),
+                        Text(profil?.email ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.montserrat(
+                                fontSize: 13,
+                                color:
+                                    Colors.white.withValues(alpha: 0.85))),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.verified_user_outlined,
+                                  size: 11, color: TkColors.surface),
+                              const SizedBox(width: 5),
+                              Text('Akun Terverifikasi',
+                                  style: GoogleFonts.montserrat(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: TkColors.surface)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 108),
+              children: [
+                _judul('DATA AKUN'),
+                _grup([
+                  _baris(context, Icons.person_outline_rounded,
+                      'Nama Lengkap', profil?.nama ?? '—',
+                      onTap: () => _keEdit(context)),
+                  _baris(context, Icons.call_outlined, 'No. Telepon',
+                      (profil?.noTelepon ?? '').isEmpty
+                          ? '—'
+                          : profil!.noTelepon,
+                      onTap: () => _keEdit(context)),
+                  _baris(context, Icons.location_on_outlined,
+                      'Alamat Tersimpan',
+                      (profil?.alamat ?? '').isEmpty
+                          ? 'Belum diisi'
+                          : profil!.alamat,
+                      onTap: () => _keEdit(context)),
+                ]),
+                const SizedBox(height: 20),
+                _judul('PENGATURAN'),
+                _grup([
+                  _baris(context, Icons.lock_outline_rounded,
+                      'Ubah Kata Sandi', null,
+                      onTap: () => Navigator.of(context)
+                          .pushNamed(P13UbahKataSandiScreen.route)),
+                  _baris(context, Icons.help_outline_rounded,
+                      'Bantuan & Dukungan', null,
+                      onTap: () => Navigator.of(context)
+                          .pushNamed(P14BantuanScreen.route)),
+                ]),
+                const SizedBox(height: 22),
+                SizedBox(
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _konfirmasiKeluar(context, ref),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                          color: TkColors.error.withValues(alpha: 0.35),
+                          width: 1.5),
+                      backgroundColor:
+                          TkColors.error.withValues(alpha: 0.03),
+                    ),
+                    icon: const Icon(Icons.logout_rounded,
+                        size: 18, color: TkColors.error),
+                    label: Text('Keluar',
+                        style: GoogleFonts.montserrat(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: TkColors.error)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: Text('Tuntaskilat v1.0.0 · PT Tuntas Kilat Group',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 11, color: const Color(0xFFA6AEA9))),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _keEdit(BuildContext context) =>
+      Navigator.of(context).pushNamed(P15EditProfilScreen.route);
+
+  Widget _judul(String teks) => Padding(
+        padding: const EdgeInsets.only(left: 4, bottom: 10),
+        child: Text(teks,
+            style: GoogleFonts.montserrat(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: TkColors.textMuted,
+                letterSpacing: 0.3)),
+      );
+
+  Widget _grup(List<Widget> anak) => Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: TkColors.surface,
+          borderRadius: BorderRadius.circular(TkRadius.card),
+          border: Border.all(color: const Color(0x0D0F281C)),
+        ),
+        child: Column(children: [
+          for (var i = 0; i < anak.length; i++) ...[
+            if (i > 0)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(),
+              ),
+            anak[i],
+          ],
+        ]),
+      );
+
+  Widget _baris(BuildContext context, IconData ikon, String label,
+      String? nilai,
+      {required VoidCallback onTap}) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: TkColors.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(ikon, size: 19, color: TkColors.primary),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: nilai == null
+                ? Text(label,
+                    style: GoogleFonts.montserrat(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: TkColors.inkSoft))
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label,
+                          style: GoogleFonts.montserrat(
+                              fontSize: 12, color: TkColors.textMuted)),
+                      const SizedBox(height: 2),
+                      Text(nilai,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.montserrat(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: TkColors.inkSoft)),
+                    ],
+                  ),
+          ),
+          const Icon(Icons.chevron_right_rounded,
+              size: 20, color: Color(0xFFC4CBC6)),
+        ]),
+      ),
+    );
+  }
+}

@@ -8,6 +8,7 @@ import 'package:tk_core/tk_core.dart';
 
 import '../providers/pembayaran_providers.dart';
 import 'p3_beranda_screen.dart';
+import 'p8_tracking_screen.dart';
 
 /// P7 — Form Pembayaran (Gambar TA 3.16). Pilih metode (transfer/QRIS/tunai),
 /// unggah bukti bayar (wajib non-tunai), lalu state "Menunggu Verifikasi"
@@ -518,9 +519,9 @@ class _MenungguVerifikasi extends StatelessWidget {
           const SizedBox(height: 26),
           TkButton(
             label: 'Lacak Status Pesanan',
-            // → P8 Tracking (milestone berikutnya).
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Halaman ini segera hadir.')),
+            onPressed: () => Navigator.of(context).pushReplacementNamed(
+              P8TrackingScreen.route,
+              arguments: order.orderId,
             ),
           ),
           const SizedBox(height: 10),
