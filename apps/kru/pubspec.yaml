@@ -15,13 +15,44 @@ dependencies:
     sdk: flutter
   tk_core: ^0.1.0
   firebase_core: ^4.1.0
+  firebase_auth: ^6.1.0
+  cloud_firestore: ^6.0.0
   flutter_riverpod: ^2.6.1
   google_fonts: ^6.3.0
+  shared_preferences: ^2.3.0
+  geolocator: ^14.0.0
+  image_picker: ^1.1.0
+  flutter_map: ^7.0.0
+  latlong2: ^0.9.1
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.0
+  flutter_launcher_icons: ^0.14.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/brand/
+
+# Sumber generator sama dengan app pelanggan (tool/brand_src). Regenerate:
+#   dart run flutter_native_splash:create && dart run flutter_launcher_icons
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: tool/brand_src/splash_logo.png
+  android_12:
+    color: "#FFFFFF"
+    image: tool/brand_src/splash_icon_a12.png
+  android: true
+  ios: false
+  web: false
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: tool/brand_src/icon_legacy.png
+  adaptive_icon_background: "#006542"
+  adaptive_icon_foreground: tool/brand_src/icon_adaptive_foreground.png

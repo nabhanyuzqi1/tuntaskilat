@@ -193,6 +193,28 @@ void main() {
     });
   });
 
+  group('K4 — laporan kerja menyelesaikan order', () {
+    test('foto tersimpan di array skema dan status → selesai', () async {
+      final order = await service.createOrder(
+        pelanggan: pelanggan,
+        serviceId: 's1',
+        jadwal: jadwal,
+        kuantitas: 2,
+        alamatLayanan: 'Jl. Ahmad Yani, Sampit',
+        lokasi: lokasiSampit,
+      );
+      await service.submitLaporanKerja(
+        orderId: order.orderId,
+        fotoSebelum: ['https://storage/sebelum_0.jpg'],
+        fotoSesudah: ['https://storage/sesudah_0.jpg'],
+      );
+      final snap = await db.collection('orders').doc(order.orderId).get();
+      expect(snap.data()!['status'], 'selesai');
+      expect(snap.data()!['fotoSebelum'], ['https://storage/sebelum_0.jpg']);
+      expect(snap.data()!['fotoSesudah'], ['https://storage/sesudah_0.jpg']);
+    });
+  });
+
   group('Skenario Black-Box #7 — kru offline hilang dari daftar tersedia', () {
     test('watchAvailableKru hanya memuat statusKetersediaan == true', () async {
       await db.collection('kru').doc('k1').set({

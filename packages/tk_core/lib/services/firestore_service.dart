@@ -228,6 +228,23 @@ class FirestoreService {
   Future<void> setKetersediaanKru(String cleanerId, bool tersedia) =>
       _kru.doc(cleanerId).update({'statusKetersediaan': tersedia});
 
+  /// Posisi live kru saat `dalam_perjalanan` — sumber marker P8 Tracking.
+  Future<void> updatePosisiKru(String cleanerId, GeoPoint posisi) =>
+      _kru.doc(cleanerId).update({'posisi': posisi});
+
+  /// K4 — laporan kerja: simpan URL foto sebelum/sesudah dan tandai order
+  /// `selesai` (State Diagram 3.11: diproses → selesai).
+  Future<void> submitLaporanKerja({
+    required String orderId,
+    required List<String> fotoSebelum,
+    required List<String> fotoSesudah,
+  }) =>
+      _orders.doc(orderId).update({
+        'fotoSebelum': fotoSebelum,
+        'fotoSesudah': fotoSesudah,
+        'status': OrderStatus.selesai.wire,
+      });
+
   // ---------------------------------------------------------------- payments
 
   Future<PaymentModel> createPayment({
@@ -294,6 +311,14 @@ class FirestoreService {
       return review;
     });
   }
+
+  /// Ulasan yang diterima seorang kru (K5) — rules `reviews.read` publik.
+  Stream<List<ReviewModel>> watchReviewsByKru(String cleanerId) => _reviews
+      .where('cleanerId', isEqualTo: cleanerId)
+      .snapshots()
+      .map((s) => s.docs
+          .map((d) => ReviewModel.fromMap(d.id, d.data()))
+          .toList(growable: false));
 
   // ----------------------------------------------------------- notifications
 
