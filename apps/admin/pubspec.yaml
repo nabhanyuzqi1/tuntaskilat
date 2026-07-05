@@ -1,0 +1,28 @@
+name: tk_admin
+description: >-
+  Tuntaskilat — Panel Admin (Flutter Web). Layar A1-A6, lihat page-inventory.md.
+  Bagian Biaya & Komisi + Manajemen Tim Admin (A6) ditunda sesuai keputusan
+  scope (butuh skema di luar 7 koleksi TA).
+publish_to: none
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ^3.11.0
+  flutter: ">=3.41.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  tk_core: ^0.1.0
+  firebase_core: ^4.1.0
+  flutter_riverpod: ^2.6.1
+  google_fonts: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

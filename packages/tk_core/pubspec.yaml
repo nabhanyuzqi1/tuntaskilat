@@ -1,0 +1,27 @@
+name: tk_core
+description: >-
+  Package bersama Tuntaskilat — models 7 koleksi Firestore (persis Kamus Data TA),
+  services Firebase, theme dari design-tokens, dan widgets reusable lintas 3 aplikasi.
+publish_to: none
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ^3.11.0
+  flutter: ">=3.41.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^4.1.0
+  firebase_auth: ^6.1.0
+  cloud_firestore: ^6.0.0
+  firebase_storage: ^13.0.0
+  google_fonts: ^6.3.0
+  flutter_riverpod: ^2.6.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  fake_cloud_firestore: ^4.0.0

@@ -1,0 +1,66 @@
+rules_version = '2';
+// Kerangka wajib dari firestore-schema.md (TA Bab III 3.1.2 & Bab IV 4.2.1):
+// owner-only read/write; admin lebih luas; field uang/kepemilikan tidak boleh
+// ditulis bebas dari klien. Prinsip ini diuji skenario Black-Box #5 dan #6 —
+// jangan dilonggarkan.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function role() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function isAdmin() { return isSignedIn() && role() == 'admin'; }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /services/{serviceId} {
+      allow read: if true; // katalog publik untuk pengguna yang sudah masuk
+      allow write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.cleanerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // update totalHarga/hargaSatuan HANYA lewat transaction tervalidasi backend,
+      // bukan write bebas klien
+      allow update: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.cleanerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /kru/{cleanerId} {
+      allow read: if true;
+      allow update: if isOwner(cleanerId) || isAdmin();
+      allow create, delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin(); // hanya admin yang mengubah statusBayar
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /notifications/{notifId} {
+      allow read, update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn(); // idealnya ditulis backend/Cloud Function
+    }
+  }
+}

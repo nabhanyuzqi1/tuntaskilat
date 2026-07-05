@@ -1,0 +1,27 @@
+name: tk_kru
+description: >-
+  Tuntaskilat — Portal Kru (Android). Layar KO1-KO3 + K1-K6,
+  lihat page-inventory.md. Login tanpa registrasi mandiri (akun dibuat admin).
+publish_to: none
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ^3.11.0
+  flutter: ">=3.41.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  tk_core: ^0.1.0
+  firebase_core: ^4.1.0
+  flutter_riverpod: ^2.6.1
+  google_fonts: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

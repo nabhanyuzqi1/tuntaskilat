@@ -1,0 +1,14 @@
+name: tuntaskilat_workspace
+description: >-
+  Monorepo Tuntaskilat — 3 aplikasi Flutter (Pelanggan/Android, Portal Kru/Android,
+  Panel Admin/Web) + package bersama tk_core, 1 backend Firebase.
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+workspace:
+  - packages/tk_core
+  - apps/pelanggan
+  - apps/kru
+  - apps/admin

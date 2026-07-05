@@ -1,0 +1,20 @@
+# Dart/Flutter
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.metadata
+
+# macOS
+.DS_Store
+
+# Firebase (kredensial per-mesin; firebase_options.dart di-commit setelah flutterfire configure)
+.firebase/
+firebase-debug.log
+**/google-services.json.bak
+
+# Coverage
+coverage/

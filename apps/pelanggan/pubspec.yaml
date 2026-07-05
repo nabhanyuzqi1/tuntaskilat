@@ -1,0 +1,31 @@
+name: tk_pelanggan
+description: >-
+  Tuntaskilat — Aplikasi Pelanggan (Android). Layar OB1-OB3 + P1-P15,
+  lihat page-inventory.md.
+publish_to: none
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ^3.11.0
+  flutter: ">=3.41.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  tk_core: ^0.1.0
+  firebase_core: ^4.1.0
+  firebase_auth: ^6.1.0
+  flutter_riverpod: ^2.6.1
+  google_fonts: ^6.3.0
+  shared_preferences: ^2.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/brand/
