@@ -59,6 +59,12 @@ class FirestoreService {
           .map((d) => ServiceModel.fromMap(d.id, d.data()))
           .toList(growable: false));
 
+  /// Seluruh layanan termasuk nonaktif — untuk tabel A4.
+  Stream<List<ServiceModel>> watchSemuaLayanan() => _services.snapshots().map(
+      (s) => s.docs
+          .map((d) => ServiceModel.fromMap(d.id, d.data()))
+          .toList(growable: false));
+
   Future<ServiceModel?> getService(String serviceId) async {
     final snap = await _services.doc(serviceId).get();
     if (!snap.exists) return null;
@@ -244,6 +250,121 @@ class FirestoreService {
         'fotoSesudah': fotoSesudah,
         'status': OrderStatus.selesai.wire,
       });
+
+  // ------------------------------------------------------------------- admin
+
+  /// Semua pesanan (A2/A3) — rules `orders.list` mengizinkan admin.
+  Stream<List<OrderModel>> watchSemuaOrders() => _orders.snapshots().map(
+        (s) => s.docs
+            .map((d) => OrderModel.fromMap(d.id, d.data()))
+            .toList(growable: false),
+      );
+
+  /// Semua kru termasuk offline (A5).
+  Stream<List<KruModel>> watchSemuaKru() => _kru.snapshots().map(
+        (s) => s.docs
+            .map((d) => KruModel.fromMap(d.id, d.data()))
+            .toList(growable: false),
+      );
+
+  /// A3 — verifikasi/tolak pembayaran (rules: `payments.update` admin-only).
+  /// Skema tidak punya field alasan penolakan — alasan disampaikan lewat
+  /// dokumen `notifications` ke pelanggan (mekanisme umpan balik skema).
+  /// Tolak → order `ditolak` (pelanggan bisa unggah ulang, State Diagram);
+  /// terima → order `terverifikasi`.
+  Future<void> verifikasiPembayaran({
+    required OrderModel order,
+    required bool terima,
+    String? alasan,
+  }) async {
+    final pembayaran = await _payments
+        .where('orderId', isEqualTo: order.orderId)
+        .orderBy('waktu', descending: true)
+        .limit(1)
+        .get();
+
+    final batch = _db.batch();
+    if (pembayaran.docs.isNotEmpty) {
+      batch.update(pembayaran.docs.first.reference, {
+        'statusBayar':
+            (terima ? StatusBayar.terverifikasi : StatusBayar.ditolak).wire,
+      });
+    }
+    batch.update(
+      _orders.doc(order.orderId),
+      {
+        'status': (terima ? OrderStatus.terverifikasi : OrderStatus.ditolak)
+            .wire,
+      },
+    );
+    final notifRef = _notifications.doc();
+    batch.set(notifRef, {
+      'notificationId': notifRef.id,
+      'userId': order.userId,
+      'judul': terima
+          ? 'Pembayaran terverifikasi'
+          : 'Pembayaran ditolak',
+      'pesan': terima
+          ? 'Pesanan Anda dikonfirmasi dan sedang dijadwalkan. Terima kasih.'
+          : 'Pembayaran belum terverifikasi. ${alasan ?? ''} '
+              'Unggah ulang bukti transfer yang jelas.',
+      'waktu': Timestamp.now(),
+      'dibaca': false,
+      'orderId': order.orderId,
+    });
+    await batch.commit();
+  }
+
+  /// A3 — penugasan kru manual: isi `cleanerId` + denormalisasi `namaKru`,
+  /// status → `ditugaskan`, kabari pelanggan.
+  Future<void> tugaskanKru({
+    required OrderModel order,
+    required KruModel kru,
+  }) async {
+    final batch = _db.batch();
+    batch.update(_orders.doc(order.orderId), {
+      'cleanerId': kru.cleanerId,
+      'namaKru': kru.nama,
+      'status': OrderStatus.ditugaskan.wire,
+    });
+    final notifRef = _notifications.doc();
+    batch.set(notifRef, {
+      'notificationId': notifRef.id,
+      'userId': order.userId,
+      'judul': 'Kru ditugaskan untuk pesanan Anda',
+      'pesan': '${kru.nama} akan datang sesuai jadwal Anda. Pantau '
+          'posisinya di halaman Status Pesanan.',
+      'waktu': Timestamp.now(),
+      'dibaca': false,
+      'orderId': order.orderId,
+    });
+    await batch.commit();
+  }
+
+  /// A4 — tambah/ubah layanan (rules: `services.write` admin-only).
+  Future<ServiceModel> simpanLayanan(ServiceModel layanan) async {
+    final ref = layanan.serviceId.isEmpty
+        ? _services.doc()
+        : _services.doc(layanan.serviceId);
+    final tersimpan = ServiceModel(
+      serviceId: ref.id,
+      namaLayanan: layanan.namaLayanan,
+      deskripsi: layanan.deskripsi,
+      harga: layanan.harga,
+      satuan: layanan.satuan,
+      aktif: layanan.aktif,
+      ikon: layanan.ikon,
+    );
+    await ref.set(tersimpan.toMap());
+    return tersimpan;
+  }
+
+  Future<void> setLayananAktif(String serviceId, bool aktif) =>
+      _services.doc(serviceId).update({'aktif': aktif});
+
+  /// A5 — dokumen `kru` untuk akun kru baru (rules: `kru.create` admin).
+  Future<void> buatDokumenKru(KruModel kru) =>
+      _kru.doc(kru.cleanerId).set(kru.toMap());
 
   // ---------------------------------------------------------------- payments
 

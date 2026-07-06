@@ -193,6 +193,73 @@ void main() {
     });
   });
 
+  group('A3 — verifikasi pembayaran & penugasan kru (admin)', () {
+    test('tolak: statusBayar+order ditolak, alasan terkirim via notifikasi',
+        () async {
+      final order = await service.createOrder(
+        pelanggan: pelanggan,
+        serviceId: 's1',
+        jadwal: jadwal,
+        kuantitas: 2,
+        alamatLayanan: 'Jl. Ahmad Yani, Sampit',
+        lokasi: lokasiSampit,
+      );
+      await service.createPayment(
+        orderId: order.orderId,
+        userId: order.userId,
+        metode: MetodeBayar.qris,
+        jumlah: order.totalHarga,
+        buktiBayar: 'https://storage/bukti.jpg',
+      );
+
+      await service.verifikasiPembayaran(
+        order: order,
+        terima: false,
+        alasan: 'Bukti tidak sesuai.',
+      );
+
+      final payment = await db
+          .collection('payments')
+          .where('orderId', isEqualTo: order.orderId)
+          .get();
+      expect(payment.docs.first.data()['statusBayar'], 'ditolak');
+      final o = await db.collection('orders').doc(order.orderId).get();
+      expect(o.data()!['status'], 'ditolak');
+      final notif = await db
+          .collection('notifications')
+          .where('userId', isEqualTo: order.userId)
+          .get();
+      expect(notif.docs.single.data()['pesan'],
+          contains('Bukti tidak sesuai.'));
+    });
+
+    test('tugaskan kru: cleanerId + namaKru terisi, status ditugaskan',
+        () async {
+      final order = await service.createOrder(
+        pelanggan: pelanggan,
+        serviceId: 's1',
+        jadwal: DateTime(2026, 7, 12, 10, 0),
+        kuantitas: 1,
+        alamatLayanan: 'Jl. Ahmad Yani, Sampit',
+        lokasi: lokasiSampit,
+      );
+      const kru = KruModel(
+        cleanerId: 'k1',
+        nama: 'Andi Saputra',
+        noTelepon: '0812',
+        statusKetersediaan: true,
+        rataRating: 4.9,
+        jumlahUlasan: 10,
+      );
+      await service.tugaskanKru(order: order, kru: kru);
+
+      final o = await db.collection('orders').doc(order.orderId).get();
+      expect(o.data()!['cleanerId'], 'k1');
+      expect(o.data()!['namaKru'], 'Andi Saputra');
+      expect(o.data()!['status'], 'ditugaskan');
+    });
+  });
+
   group('K4 — laporan kerja menyelesaikan order', () {
     test('foto tersimpan di array skema dan status → selesai', () async {
       final order = await service.createOrder(
