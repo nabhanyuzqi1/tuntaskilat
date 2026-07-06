@@ -246,25 +246,72 @@ class A2DashboardScreen extends ConsumerWidget {
     final lainnya = orders.length - selesai - ditolak;
     final total = orders.length;
 
-    Widget legenda(Color warna, String label, int jumlah) => Row(children: [
-          Container(
-              width: 11,
-              height: 11,
-              decoration: BoxDecoration(
-                  color: warna, borderRadius: BorderRadius.circular(3))),
-          const SizedBox(width: 9),
-          Text(label,
-              style: GoogleFonts.montserrat(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF33403A))),
-          const Spacer(),
-          Text(total == 0 ? '0%' : '${(jumlah * 100 / total).round()}%',
-              style: GoogleFonts.montserrat(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: TkColors.inkSoft)),
-        ]);
+    Widget legenda(Color warna, String label, int jumlah) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(children: [
+            Container(
+                width: 11,
+                height: 11,
+                decoration: BoxDecoration(
+                    color: warna, borderRadius: BorderRadius.circular(3))),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.montserrat(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF33403A))),
+            ),
+            const SizedBox(width: 8),
+            Text(total == 0 ? '0%' : '${(jumlah * 100 / total).round()}%',
+                style: GoogleFonts.montserrat(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: TkColors.inkSoft)),
+          ]),
+        );
+
+    final donut = SizedBox(
+      width: 116,
+      height: 116,
+      child: CustomPaint(
+        painter: _DonutPainter(
+          bagian: total == 0
+              ? const [(1, Color(0xFFE3E8E4))]
+              : [
+                  (selesai / total, TkColors.primary),
+                  (lainnya / total, TkColors.accent),
+                  (ditolak / total, TkColors.error),
+                ],
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('$total',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: TkColors.inkSoft)),
+              Text('total',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 10, color: TkColors.textMuted)),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final legenda3 = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        legenda(TkColors.primary, 'Selesai', selesai),
+        legenda(TkColors.accent, 'Menunggu/Aktif', lainnya),
+        legenda(TkColors.error, 'Dibatalkan', ditolak),
+      ],
+    );
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -279,51 +326,26 @@ class A2DashboardScreen extends ConsumerWidget {
                   color: TkColors.inkSoft)),
           const SizedBox(height: 18),
           Expanded(
-            child: Row(children: [
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: CustomPaint(
-                  painter: _DonutPainter(
-                    bagian: total == 0
-                        ? const [(1, Color(0xFFE3E8E4))]
-                        : [
-                            (selesai / total, TkColors.primary),
-                            (lainnya / total, TkColors.accent),
-                            (ditolak / total, TkColors.error),
-                          ],
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('$total',
-                            style: GoogleFonts.montserrat(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: TkColors.inkSoft)),
-                        Text('total',
-                            style: GoogleFonts.montserrat(
-                                fontSize: 10, color: TkColors.textMuted)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    legenda(TkColors.primary, 'Selesai', selesai),
-                    const SizedBox(height: 12),
-                    legenda(TkColors.accent, 'Menunggu/Aktif', lainnya),
-                    const SizedBox(height: 12),
-                    legenda(TkColors.error, 'Dibatalkan', ditolak),
-                  ],
-                ),
-              ),
-            ]),
+            child: LayoutBuilder(builder: (context, c) {
+              // Sempit → donut di atas legenda; lebar → berdampingan.
+              if (c.maxWidth < 280) {
+                return SingleChildScrollView(
+                  child: Column(children: [
+                    donut,
+                    const SizedBox(height: 16),
+                    legenda3,
+                  ]),
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  donut,
+                  const SizedBox(width: 18),
+                  Expanded(child: legenda3),
+                ],
+              );
+            }),
           ),
         ],
       ),

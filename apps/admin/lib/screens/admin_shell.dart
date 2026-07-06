@@ -112,53 +112,78 @@ class _Sidebar extends ConsumerWidget {
         const Spacer(),
         _item(ref, MenuAdmin.pengaturan, Icons.settings_outlined,
             'Pengaturan'),
-        const SizedBox(height: 6),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => _keluar(context, ref),
-          child: Container(
-            height: 56,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(11),
+        const SizedBox(height: 8),
+        // Kartu profil admin (informasi, bukan tombol).
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Row(children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                  shape: BoxShape.circle, color: TkColors.accent),
+              alignment: Alignment.center,
+              child: Text(inisial,
+                  style: GoogleFonts.montserrat(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: TkColors.onAccent)),
             ),
-            child: Row(children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                    shape: BoxShape.circle, color: TkColors.accent),
-                alignment: Alignment.center,
-                child: Text(inisial,
-                    style: GoogleFonts.montserrat(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: TkColors.onAccent)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(profil?.nama ?? 'Admin',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.montserrat(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: TkColors.surface)),
+                  Text('Super Admin',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.montserrat(
+                          fontSize: 11,
+                          color: Colors.white.withValues(alpha: 0.5))),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(profil?.nama ?? 'Admin',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.montserrat(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: TkColors.surface)),
-                    Text('Keluar',
-                        style: GoogleFonts.montserrat(
-                            fontSize: 11,
-                            color: Colors.white.withValues(alpha: 0.5))),
-                  ],
-                ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 8),
+        // Tombol Keluar khusus — jelas, ripple, warna merah lembut.
+        Material(
+          color: TkColors.error.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(11),
+          child: InkWell(
+            onTap: () => _keluar(context, ref),
+            borderRadius: BorderRadius.circular(11),
+            hoverColor: TkColors.error.withValues(alpha: 0.12),
+            splashColor: TkColors.error.withValues(alpha: 0.24),
+            child: Container(
+              height: 46,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.logout_rounded,
+                      size: 18, color: Color(0xFFFF8A80)),
+                  const SizedBox(width: 8),
+                  Text('Keluar',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFFF8A80))),
+                ],
               ),
-              Icon(Icons.logout_rounded,
-                  size: 16, color: Colors.white.withValues(alpha: 0.5)),
-            ]),
+            ),
           ),
         ),
       ]),

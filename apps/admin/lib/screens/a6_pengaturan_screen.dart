@@ -42,41 +42,48 @@ class A6PengaturanScreen extends ConsumerWidget {
         subjudul: 'Profil admin, keamanan, dan preferensi panel',
       ),
       Expanded(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(32, 24, 32, 32),
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _judul('PROFIL AKUN'),
-                  _kartuProfil(context, ref, profil),
-                  const SizedBox(height: 22),
-                  _judul('KEAMANAN'),
-                  _kartuKeamanan(context, ref),
-                  const SizedBox(height: 22),
-                  _judul('PREFERENSI NOTIFIKASI'),
-                  _kartuNotifikasi(ref),
-                  const SizedBox(height: 22),
-                  _judul('BIAYA & KOMISI'),
-                  _kartuDitunda(
-                    'Biaya Platform, Komisi Kru, dan Biaya Pembatalan '
-                    'membutuhkan skema di luar 7 koleksi Firestore yang '
-                    'disahkan TA — ditunda sesuai keputusan scope.',
-                  ),
-                  const SizedBox(height: 22),
-                  _judul('MANAJEMEN TIM ADMIN'),
-                  _kartuDitunda(
-                    'Peran admin granular (Operasional/Keuangan/Super '
-                    'Admin) membutuhkan perluasan field role — ditunda '
-                    'sesuai keputusan scope.',
-                  ),
-                ],
+        child: LayoutBuilder(builder: (context, c) {
+          final pad = c.maxWidth < 520 ? 16.0 : 32.0;
+          // Lebar konten dibatasi & bounded eksplisit (SizedBox), bukan
+          // ConstrainedBox — mencegah Column(stretch) menerima lebar
+          // tak-terbatas yang merusak layout profil.
+          final lebar = (c.maxWidth - pad * 2).clamp(0.0, 720.0);
+          return ListView(
+            padding: EdgeInsets.symmetric(horizontal: pad, vertical: 24),
+            children: [
+              SizedBox(
+                width: lebar,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _judul('PROFIL AKUN'),
+                    _kartuProfil(context, ref, profil),
+                    const SizedBox(height: 22),
+                    _judul('KEAMANAN'),
+                    _kartuKeamanan(context, ref),
+                    const SizedBox(height: 22),
+                    _judul('PREFERENSI NOTIFIKASI'),
+                    _kartuNotifikasi(ref),
+                    const SizedBox(height: 22),
+                    _judul('BIAYA & KOMISI'),
+                    _kartuDitunda(
+                      'Biaya Platform, Komisi Kru, dan Biaya Pembatalan '
+                      'membutuhkan skema di luar 7 koleksi Firestore yang '
+                      'disahkan TA — ditunda sesuai keputusan scope.',
+                    ),
+                    const SizedBox(height: 22),
+                    _judul('MANAJEMEN TIM ADMIN'),
+                    _kartuDitunda(
+                      'Peran admin granular (Operasional/Keuangan/Super '
+                      'Admin) membutuhkan perluasan field role — ditunda '
+                      'sesuai keputusan scope.',
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+        }),
       ),
     ]);
   }
@@ -124,19 +131,25 @@ class A6PengaturanScreen extends ConsumerWidget {
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(profil?.nama ?? '—',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.montserrat(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: TkColors.inkSoft)),
               const SizedBox(height: 2),
               Text(profil?.email ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.montserrat(
                       fontSize: 13, color: TkColors.textMuted)),
             ],
           ),
         ),
+        const SizedBox(width: 12),
         SizedBox(
           height: 42,
           child: OutlinedButton(

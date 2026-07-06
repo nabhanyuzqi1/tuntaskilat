@@ -485,6 +485,9 @@ class A3KelolaPesananScreen extends ConsumerWidget {
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 340),
+                      child: ListView(shrinkWrap: true, children: [
                     for (final k in semuaKru)
                       ListTile(
                         onTap: k.statusKetersediaan
@@ -527,6 +530,8 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                               : TkColors.textMuted,
                         ),
                       ),
+                      ]),
+                    ),
                   ],
                 ),
         ),
