@@ -37,6 +37,9 @@ class A3KelolaPesananScreen extends ConsumerWidget {
     final filter = ref.watch(filterA3Provider);
     final cari = ref.watch(cariA3Provider).trim().toLowerCase();
     final menunggu = ref.watch(menungguVerifikasiProvider);
+    // Warmkan stream kru agar dialog "Tugaskan kru" tidak kosong saat admin
+    // langsung membuka menu Pesanan tanpa mampir ke Dashboard.
+    ref.watch(semuaKruProvider);
 
     final tersaring = orders
         .where((o) =>
@@ -299,9 +302,21 @@ class A3KelolaPesananScreen extends ConsumerWidget {
       ),
     );
     if (ya != true) return;
-    await ref
-        .read(firestoreServiceProvider)
-        .verifikasiPembayaran(order: o, terima: true);
+    try {
+      await ref
+          .read(firestoreServiceProvider)
+          .verifikasiPembayaran(order: o, terima: true);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Pembayaran #${o.orderId} diverifikasi. '
+                'Silakan tugaskan kru.')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal memverifikasi. $e')));
+      }
+    }
   }
 
   Future<void> _dialogTolak(
@@ -441,7 +456,16 @@ class A3KelolaPesananScreen extends ConsumerWidget {
 
   Future<void> _dialogTugaskan(
       BuildContext context, WidgetRef ref, OrderModel o) async {
-    final semuaKru = ref.read(semuaKruProvider).valueOrNull ?? const [];
+    // Ambil daftar kru; tunggu stream bila belum sempat termuat.
+    final List<KruModel> semuaKru =
+        ref.read(semuaKruProvider).valueOrNull ??
+            await ref
+                .read(firestoreServiceProvider)
+                .watchSemuaKru()
+                .first
+                .timeout(const Duration(seconds: 8),
+                    onTimeout: () => const []);
+    if (!context.mounted) return;
     final kru = await showDialog<KruModel>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -514,8 +538,20 @@ class A3KelolaPesananScreen extends ConsumerWidget {
       ),
     );
     if (kru == null) return;
-    await ref
-        .read(firestoreServiceProvider)
-        .tugaskanKru(order: o, kru: kru);
+    try {
+      await ref
+          .read(firestoreServiceProvider)
+          .tugaskanKru(order: o, kru: kru);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('${kru.nama} ditugaskan ke pesanan '
+                '#${o.orderId}.')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Gagal menugaskan kru. $e')));
+      }
+    }
   }
 }

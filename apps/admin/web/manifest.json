@@ -1,12 +1,12 @@
 {
-    "name": "tk_admin",
-    "short_name": "tk_admin",
+    "name": "Tuntaskilat — Panel Admin",
+    "short_name": "Tuntaskilat Admin",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#FFFFFF",
+    "theme_color": "#0A874D",
+    "description": "Panel Admin Tuntaskilat — kelola pesanan, kru, dan layanan kebersihan on-demand Kota Sampit.",
+    "orientation": "landscape",
     "prefer_related_applications": false,
     "icons": [
         {

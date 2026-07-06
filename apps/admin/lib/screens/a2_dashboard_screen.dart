@@ -47,79 +47,100 @@ class A2DashboardScreen extends ConsumerWidget {
             '${JudulHariAdmin.format(kini)} · Ringkasan operasional',
       ),
       Expanded(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(32, 24, 32, 32),
-          children: [
-            Row(children: [
-              _kpi(Icons.credit_card_outlined,
-                  PriceBadge.formatRupiah(pendapatanBulanIni),
-                  'Total pendapatan bulan ini', TkColors.primary),
-              const SizedBox(width: 18),
-              _kpi(Icons.receipt_long_outlined, '$aktif', 'Pesanan aktif',
-                  TkColors.accentAlt),
-              const SizedBox(width: 18),
-              _kpi(Icons.person_outline_rounded,
-                  '$kruOnline / ${kru.length}', 'Kru online sekarang',
-                  TkColors.primary),
-              const SizedBox(width: 18),
-              _kpi(Icons.schedule_rounded, '$menunggu',
-                  'Menunggu verifikasi bayar', const Color(0xFF8A6A00)),
-            ]),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 300,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: LayoutBuilder(builder: (context, c) {
+          // Responsif: KPI 4-kolom di layar lebar, 2-kolom di sempit;
+          // grafik berdampingan di lebar, bertumpuk di sempit.
+          final sempit = c.maxWidth < 720;
+          final pad = c.maxWidth < 520 ? 16.0 : 32.0;
+          final kpis = [
+            _kpi(Icons.credit_card_outlined,
+                PriceBadge.formatRupiah(pendapatanBulanIni),
+                'Total pendapatan bulan ini', TkColors.primary),
+            _kpi(Icons.receipt_long_outlined, '$aktif', 'Pesanan aktif',
+                TkColors.accentAlt),
+            _kpi(Icons.person_outline_rounded,
+                '$kruOnline / ${kru.length}', 'Kru online sekarang',
+                TkColors.primary),
+            _kpi(Icons.schedule_rounded, '$menunggu',
+                'Menunggu verifikasi bayar', const Color(0xFF8A6A00)),
+          ];
+          final lebarKpi = sempit
+              ? (c.maxWidth - pad * 2 - 16) / 2
+              : (c.maxWidth - pad * 2 - 18 * 3) / 4;
+          return ListView(
+            padding: EdgeInsets.fromLTRB(pad, 24, pad, 32),
+            children: [
+              Wrap(
+                spacing: sempit ? 16 : 18,
+                runSpacing: 16,
                 children: [
-                  Expanded(flex: 16, child: _grafikPendapatan(orders)),
-                  const SizedBox(width: 18),
-                  Expanded(flex: 10, child: _sebaranStatus(orders)),
+                  for (final k in kpis)
+                    SizedBox(width: lebarKpi.clamp(150, 400), child: k),
                 ],
               ),
-            ),
-            const SizedBox(height: 20),
-            _tabelTerbaru(orders),
-          ],
-        ),
+              const SizedBox(height: 20),
+              if (sempit) ...[
+                SizedBox(height: 260, child: _grafikPendapatan(orders)),
+                const SizedBox(height: 18),
+                SizedBox(height: 240, child: _sebaranStatus(orders)),
+              ] else
+                SizedBox(
+                  height: 300,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(flex: 16, child: _grafikPendapatan(orders)),
+                      const SizedBox(width: 18),
+                      Expanded(flex: 10, child: _sebaranStatus(orders)),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 20),
+              _tabelTerbaru(orders),
+            ],
+          );
+        }),
       ),
     ]);
   }
 
   Widget _kpi(IconData ikon, String nilai, String label, Color warna) =>
-      Expanded(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: AdminUi.kartu(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: warna.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(ikon, size: 21, color: warna),
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: AdminUi.kartu(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: warna.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(height: 14),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(nilai,
-                    style: GoogleFonts.montserrat(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
-                        color: TkColors.inkSoft,
-                        letterSpacing: -0.5)),
-              ),
-              const SizedBox(height: 3),
-              Text(label,
+              child: Icon(ikon, size: 21, color: warna),
+            ),
+            const SizedBox(height: 14),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(nilai,
                   style: GoogleFonts.montserrat(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: TkColors.textMuted)),
-            ],
-          ),
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: TkColors.inkSoft,
+                      letterSpacing: -0.5)),
+            ),
+            const SizedBox(height: 3),
+            Text(label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.montserrat(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: TkColors.textMuted)),
+          ],
         ),
       );
 

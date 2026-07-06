@@ -206,17 +206,18 @@ class _Sidebar extends ConsumerWidget {
     final aktif = menu == nilai;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => ref.read(menuAdminProvider.notifier).state = nilai,
-        child: Container(
-          height: 46,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: aktif ? TkColors.primary : null,
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: Row(children: [
+      child: Material(
+        color: aktif ? TkColors.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(11),
+        child: InkWell(
+          onTap: () => ref.read(menuAdminProvider.notifier).state = nilai,
+          borderRadius: BorderRadius.circular(11),
+          hoverColor: Colors.white.withValues(alpha: 0.06),
+          splashColor: Colors.white.withValues(alpha: 0.12),
+          child: Container(
+            height: 46,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(children: [
             Icon(ikon,
                 size: 19,
                 color: aktif
@@ -245,7 +246,8 @@ class _Sidebar extends ConsumerWidget {
                         fontWeight: FontWeight.w700,
                         color: TkColors.onAccent)),
               ),
-          ]),
+            ]),
+          ),
         ),
       ),
     );
