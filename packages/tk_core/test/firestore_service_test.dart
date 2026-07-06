@@ -87,6 +87,67 @@ void main() {
     });
   });
 
+  group('buatPesananLengkap — order+payment atomik saat konfirmasi bayar', () {
+    test('non-tunai → order menunggu_verifikasi + payment menunggu', () async {
+      final order = await service.buatPesananLengkap(
+        pelanggan: pelanggan,
+        serviceId: 's1',
+        jadwal: jadwal,
+        kuantitas: 3,
+        alamatLayanan: 'Jl. Ahmad Yani, Sampit',
+        lokasi: lokasiSampit,
+        metode: MetodeBayar.qris,
+        buktiBayar: 'https://storage/bukti.jpg',
+      );
+      expect(order.status, OrderStatus.menungguVerifikasi);
+      expect(order.totalHarga, 75000);
+      final pay = await db
+          .collection('payments')
+          .where('orderId', isEqualTo: order.orderId)
+          .get();
+      expect(pay.docs.single.data()['statusBayar'], 'menunggu');
+      expect(pay.docs.single.data()['metode'], 'qris');
+    });
+
+    test('tunai → order langsung menunggu_penugasan', () async {
+      final order = await service.buatPesananLengkap(
+        pelanggan: pelanggan,
+        serviceId: 's1',
+        jadwal: DateTime(2026, 7, 10, 15, 0),
+        kuantitas: 1,
+        alamatLayanan: 'Jl. Ahmad Yani, Sampit',
+        lokasi: lokasiSampit,
+        metode: MetodeBayar.tunai,
+      );
+      expect(order.status, OrderStatus.menungguPenugasan);
+    });
+
+    test('slot sama → transaksi kedua abort (Jadwal Penuh, skenario #1)',
+        () async {
+      await service.buatPesananLengkap(
+        pelanggan: pelanggan,
+        serviceId: 's1',
+        jadwal: jadwal,
+        kuantitas: 1,
+        alamatLayanan: 'Jl. A',
+        lokasi: lokasiSampit,
+        metode: MetodeBayar.tunai,
+      );
+      expect(
+        () => service.buatPesananLengkap(
+          pelanggan: pelangganLain,
+          serviceId: 's1',
+          jadwal: jadwal,
+          kuantitas: 1,
+          alamatLayanan: 'Jl. B',
+          lokasi: lokasiSampit,
+          metode: MetodeBayar.tunai,
+        ),
+        throwsA(isA<JadwalPenuhException>()),
+      );
+    });
+  });
+
   group('Skenario Black-Box #6 — harga dihitung ulang di backend', () {
     test('totalHarga = services.harga × kuantitas, bukan dari klien', () async {
       final order = await service.createOrder(

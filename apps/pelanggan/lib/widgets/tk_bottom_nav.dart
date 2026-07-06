@@ -22,15 +22,14 @@ class TkBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sisakan ruang untuk gesture/navigation bar bawaan HP supaya isi nav
+    // tidak tertutup (edge-to-edge Android 15/target SDK 36).
+    final insetBawah = MediaQuery.viewPaddingOf(context).bottom;
     return GlassContainer(
       radius: 0,
       opacity: 0.72,
       child: Container(
-        height: 84,
-        padding: EdgeInsets.only(
-          top: 12,
-          bottom: MediaQuery.paddingOf(context).bottom > 0 ? 0 : 4,
-        ),
+        padding: EdgeInsets.only(top: 10, bottom: insetBawah + 8),
         decoration: const BoxDecoration(
           border: Border(
             top: BorderSide(color: Color(0x0F0F281C)),

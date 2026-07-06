@@ -11,8 +11,9 @@ import 'p2_auth_screen.dart';
 import 'p3_beranda_screen.dart';
 
 /// P1 — Pembuka (Splash). Gambar TA 3.14.
-/// Branding awal, auto-navigasi ~1.6 detik: install pertama → OB1;
-/// sudah login → P3 Beranda; selain itu → P2 Masuk.
+/// Branding awal dengan animasi lembut (fade + scale logo); navigasi terjadi
+/// segera setelah Firebase siap (minimal ~1 dtk agar branding sempat terlihat)
+/// — bukan timer tetap — supaya cold start tidak terasa lama.
 class P1SplashScreen extends ConsumerStatefulWidget {
   const P1SplashScreen({super.key});
 
@@ -22,27 +23,39 @@ class P1SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<P1SplashScreen> createState() => _P1SplashScreenState();
 }
 
-class _P1SplashScreenState extends ConsumerState<P1SplashScreen> {
-  Timer? _timer;
+class _P1SplashScreenState extends ConsumerState<P1SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _anim;
+  var _sudahNavigasi = false;
+  final _minTampil = Future<void>.delayed(const Duration(milliseconds: 1100));
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 1600), _navigasi);
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..forward();
+    // Mulai proses siap → navigasi begitu Firebase + prefs selesai.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _coba());
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _anim.dispose();
     super.dispose();
   }
 
-  Future<void> _navigasi() async {
-    final onboardingSelesai =
-        await ref.read(onboardingSelesaiProvider.future);
-    final firebaseSiap = ref.read(firebaseSiapProvider);
+  Future<void> _coba() async {
+    // Tunggu Firebase init (non-blocking di main) + minimal durasi branding.
+    final siap = await ref.read(firebaseInitProvider.future);
+    await _minTampil;
+    if (!mounted || _sudahNavigasi) return;
+    _sudahNavigasi = true;
+
+    final onboardingSelesai = await ref.read(onboardingSelesaiProvider.future);
     final sudahLogin =
-        firebaseSiap && ref.read(authServiceProvider).currentUser != null;
+        siap && ref.read(authServiceProvider).currentUser != null;
     if (!mounted) return;
     final tujuan = !onboardingSelesai
         ? OnboardingScreen.route
@@ -54,10 +67,10 @@ class _P1SplashScreenState extends ConsumerState<P1SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final kurva = CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic);
     return Scaffold(
       body: Stack(
         children: [
-          // Gradient hijau lembut ke putih di sepertiga atas (Hi-Fi P1).
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -78,45 +91,52 @@ class _P1SplashScreenState extends ConsumerState<P1SplashScreen> {
             child: Column(
               children: [
                 Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset('assets/brand/logo-color.webp', width: 190),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Tuntaskilat',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w700,
-                          color: TkColors.inkSoft,
-                          letterSpacing: -0.5,
+                  child: Center(
+                    child: FadeTransition(
+                      opacity: kurva,
+                      child: ScaleTransition(
+                        scale: Tween(begin: 0.86, end: 1.0).animate(kurva),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Image.asset('assets/brand/logo-color.webp',
+                                width: 190),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Tuntaskilat',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 30,
+                                fontWeight: FontWeight.w700,
+                                color: TkColors.inkSoft,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Layanan kebersihan on-demand untuk Sampit',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 14,
+                                color: TkColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Layanan kebersihan on-demand untuk Sampit',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.montserrat(
-                          fontSize: 14,
-                          color: TkColors.textSecondary,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 44),
                   child: Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _dot(TkColors.primary),
-                          const SizedBox(width: 7),
-                          _dot(TkColors.primary.withValues(alpha: 0.35)),
-                          const SizedBox(width: 7),
-                          _dot(TkColors.primary.withValues(alpha: 0.15)),
-                        ],
+                      const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          color: TkColors.primary,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       Text(
@@ -137,10 +157,4 @@ class _P1SplashScreenState extends ConsumerState<P1SplashScreen> {
       ),
     );
   }
-
-  Widget _dot(Color color) => Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      );
 }

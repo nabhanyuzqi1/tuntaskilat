@@ -1,92 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tk_core/tk_core.dart';
 
+import '../providers/pemesanan_providers.dart';
 import '../widgets/service_icon.dart';
 import 'p5_form_pemesanan_screen.dart';
 
-/// P4 — Detail Layanan (Gambar TA 3.15). Deskripsi lengkap + tarif tetap per
-/// satuan sebagai elemen kedua paling menonjol (kaidah Kejelasan), chip info,
-/// CTA sticky "Pesan Sekarang" → P5.
-class P4DetailLayananScreen extends StatelessWidget {
+/// P4 — Detail Layanan (Gambar TA 3.15). Hero berikon, nama + kategori,
+/// tarif tetap sebagai elemen menonjol kedua (kaidah Kejelasan), chip info,
+/// deskripsi, cakupan layanan, dan CTA sticky "Pesan Sekarang" → P5.
+class P4DetailLayananScreen extends ConsumerWidget {
   const P4DetailLayananScreen({super.key});
 
   static const route = '/p4';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final layanan =
         ModalRoute.of(context)!.settings.arguments as ServiceModel;
     return Scaffold(
+      backgroundColor: TkColors.surface,
       body: Stack(
         children: [
           ListView(
-            padding: const EdgeInsets.only(bottom: 112),
+            padding: EdgeInsets.only(
+                bottom: 96 + MediaQuery.paddingOf(context).bottom),
             children: [
               _Hero(layanan: layanan),
-              Transform.translate(
-                offset: const Offset(0, -22),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: TkColors.surface,
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(24, 22, 24, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: TkColors.primary.withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'Layanan Kebersihan',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: TkColors.primaryDark,
-                          ),
-                        ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _chip('Layanan Kebersihan'),
+                    const SizedBox(height: 10),
+                    Text(
+                      layanan.namaLayanan,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: TkColors.inkSoft,
+                        letterSpacing: -0.4,
+                        height: 1.2,
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        layanan.namaLayanan,
-                        style: GoogleFonts.montserrat(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: TkColors.inkSoft,
-                          letterSpacing: -0.5,
-                          height: 1.15,
-                        ),
+                    ),
+                    const SizedBox(height: 18),
+                    _KartuTarif(layanan: layanan),
+                    const SizedBox(height: 16),
+                    const _InfoChips(),
+                    const SizedBox(height: 20),
+                    _judul('Deskripsi'),
+                    const SizedBox(height: 8),
+                    Text(
+                      layanan.deskripsi.isEmpty
+                          ? 'Layanan kebersihan profesional oleh kru '
+                              'terverifikasi Tuntaskilat.'
+                          : layanan.deskripsi,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 14,
+                        color: TkColors.textSecondary,
+                        height: 1.6,
                       ),
-                      const SizedBox(height: 18),
-                      _KartuTarif(layanan: layanan),
-                      const SizedBox(height: 18),
-                      const _InfoChips(),
-                      const SizedBox(height: 18),
-                      Text(
-                        'Deskripsi',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: TkColors.inkSoft,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        layanan.deskripsi,
-                        style: GoogleFonts.montserrat(
-                          fontSize: 14,
-                          color: TkColors.textSecondary,
-                          height: 1.6,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 20),
+                    _judul('Termasuk Layanan'),
+                    const SizedBox(height: 10),
+                    ..._cakupan.map(_barisCakupan),
+                  ],
                 ),
               ),
             ],
@@ -100,6 +81,59 @@ class P4DetailLayananScreen extends StatelessWidget {
       ),
     );
   }
+
+  static const _cakupan = [
+    'Dikerjakan kru profesional terverifikasi',
+    'Peralatan & cairan pembersih standar',
+    'Bergaransi — ulang gratis bila kurang bersih',
+  ];
+
+  Widget _chip(String teks) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: TkColors.primary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: Text(teks,
+            style: GoogleFonts.montserrat(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: TkColors.primaryDark)),
+      );
+
+  Widget _judul(String teks) => Text(teks,
+      style: GoogleFonts.montserrat(
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          color: TkColors.inkSoft));
+
+  Widget _barisCakupan(String teks) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              margin: const EdgeInsets.only(top: 1),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: TkColors.primary.withValues(alpha: 0.12),
+              ),
+              child: const Icon(Icons.check_rounded,
+                  size: 13, color: TkColors.primary),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(teks,
+                  style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      color: const Color(0xFF33403A),
+                      height: 1.4)),
+            ),
+          ],
+        ),
+      );
 }
 
 class _Hero extends StatelessWidget {
@@ -110,13 +144,49 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 320,
-      color: TkColors.surfaceMuted,
-      alignment: Alignment.center,
-      child: Icon(
-        serviceIcon(layanan.ikon),
-        size: 76,
-        color: TkColors.primary,
+      height: 240,
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFE8F3EC), Color(0xFFF6F8F5)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -40,
+            right: -30,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: TkColors.primary.withValues(alpha: 0.06),
+              ),
+            ),
+          ),
+          Center(
+            child: Container(
+              width: 108,
+              height: 108,
+              decoration: BoxDecoration(
+                color: TkColors.surface,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                      color: TkColors.primary.withValues(alpha: 0.18),
+                      blurRadius: 30,
+                      offset: const Offset(0, 12),
+                      spreadRadius: -6),
+                ],
+              ),
+              child: Icon(serviceIcon(layanan.ikon),
+                  size: 52, color: TkColors.primary),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -168,55 +238,54 @@ class _KartuTarif extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Tarif per satuan',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: TkColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text.rich(
-                  TextSpan(
-                    text: PriceBadge.formatRupiah(layanan.harga),
+                Text('Tarif per satuan',
                     style: GoogleFonts.montserrat(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                      color: TkColors.primary,
-                      letterSpacing: -0.5,
-                    ),
-                    children: [
-                      TextSpan(
-                        text: ' /${satuanSingkat(layanan.satuan)}',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: TkColors.textSecondary,
-                        ),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: TkColors.textSecondary)),
+                const SizedBox(height: 3),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text.rich(
+                    TextSpan(
+                      text: PriceBadge.formatRupiah(layanan.harga),
+                      style: GoogleFonts.montserrat(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: TkColors.primary,
+                        letterSpacing: -0.5,
                       ),
-                    ],
+                      children: [
+                        TextSpan(
+                          text: ' /${satuanSingkat(layanan.satuan)}',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: TkColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
             decoration: BoxDecoration(
               color: TkColors.accent,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
-              'Tarif\nTetap',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.montserrat(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: TkColors.onAccent,
-                height: 1.3,
-              ),
-            ),
+            child: Text('Tarif\nTetap',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.montserrat(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: TkColors.onAccent,
+                    height: 1.3)),
           ),
         ],
       ),
@@ -231,7 +300,7 @@ class _InfoChips extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget chip(IconData ikon, String judul, String sub) => Expanded(
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
             decoration: BoxDecoration(
               border: Border.all(color: const Color(0x140F281C)),
               borderRadius: BorderRadius.circular(12),
@@ -240,27 +309,21 @@ class _InfoChips extends StatelessWidget {
               children: [
                 Icon(ikon, size: 20, color: TkColors.primary),
                 const SizedBox(height: 6),
-                Text(
-                  judul,
-                  style: GoogleFonts.montserrat(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: TkColors.inkSoft,
-                  ),
-                ),
+                Text(judul,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.montserrat(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: TkColors.inkSoft)),
                 const SizedBox(height: 2),
-                Text(
-                  sub,
-                  style: GoogleFonts.montserrat(
-                    fontSize: 10,
-                    color: TkColors.textMuted,
-                  ),
-                ),
+                Text(sub,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.montserrat(
+                        fontSize: 10, color: TkColors.textMuted)),
               ],
             ),
           ),
         );
-
     return Row(
       children: [
         chip(Icons.schedule_rounded, '± 45 mnt', 'per satuan'),
@@ -273,19 +336,19 @@ class _InfoChips extends StatelessWidget {
   }
 }
 
-class _BarPesan extends StatelessWidget {
+class _BarPesan extends ConsumerWidget {
   const _BarPesan({required this.layanan});
 
   final ServiceModel layanan;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GlassContainer(
       radius: 0,
       opacity: 0.92,
       child: Container(
         padding: EdgeInsets.fromLTRB(
-            24, 14, 24, 22 + MediaQuery.paddingOf(context).bottom),
+            24, 14, 24, 16 + MediaQuery.viewPaddingOf(context).bottom),
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: Color(0x0F0F281C))),
         ),
@@ -293,35 +356,35 @@ class _BarPesan extends StatelessWidget {
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Mulai dari',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: TkColors.textMuted,
-                  ),
-                ),
+                Text('Mulai dari',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: TkColors.textMuted)),
                 const SizedBox(height: 2),
-                Text(
-                  PriceBadge.formatRupiah(layanan.harga),
-                  style: GoogleFonts.montserrat(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w700,
-                    color: TkColors.inkSoft,
-                  ),
-                ),
+                Text(PriceBadge.formatRupiah(layanan.harga),
+                    style: GoogleFonts.montserrat(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                        color: TkColors.inkSoft)),
               ],
             ),
             const SizedBox(width: 14),
             Expanded(
               child: SizedBox(
-                height: 54,
+                height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: () => Navigator.of(context).pushNamed(
-                    P5FormPemesananScreen.route,
-                    arguments: layanan,
-                  ),
+                  onPressed: () {
+                    // Mulai draft baru untuk layanan ini.
+                    ref.read(draftPesananProvider.notifier).state =
+                        DraftPesanan(layanan: layanan, kuantitas: 1);
+                    Navigator.of(context).pushNamed(
+                      P5FormPemesananScreen.route,
+                      arguments: layanan,
+                    );
+                  },
                   icon: const Text('Pesan Sekarang'),
                   label: const Icon(Icons.arrow_forward_rounded, size: 18),
                 ),

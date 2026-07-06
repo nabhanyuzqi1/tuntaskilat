@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:tk_core/tk_core.dart';
 
 import '../providers/app_providers.dart';
 import '../widgets/service_icon.dart';
 import 'p10_form_ulasan_screen.dart';
-import 'p6_rincian_tagihan_screen.dart';
-import 'p7_form_pembayaran_screen.dart';
 import 'p8_tracking_screen.dart';
 
 /// Filter status P9: Semua / Menunggu / Selesai / Dibatalkan (chip Hi-Fi).
@@ -277,7 +276,7 @@ class _KartuRiwayat extends ConsumerWidget {
                           : TkColors.inkSoft,
                       decoration:
                           batal ? TextDecoration.lineThrough : null)),
-              _aksi(context),
+              _aksi(context, ref),
             ],
           ),
         ],
@@ -285,13 +284,14 @@ class _KartuRiwayat extends ConsumerWidget {
     );
   }
 
-  Widget _aksi(BuildContext context) {
+  Widget _aksi(BuildContext context, WidgetRef ref) {
     switch (order.status) {
       case OrderStatus.dibuat || OrderStatus.menungguPembayaran:
-        return _tautan(context, 'Lanjut Bayar',
-            () => Navigator.of(context).pushNamed(
-                P6RincianTagihanScreen.route,
-                arguments: order));
+        return Text('Menunggu pembayaran',
+            style: GoogleFonts.montserrat(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF8A6A00)));
       case OrderStatus.menungguVerifikasi:
         return Text('Menunggu verifikasi admin',
             style: GoogleFonts.montserrat(
@@ -301,9 +301,7 @@ class _KartuRiwayat extends ConsumerWidget {
       case OrderStatus.ditolak:
         // State Diagram: ditolak ↩ upload ulang bukti bayar.
         return _tautan(context, 'Unggah Ulang',
-            () => Navigator.of(context).pushNamed(
-                P7FormPembayaranScreen.route,
-                arguments: order));
+            () => _unggahUlang(context, ref));
       case OrderStatus.selesai:
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -348,6 +346,41 @@ class _KartuRiwayat extends ConsumerWidget {
                     arguments: order.orderId),
                 ikon: true)
             : const SizedBox.shrink();
+    }
+  }
+
+  Future<void> _unggahUlang(BuildContext context, WidgetRef ref) async {
+    final file = await ImagePicker().pickImage(
+        source: ImageSource.gallery, maxWidth: 1600, imageQuality: 85);
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    if (bytes.lengthInBytes >= 5 * 1024 * 1024) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Ukuran berkas maksimal 5MB. Pilih foto lain.')));
+      }
+      return;
+    }
+    try {
+      final url = await ref.read(storageServiceProvider).uploadBuktiBayar(
+            userId: order.userId,
+            orderId: order.orderId,
+            bytes: bytes,
+          );
+      await ref
+          .read(firestoreServiceProvider)
+          .unggahUlangBukti(order: order, buktiBayar: url);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Bukti baru terkirim. Menunggu verifikasi '
+                'admin kembali.')));
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Gagal mengunggah. Periksa koneksi lalu coba lagi.')));
+      }
     }
   }
 

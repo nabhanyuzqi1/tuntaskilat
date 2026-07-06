@@ -151,6 +151,89 @@ class FirestoreService {
     });
   }
 
+  /// Pembuatan pesanan FINAL saat konfirmasi pembayaran (P7). Slot dikunci
+  /// (Atomic Locking) di titik ini — bukan saat mengisi form — supaya draft
+  /// yang ditinggalkan pelanggan tidak menyandera jadwal.
+  ///
+  /// Satu transaction: cek slot, hitung ulang harga dari `services`
+  /// (skenario #6), tulis dokumen `orders` + `payments` sekaligus (atomik).
+  /// - Non-tunai: status awal `menunggu_verifikasi`, pembayaran `menunggu`.
+  /// - Tunai: status awal `menunggu_penugasan` (dibayar ke kru saat selesai),
+  ///   pembayaran `menunggu` (ditandai lunas admin/kru kemudian).
+  Future<OrderModel> buatPesananLengkap({
+    required UserModel pelanggan,
+    required String serviceId,
+    required DateTime jadwal,
+    required num kuantitas,
+    required String alamatLayanan,
+    required GeoPoint lokasi,
+    required MetodeBayar metode,
+    String? buktiBayar,
+    String catatan = '',
+  }) async {
+    if (kuantitas <= 0) {
+      throw ArgumentError.value(kuantitas, 'kuantitas', 'harus > 0');
+    }
+    if (!Validators.isDalamWilayahSampit(lokasi.latitude, lokasi.longitude)) {
+      throw const LuarWilayahLayananException();
+    }
+
+    final orderRef = _orders.doc(slotOrderId(jadwal));
+    final serviceRef = _services.doc(serviceId);
+    final paymentRef = _payments.doc();
+    final tunai = metode == MetodeBayar.tunai;
+
+    return _db.runTransaction<OrderModel>((tx) async {
+      final slotSnap = await tx.get(orderRef);
+      if (slotSnap.exists) throw JadwalPenuhException(jadwal);
+
+      final serviceSnap = await tx.get(serviceRef);
+      if (!serviceSnap.exists) {
+        throw StateError('Layanan $serviceId tidak ditemukan.');
+      }
+      final service = ServiceModel.fromMap(serviceSnap.id, serviceSnap.data()!);
+      if (!service.aktif) {
+        throw StateError('Layanan ${service.namaLayanan} sedang nonaktif.');
+      }
+
+      final total = service.harga * kuantitas;
+      final order = OrderModel(
+        orderId: orderRef.id,
+        userId: pelanggan.userId,
+        serviceId: serviceId,
+        cleanerId: '',
+        tanggalPesan: DateTime.now(),
+        jadwal: jadwal,
+        totalHarga: total,
+        status: tunai
+            ? OrderStatus.menungguPenugasan
+            : OrderStatus.menungguVerifikasi,
+        hargaSatuan: service.harga,
+        kuantitas: kuantitas,
+        namaLayanan: service.namaLayanan,
+        satuan: service.satuan,
+        namaPelanggan: pelanggan.nama,
+        teleponPelanggan: pelanggan.noTelepon,
+        alamatLayanan: alamatLayanan,
+        lokasi: lokasi,
+        catatan: catatan,
+      );
+      final payment = PaymentModel(
+        paymentId: paymentRef.id,
+        orderId: orderRef.id,
+        userId: pelanggan.userId,
+        metode: metode,
+        jumlah: total,
+        buktiBayar: buktiBayar,
+        statusBayar: StatusBayar.menunggu,
+        waktu: DateTime.now(),
+      );
+      tx.set(orderRef, order.toMap());
+      tx.set(paymentRef, payment.toMap());
+      return order;
+    });
+  }
+
   /// Slot yang sudah terisi pada [hari] — untuk menampilkan slot disabled +
   /// ikon gembok di P5 (kaidah Pencegahan Kesalahan). Memakai `get` per ID
   /// slot deterministik, BUKAN query — Security Rules mengizinkan `get`
@@ -390,6 +473,35 @@ class FirestoreService {
     );
     await ref.set(payment.toMap());
     return payment;
+  }
+
+  /// Unggah ulang bukti bayar untuk pesanan yang ditolak (State Diagram:
+  /// ditolak ↩ upload ulang). Membuat dokumen `payments` BARU (rules:
+  /// create diizinkan pemilik; update payment admin-only) lalu mengembalikan
+  /// status order ke `menunggu_verifikasi`.
+  Future<void> unggahUlangBukti({
+    required OrderModel order,
+    required String buktiBayar,
+    MetodeBayar metode = MetodeBayar.transferBank,
+  }) async {
+    final ref = _payments.doc();
+    final batch = _db.batch();
+    batch.set(
+      ref,
+      PaymentModel(
+        paymentId: ref.id,
+        orderId: order.orderId,
+        userId: order.userId,
+        metode: metode,
+        jumlah: order.totalHarga,
+        buktiBayar: buktiBayar,
+        statusBayar: StatusBayar.menunggu,
+        waktu: DateTime.now(),
+      ).toMap(),
+    );
+    batch.update(_orders.doc(order.orderId),
+        {'status': OrderStatus.menungguVerifikasi.wire});
+    await batch.commit();
   }
 
   // ----------------------------------------------------------------- reviews

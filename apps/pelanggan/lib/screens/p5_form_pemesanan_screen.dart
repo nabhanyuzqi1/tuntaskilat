@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:tk_core/tk_core.dart';
 
 import '../providers/pemesanan_providers.dart';
@@ -30,6 +32,7 @@ class _P5FormPemesananScreenState
   int? _jamPilih;
   GeoPoint? _lokasi;
   var _mencariLokasi = false;
+  var _cobaSubmit = false; // tandai field wajib yang belum diisi
   final _alamat = TextEditingController();
   final _catatan = TextEditingController();
 
@@ -38,12 +41,26 @@ class _P5FormPemesananScreenState
     super.initState();
     final kini = DateTime.now();
     _bulanTampil = DateTime(kini.year, kini.month);
+    // Pulihkan draft (mis. saat kembali dari P6 untuk mengedit).
+    final draft = ref.read(draftPesananProvider);
+    if (draft != null) {
+      _kuantitas = draft.kuantitas;
+      _tanggalPilih = draft.tanggal;
+      _jamPilih = draft.jam;
+      _lokasi = draft.lokasi;
+      _alamat.text = draft.alamat;
+      _catatan.text = draft.catatan;
+      if (draft.tanggal != null) {
+        _bulanTampil = DateTime(draft.tanggal!.year, draft.tanggal!.month);
+      }
+    }
   }
 
   @override
   void dispose() {
     _alamat.dispose();
     _catatan.dispose();
+    _mapCtrl.dispose();
     super.dispose();
   }
 
@@ -56,36 +73,74 @@ class _P5FormPemesananScreenState
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(pesan)));
 
+  final _mapCtrl = MapController();
+  static const _pusatSampit = LatLng(-2.5329, 112.9508);
+
+  void _pilihTitikPeta(LatLng titik) {
+    if (!Validators.isDalamWilayahSampit(titik.latitude, titik.longitude)) {
+      _snack('Titik di luar area layanan Kota Sampit (Out of Delivery '
+          'Range). Pilih titik dalam kota.');
+      return;
+    }
+    setState(() => _lokasi = GeoPoint(titik.latitude, titik.longitude));
+  }
+
   Future<void> _ambilLokasi() async {
     setState(() => _mencariLokasi = true);
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
-        _snack('Aktifkan layanan lokasi perangkat Anda terlebih dahulu.');
+        _snack('Aktifkan layanan lokasi (GPS) perangkat Anda, atau ketuk '
+            'peta untuk memilih titik manual.');
         return;
       }
       var izin = await Geolocator.checkPermission();
       if (izin == LocationPermission.denied) {
         izin = await Geolocator.requestPermission();
       }
-      if (izin == LocationPermission.denied ||
-          izin == LocationPermission.deniedForever) {
-        _snack('Izinkan akses lokasi untuk mengisi titik alamat layanan.');
+      if (izin == LocationPermission.deniedForever) {
+        _snack('Izin lokasi diblokir permanen. Buka Pengaturan aplikasi, '
+            'atau ketuk peta untuk memilih titik manual.');
         return;
       }
-      final posisi = await Geolocator.getCurrentPosition();
-      if (!Validators.isDalamWilayahSampit(
-          posisi.latitude, posisi.longitude)) {
+      if (izin == LocationPermission.denied) {
+        _snack('Izin lokasi ditolak. Ketuk peta untuk memilih titik '
+            'manual.');
+        return;
+      }
+      final posisi = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      ).timeout(const Duration(seconds: 12));
+      final titik = LatLng(posisi.latitude, posisi.longitude);
+      if (!Validators.isDalamWilayahSampit(titik.latitude, titik.longitude)) {
         _snack('Lokasi Anda di luar area layanan Kota Sampit '
             '(Out of Delivery Range).');
         return;
       }
-      setState(() => _lokasi = GeoPoint(posisi.latitude, posisi.longitude));
+      setState(() => _lokasi = GeoPoint(titik.latitude, titik.longitude));
+      _mapCtrl.move(titik, 16);
+    } catch (_) {
+      _snack('Gagal mendapatkan lokasi GPS. Ketuk peta untuk memilih titik '
+          'manual.');
     } finally {
       if (mounted) setState(() => _mencariLokasi = false);
     }
   }
 
+  void _simpanDraft(ServiceModel layanan) {
+    ref.read(draftPesananProvider.notifier).state = DraftPesanan(
+      layanan: layanan,
+      kuantitas: _kuantitas,
+      tanggal: _tanggalPilih,
+      jam: _jamPilih,
+      alamat: _alamat.text.trim(),
+      lokasi: _lokasi,
+      catatan: _catatan.text.trim(),
+    );
+  }
+
   Future<void> _submit(ServiceModel layanan) async {
+    setState(() => _cobaSubmit = true);
     if (_jadwal == null) {
       _snack('Pilih tanggal dan slot waktu terlebih dahulu.');
       return;
@@ -95,7 +150,7 @@ class _P5FormPemesananScreenState
       return;
     }
     if (_lokasi == null) {
-      _snack('Tandai titik lokasi dengan tombol "Lokasi Saya".');
+      _snack('Tandai titik lokasi di peta ("Lokasi Saya" atau ketuk peta).');
       return;
     }
     final errCatatan = Validators.teksBebas(_catatan.text);
@@ -103,64 +158,16 @@ class _P5FormPemesananScreenState
       _snack(errCatatan);
       return;
     }
-
-    final hasil =
-        await ref.read(pemesananControllerProvider.notifier).buatPesanan(
-              layanan: layanan,
-              jadwal: _jadwal!,
-              kuantitas: _kuantitas,
-              alamatLayanan: _alamat.text.trim(),
-              lokasi: _lokasi!,
-              catatan: _catatan.text.trim(),
-            );
-    if (!mounted) return;
-
-    if (hasil.jadwalPenuh) {
-      // Skenario Black-Box #1: request kedua pada slot sama di-abort
-      // transaction → UI menampilkan "Jadwal Penuh".
-      setState(() => _jamPilih = null);
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(TkRadius.sheet),
-          ),
-          title: Text('Jadwal Penuh',
-              style: GoogleFonts.montserrat(
-                  fontWeight: FontWeight.w700, color: TkColors.inkSoft)),
-          content: Text(
-            'Slot waktu ini baru saja terisi. Silakan pilih slot lain '
-            'yang masih tersedia.',
-            style: GoogleFonts.montserrat(
-                fontSize: 14, color: TkColors.textSecondary),
-          ),
-          actions: [
-            TextButton(
-              onPressed: Navigator.of(ctx).pop,
-              child: const Text('Pilih Slot Lain'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-    if (hasil.error != null) {
-      _snack(hasil.error!);
-      return;
-    }
-
-    // Slot terkunci (Atomic Locking sukses) → P6 Rincian Tagihan.
-    Navigator.of(context).pushReplacementNamed(
-      P6RincianTagihanScreen.route,
-      arguments: hasil.order,
-    );
+    // Simpan draft dan lanjut ke Rincian Tagihan (order belum dibuat —
+    // kunci slot terjadi saat konfirmasi pembayaran di P7).
+    _simpanDraft(layanan);
+    Navigator.of(context).pushNamed(P6RincianTagihanScreen.route);
   }
 
   @override
   Widget build(BuildContext context) {
     final layanan =
         ModalRoute.of(context)!.settings.arguments as ServiceModel;
-    final loading = ref.watch(pemesananControllerProvider).isLoading;
     final satuan = satuanSingkat(layanan.satuan);
 
     return Scaffold(
@@ -203,13 +210,34 @@ class _P5FormPemesananScreenState
                     ),
                     const SizedBox(height: 22),
                   ],
-                  _JudulBagian('Alamat Layanan'),
+                  Row(children: [
+                    _JudulBagian('Alamat Layanan'),
+                    Text(' *',
+                        style: GoogleFonts.montserrat(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: TkColors.error)),
+                  ]),
+                  const SizedBox(height: 6),
+                  Text('Ketuk peta untuk menandai titik, atau gunakan '
+                      '"Lokasi Saya".',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 12, color: TkColors.textMuted)),
                   const SizedBox(height: 12),
-                  _KartuAlamat(
+                  _KartuAlamatPeta(
+                    mapCtrl: _mapCtrl,
+                    pusatAwal: _lokasi != null
+                        ? LatLng(_lokasi!.latitude, _lokasi!.longitude)
+                        : _pusatSampit,
                     controller: _alamat,
                     lokasi: _lokasi,
                     mencari: _mencariLokasi,
+                    wajibBelumDiisi: _cobaSubmit && _lokasi == null,
+                    alamatBelumDiisi:
+                        _cobaSubmit && _alamat.text.trim().isEmpty,
                     onLokasiSaya: _ambilLokasi,
+                    onKetukPeta: _pilihTitikPeta,
+                    onAlamatUbah: () => setState(() {}),
                   ),
                   const SizedBox(height: 22),
                   Row(
@@ -245,7 +273,7 @@ class _P5FormPemesananScreenState
               layanan: layanan,
               kuantitas: _kuantitas,
               satuan: satuan,
-              loading: loading,
+              loading: false,
               onLanjut: () => _submit(layanan),
             ),
           ],
@@ -705,47 +733,99 @@ class _GridSlot extends ConsumerWidget {
   }
 }
 
-class _KartuAlamat extends StatelessWidget {
-  const _KartuAlamat({
+class _KartuAlamatPeta extends StatelessWidget {
+  const _KartuAlamatPeta({
+    required this.mapCtrl,
+    required this.pusatAwal,
     required this.controller,
     required this.lokasi,
     required this.mencari,
+    required this.wajibBelumDiisi,
+    required this.alamatBelumDiisi,
     required this.onLokasiSaya,
+    required this.onKetukPeta,
+    required this.onAlamatUbah,
   });
 
+  final MapController mapCtrl;
+  final LatLng pusatAwal;
   final TextEditingController controller;
   final GeoPoint? lokasi;
   final bool mencari;
+  final bool wajibBelumDiisi;
+  final bool alamatBelumDiisi;
   final VoidCallback onLokasiSaya;
+  final ValueChanged<LatLng> onKetukPeta;
+  final VoidCallback onAlamatUbah;
 
   @override
   Widget build(BuildContext context) {
+    final titik = lokasi != null
+        ? LatLng(lokasi!.latitude, lokasi!.longitude)
+        : null;
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0x140F281C)),
+        border: Border.all(
+          color: wajibBelumDiisi
+              ? TkColors.error
+              : const Color(0x140F281C),
+          width: wajibBelumDiisi ? 1.5 : 1,
+        ),
         borderRadius: BorderRadius.circular(TkRadius.card),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Placeholder peta (peta interaktif OSM menyusul di P8).
-          Container(
-            height: 130,
-            color: const Color(0xFFE4EFE8),
+          // Peta interaktif OpenStreetMap — ketuk untuk menandai titik.
+          SizedBox(
+            height: 200,
             child: Stack(
               children: [
-                Center(
-                  child: Icon(
-                    lokasi == null
-                        ? Icons.location_searching_rounded
-                        : Icons.location_on_rounded,
-                    size: 30,
-                    color: lokasi == null
-                        ? TkColors.textMuted
-                        : TkColors.primary,
+                FlutterMap(
+                  mapController: mapCtrl,
+                  options: MapOptions(
+                    initialCenter: titik ?? pusatAwal,
+                    initialZoom: titik != null ? 16 : 13,
+                    onTap: (_, p) => onKetukPeta(p),
                   ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.tuntaskilat.pelanggan',
+                    ),
+                    if (titik != null)
+                      MarkerLayer(markers: [
+                        Marker(
+                          point: titik,
+                          width: 40,
+                          height: 40,
+                          alignment: Alignment.topCenter,
+                          child: const Icon(Icons.location_on_rounded,
+                              size: 38, color: TkColors.error),
+                        ),
+                      ]),
+                  ],
                 ),
+                if (titik == null)
+                  IgnorePointer(
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: TkColors.surface.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Text('Ketuk peta untuk pilih titik',
+                            style: GoogleFonts.montserrat(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: TkColors.inkSoft)),
+                      ),
+                    ),
+                  ),
                 Positioned(
                   bottom: 10,
                   right: 10,
@@ -754,14 +834,14 @@ class _KartuAlamat extends StatelessWidget {
                     onTap: mencari ? null : onLokasiSaya,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                          horizontal: 12, vertical: 9),
                       decoration: BoxDecoration(
                         color: TkColors.surface,
                         borderRadius: BorderRadius.circular(9),
                         boxShadow: [
                           BoxShadow(
                               color:
-                                  TkColors.inkSoft.withValues(alpha: 0.14),
+                                  TkColors.inkSoft.withValues(alpha: 0.16),
                               blurRadius: 12,
                               offset: const Offset(0, 4)),
                         ],
@@ -771,25 +851,20 @@ class _KartuAlamat extends StatelessWidget {
                         children: [
                           if (mencari)
                             const SizedBox(
-                              width: 14,
-                              height: 14,
+                              width: 15,
+                              height: 15,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: TkColors.primary),
+                                  strokeWidth: 2, color: TkColors.primary),
                             )
                           else
                             const Icon(Icons.my_location_rounded,
-                                size: 15, color: TkColors.primary),
+                                size: 16, color: TkColors.primary),
                           const SizedBox(width: 6),
-                          Text(
-                            lokasi == null
-                                ? 'Lokasi Saya'
-                                : 'Perbarui Lokasi',
-                            style: GoogleFonts.montserrat(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: TkColors.primary),
-                          ),
+                          Text('Lokasi Saya',
+                              style: GoogleFonts.montserrat(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: TkColors.primary)),
                         ],
                       ),
                     ),
@@ -798,8 +873,9 @@ class _KartuAlamat extends StatelessWidget {
               ],
             ),
           ),
+          const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -810,21 +886,26 @@ class _KartuAlamat extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: TextFormField(
+                  child: TextField(
                     controller: controller,
                     maxLines: 2,
                     minLines: 1,
+                    onChanged: (_) => onAlamatUbah(),
                     style: GoogleFonts.montserrat(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: TkColors.inkSoft),
                     decoration: InputDecoration(
-                      hintText:
-                          'Tulis alamat lengkap (jalan, nomor, kelurahan)',
+                      hintText: alamatBelumDiisi
+                          ? 'Wajib: tulis alamat lengkap'
+                          : 'Tulis alamat lengkap (jalan, nomor, '
+                              'kelurahan)',
                       hintStyle: GoogleFonts.montserrat(
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
-                          color: TkColors.textPlaceholder),
+                          color: alamatBelumDiisi
+                              ? TkColors.error
+                              : TkColors.textPlaceholder),
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
@@ -838,17 +919,27 @@ class _KartuAlamat extends StatelessWidget {
               ],
             ),
           ),
-          if (lokasi != null)
+          if (titik != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-              child: Text(
-                'Titik GPS tersimpan: ${lokasi!.latitude.toStringAsFixed(4)}, '
-                '${lokasi!.longitude.toStringAsFixed(4)} — dalam area '
-                'layanan Sampit ✓',
-                style: GoogleFonts.montserrat(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: TkColors.primaryDark),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded,
+                      size: 14, color: TkColors.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Titik ditandai: '
+                      '${titik.latitude.toStringAsFixed(4)}, '
+                      '${titik.longitude.toStringAsFixed(4)} — dalam area '
+                      'layanan Sampit',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: TkColors.primaryDark),
+                    ),
+                  ),
+                ],
               ),
             ),
         ],

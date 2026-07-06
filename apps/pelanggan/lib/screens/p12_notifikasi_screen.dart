@@ -13,14 +13,12 @@ import 'p8_tracking_screen.dart';
 class P12NotifikasiScreen extends ConsumerWidget {
   const P12NotifikasiScreen({super.key});
 
-  static const _latarLembut = Color(0xFFF6F8F5);
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notif = ref.watch(notifikasiProvider);
 
     return Scaffold(
-      backgroundColor: _latarLembut,
+      backgroundColor: TkColors.surface,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -147,10 +145,28 @@ class P12NotifikasiScreen extends ConsumerWidget {
   Widget _kosong(String pesan) => Center(
         child: Padding(
           padding: const EdgeInsets.all(40),
-          child: Text(pesan,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.montserrat(
-                  fontSize: 14, color: TkColors.textMuted)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: TkColors.primary.withValues(alpha: 0.06),
+                ),
+                child: const Icon(Icons.notifications_none_rounded,
+                    size: 40, color: TkColors.primary),
+              ),
+              const SizedBox(height: 16),
+              Text(pesan,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: TkColors.textSecondary)),
+            ],
+          ),
         ),
       );
 }

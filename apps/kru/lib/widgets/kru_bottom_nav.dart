@@ -21,8 +21,8 @@ class KruBottomNav extends StatelessWidget {
       radius: 0,
       opacity: 0.85,
       child: Container(
-        height: 78,
-        padding: const EdgeInsets.only(top: 12),
+        padding: EdgeInsets.only(
+            top: 10, bottom: MediaQuery.viewPaddingOf(context).bottom + 8),
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: Color(0x0F0F281C))),
         ),

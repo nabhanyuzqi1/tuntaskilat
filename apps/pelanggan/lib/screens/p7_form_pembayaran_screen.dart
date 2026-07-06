@@ -6,8 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tk_core/tk_core.dart';
 
-import '../providers/pembayaran_providers.dart';
+import '../providers/pemesanan_providers.dart';
 import 'p3_beranda_screen.dart';
+import 'p5_form_pemesanan_screen.dart';
 import 'p8_tracking_screen.dart';
 
 /// P7 — Form Pembayaran (Gambar TA 3.16). Pilih metode (transfer/QRIS/tunai),
@@ -31,6 +32,7 @@ class _P7FormPembayaranScreenState
   Uint8List? _bukti;
   String? _namaBukti;
   var _terkirim = false;
+  OrderModel? _order; // terisi setelah pesanan berhasil dibuat
 
   Future<void> _pilihBukti() async {
     final file = await ImagePicker().pickImage(
@@ -53,28 +55,89 @@ class _P7FormPembayaranScreenState
     });
   }
 
-  Future<void> _konfirmasi(OrderModel order) async {
-    final error =
+  Future<void> _konfirmasi(DraftPesanan draft) async {
+    final hasil =
         await ref.read(pembayaranControllerProvider.notifier).konfirmasi(
-              order: order,
+              draft: draft,
               metode: _metode,
               buktiBytes: _metode == MetodeBayar.tunai ? null : _bukti,
             );
     if (!mounted) return;
-    if (error != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(error)));
+
+    if (hasil.jadwalPenuh) {
+      // Slot keburu terisi saat konfirmasi (skenario #1). Kembali ke P5
+      // agar pelanggan memilih slot lain — draft dipertahankan.
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TkRadius.sheet)),
+          title: Text('Jadwal Penuh',
+              style: GoogleFonts.montserrat(
+                  fontWeight: FontWeight.w700, color: TkColors.inkSoft)),
+          content: Text(
+            'Slot waktu ini baru saja terisi pelanggan lain. Silakan pilih '
+            'slot lain yang masih tersedia.',
+            style: GoogleFonts.montserrat(
+                fontSize: 14, color: TkColors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+                onPressed: Navigator.of(ctx).pop,
+                child: const Text('Pilih Slot Lain')),
+          ],
+        ),
+      );
+      if (mounted) {
+        Navigator.of(context)
+            .popUntil(ModalRoute.withName(P5FormPemesananScreen.route));
+      }
       return;
     }
-    setState(() => _terkirim = true);
+    if (hasil.error != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(hasil.error!)));
+      return;
+    }
+    // Sukses — bersihkan draft dan tampilkan state konfirmasi.
+    ref.read(draftPesananProvider.notifier).state = null;
+    setState(() {
+      _terkirim = true;
+      _order = hasil.order;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final order = ModalRoute.of(context)!.settings.arguments as OrderModel;
+    final draft = ref.watch(draftPesananProvider);
     final loading = ref.watch(pembayaranControllerProvider).isLoading;
 
+    // Setelah sukses draft di-null-kan; pakai _order untuk layar konfirmasi.
+    if (_terkirim && _order != null) {
+      return Scaffold(
+        backgroundColor: _latarLembut,
+        body: SafeArea(
+          bottom: false,
+          child: Column(children: [
+            _header(context),
+            Expanded(child: _MenungguVerifikasi(order: _order!)),
+          ]),
+        ),
+      );
+    }
+    if (draft == null || !draft.lengkap) {
+      return Scaffold(
+        backgroundColor: _latarLembut,
+        body: Center(
+          child: TextButton(
+            onPressed: () =>
+                Navigator.of(context).popUntil((r) => r.isFirst),
+            child: const Text('Kembali ke Beranda'),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: _latarLembut,
       body: SafeArea(
@@ -82,11 +145,7 @@ class _P7FormPembayaranScreenState
         child: Column(
           children: [
             _header(context),
-            Expanded(
-              child: _terkirim
-                  ? _MenungguVerifikasi(order: order)
-                  : _form(order, loading),
-            ),
+            Expanded(child: _form(draft, loading)),
           ],
         ),
       ),
@@ -124,7 +183,7 @@ class _P7FormPembayaranScreenState
         ]),
       );
 
-  Widget _form(OrderModel order, bool loading) {
+  Widget _form(DraftPesanan draft, bool loading) {
     final butuhBukti = _metode != MetodeBayar.tunai;
     return Column(
       children: [
@@ -132,7 +191,32 @@ class _P7FormPembayaranScreenState
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
             children: [
-              _kartuTotal(order),
+              _kartuTotal(draft.total),
+              if (_metode == MetodeBayar.tunai) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: TkColors.primary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.info_outline_rounded,
+                        size: 17, color: TkColors.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                          'Pembayaran tunai dilakukan langsung ke kru saat '
+                          'pengerjaan selesai. Pesanan langsung diteruskan '
+                          'ke admin untuk penugasan.',
+                          style: GoogleFonts.montserrat(
+                              fontSize: 12,
+                              color: const Color(0xFF33403A),
+                              height: 1.45)),
+                    ),
+                  ]),
+                ),
+              ],
               const SizedBox(height: 20),
               Text('Metode Pembayaran',
                   style: GoogleFonts.montserrat(
@@ -188,14 +272,16 @@ class _P7FormPembayaranScreenState
           opacity: 0.94,
           child: Container(
             padding: EdgeInsets.fromLTRB(
-                20, 16, 20, 22 + MediaQuery.paddingOf(context).bottom),
+                20, 16, 20, 16 + MediaQuery.viewPaddingOf(context).bottom),
             decoration: const BoxDecoration(
               border: Border(top: BorderSide(color: Color(0x0F0F281C))),
             ),
             child: TkButton(
-              label: 'Konfirmasi Pembayaran',
+              label: _metode == MetodeBayar.tunai
+                  ? 'Konfirmasi Pesanan'
+                  : 'Konfirmasi Pembayaran',
               loading: loading,
-              onPressed: () => _konfirmasi(order),
+              onPressed: () => _konfirmasi(draft),
             ),
           ),
         ),
@@ -203,7 +289,7 @@ class _P7FormPembayaranScreenState
     );
   }
 
-  Widget _kartuTotal(OrderModel order) => Container(
+  Widget _kartuTotal(num total) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(TkRadius.card),
@@ -225,7 +311,7 @@ class _P7FormPembayaranScreenState
                           fontWeight: FontWeight.w500,
                           color: Colors.white.withValues(alpha: 0.85))),
                   const SizedBox(height: 3),
-                  Text(PriceBadge.formatRupiah(order.totalHarga),
+                  Text(PriceBadge.formatRupiah(total),
                       style: GoogleFonts.montserrat(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
@@ -408,6 +494,8 @@ class _MenungguVerifikasi extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tunai → order langsung menunggu penugasan (tidak ada verifikasi bukti).
+    final tunai = order.status == OrderStatus.menungguPenugasan;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
@@ -420,18 +508,23 @@ class _MenungguVerifikasi extends StatelessWidget {
               height: 104,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: TkColors.accent.withValues(alpha: 0.16),
+                color: (tunai ? TkColors.primary : TkColors.accent)
+                    .withValues(alpha: 0.16),
               ),
               alignment: Alignment.center,
               child: Container(
                 width: 74,
                 height: 74,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: TkColors.accent,
+                  color: tunai ? TkColors.primary : TkColors.accent,
                 ),
-                child: const Icon(Icons.schedule_rounded,
-                    size: 38, color: TkColors.onAccent),
+                child: Icon(
+                    tunai
+                        ? Icons.check_rounded
+                        : Icons.schedule_rounded,
+                    size: 38,
+                    color: tunai ? TkColors.surface : TkColors.onAccent),
               ),
             ),
           ),
@@ -441,7 +534,8 @@ class _MenungguVerifikasi extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
-                color: TkColors.accent.withValues(alpha: 0.18),
+                color: (tunai ? TkColors.primary : TkColors.accent)
+                    .withValues(alpha: tunai ? 0.10 : 0.18),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -450,23 +544,25 @@ class _MenungguVerifikasi extends StatelessWidget {
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: TkColors.accentAlt,
+                      color: tunai ? TkColors.primary : TkColors.accentAlt,
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Text('MENUNGGU VERIFIKASI',
+                  Text(tunai ? 'PESANAN DITERIMA' : 'MENUNGGU VERIFIKASI',
                       style: GoogleFonts.montserrat(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF8A6A00))),
+                          color: tunai
+                              ? TkColors.primaryDark
+                              : const Color(0xFF8A6A00))),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Text('Pembayaran Terkirim',
+          Text(tunai ? 'Pesanan Dibuat' : 'Pembayaran Terkirim',
               textAlign: TextAlign.center,
               style: GoogleFonts.montserrat(
                   fontSize: 23,
@@ -475,9 +571,13 @@ class _MenungguVerifikasi extends StatelessWidget {
                   letterSpacing: -0.3)),
           const SizedBox(height: 8),
           Text(
-            'Pembayaran Anda sedang diverifikasi admin. Kami akan mengirim '
-            'notifikasi begitu pesanan dikonfirmasi — estimasi kurang dari '
-            '15 menit.',
+            tunai
+                ? 'Pesanan Anda diteruskan ke admin untuk penugasan kru. '
+                    'Pembayaran tunai dilakukan langsung ke kru saat '
+                    'pengerjaan selesai.'
+                : 'Pembayaran Anda sedang diverifikasi admin. Kami akan '
+                    'mengirim notifikasi begitu pesanan dikonfirmasi — '
+                    'estimasi kurang dari 15 menit.',
             textAlign: TextAlign.center,
             style: GoogleFonts.montserrat(
                 fontSize: 14, color: TkColors.textSecondary, height: 1.55),

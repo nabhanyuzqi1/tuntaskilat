@@ -375,7 +375,7 @@ class _GridLayanan extends ConsumerWidget {
             crossAxisCount: 2,
             mainAxisSpacing: 14,
             crossAxisSpacing: 14,
-            mainAxisExtent: 176,
+            mainAxisExtent: 184,
           ),
           itemCount: list.length,
           itemBuilder: (context, i) => _KartuLayanan(layanan: list[i]),
@@ -423,23 +423,27 @@ class _KartuLayanan extends StatelessWidget {
             ),
           ],
         ),
+        // Expanded pada area ikon menyerap sisa tinggi kartu apa pun, jadi
+        // konten tak pernah overflow (fix "BOTTOM OVERFLOWED").
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 100,
-              width: double.infinity,
-              color: TkColors.surfaceMuted,
-              child: Icon(
-                serviceIcon(layanan.ikon),
-                size: 34,
-                color: TkColors.primary,
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                color: TkColors.surfaceMuted,
+                child: Icon(
+                  serviceIcon(layanan.ikon),
+                  size: 34,
+                  color: TkColors.primary,
+                ),
               ),
             ),
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     layanan.namaLayanan,
@@ -452,9 +456,15 @@ class _KartuLayanan extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  PriceBadge(
-                    harga: layanan.harga,
-                    satuan: satuanSingkat(layanan.satuan),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: PriceBadge(
+                        harga: layanan.harga,
+                        satuan: satuanSingkat(layanan.satuan),
+                      ),
+                    ),
                   ),
                 ],
               ),

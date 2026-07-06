@@ -1,11 +1,33 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tk_core/tk_core.dart';
 
-/// Di-override di main() — false selama firebase_options.dart masih
-/// placeholder (sebelum `flutterfire configure`).
-final firebaseSiapProvider = Provider<bool>((_) => false);
+import '../firebase_options.dart';
+
+/// Inisialisasi Firebase non-blocking — dijalankan setelah frame pertama
+/// (P1 sudah tampil) sehingga tidak ada jeda layar putih saat cold start.
+/// Mengembalikan true bila berhasil, false bila firebase_options masih
+/// placeholder.
+final firebaseInitProvider = FutureProvider<bool>((_) async {
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+    return true;
+  } on UnsupportedError {
+    return false;
+  }
+});
+
+/// Status siap-pakai Firebase, disinkronkan dari [firebaseInitProvider].
+/// Semua stream provider membaca ini; begitu init selesai mereka otomatis
+/// re-evaluasi.
+final firebaseSiapProvider = Provider<bool>(
+    (ref) => ref.watch(firebaseInitProvider).valueOrNull ?? false);
 
 final authServiceProvider = Provider<AuthService>((_) => AuthService());
 
