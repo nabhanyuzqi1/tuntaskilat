@@ -38,6 +38,7 @@ class K3DetailPenugasanScreen extends ConsumerStatefulWidget {
 class _K3DetailPenugasanScreenState
     extends ConsumerState<K3DetailPenugasanScreen> {
   StreamSubscription<Position>? _posisiSub;
+  var _memulaiStream = false;
   var _memproses = false;
 
   @override
@@ -49,7 +50,9 @@ class _K3DetailPenugasanScreenState
   /// Mulai/berhenti mengalirkan posisi sesuai status order.
   Future<void> _sinkronPosisi(OrderModel order) async {
     final harusStream = order.status == OrderStatus.dalamPerjalanan;
-    if (harusStream && _posisiSub == null) {
+    if (harusStream && _posisiSub == null && !_memulaiStream) {
+      // Guard reentrancy: build bisa terpanggil lagi sebelum await selesai.
+      _memulaiStream = true;
       var izin = await Geolocator.checkPermission();
       if (izin == LocationPermission.denied) {
         izin = await Geolocator.requestPermission();
@@ -73,6 +76,7 @@ class _K3DetailPenugasanScreenState
     } else if (!harusStream && _posisiSub != null) {
       await _posisiSub?.cancel();
       _posisiSub = null;
+      _memulaiStream = false;
     }
   }
 

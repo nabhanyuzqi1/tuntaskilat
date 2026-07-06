@@ -25,6 +25,7 @@ class PembayaranController extends AutoDisposeAsyncNotifier<PaymentModel?> {
       String? buktiUrl;
       if (buktiBytes != null) {
         buktiUrl = await ref.read(storageServiceProvider).uploadBuktiBayar(
+              userId: order.userId,
               orderId: order.orderId,
               bytes: buktiBytes,
             );

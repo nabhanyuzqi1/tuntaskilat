@@ -64,14 +64,17 @@ class _K4LaporanKerjaScreenState extends ConsumerState<K4LaporanKerjaScreen> {
     }
     setState(() => _mengirim = true);
     try {
+      final uid = ref.read(authServiceProvider).currentUser!.uid;
       final storage = ref.read(storageServiceProvider);
       final urlSebelum = await storage.uploadFotoLaporan(
+        cleanerId: uid,
         orderId: order.orderId,
         sebelum: true,
         index: 0,
         bytes: _fotoSebelum!,
       );
       final urlSesudah = await storage.uploadFotoLaporan(
+        cleanerId: uid,
         orderId: order.orderId,
         sebelum: false,
         index: 0,

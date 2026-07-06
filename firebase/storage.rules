@@ -1,8 +1,8 @@
 rules_version = '2';
-// Storage Tuntaskilat — prinsip sejalan firestore-schema.md: tulis hanya
-// oleh pengguna masuk, dibatasi tipe gambar & ukuran 5MB (P7: "JPG/PNG
-// maks 5MB"). Baca oleh pengguna masuk (admin A3 memverifikasi bukti,
-// pelanggan meninjau miliknya, foto laporan dilihat pelanggan terkait).
+// Storage Tuntaskilat — prinsip owner-only sejalan firestore-schema.md:
+// path berprefix UID pemilik; hanya pemiliknya yang boleh menulis, dibatasi
+// tipe gambar & ukuran 5MB (P7: "JPG/PNG maks 5MB"). Baca oleh pengguna
+// masuk (admin A3 memverifikasi bukti, pelanggan melihat foto laporan).
 service firebase.storage {
   match /b/{bucket}/o {
     function isSignedIn() { return request.auth != null; }
@@ -11,16 +11,20 @@ service firebase.storage {
           && request.resource.size < 5 * 1024 * 1024;
     }
 
-    // Bukti pembayaran (P7) — path: bukti_bayar/{orderId}.jpg
-    match /bukti_bayar/{file} {
+    // Bukti pembayaran (P7) — bukti_bayar/{uidPelanggan}/{orderId}.jpg
+    match /bukti_bayar/{uid}/{file} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && isImageMax5MB();
+      allow write: if isSignedIn()
+          && request.auth.uid == uid
+          && isImageMax5MB();
     }
 
-    // Foto laporan kerja kru (K4) — path: laporan/{orderId}/...
-    match /laporan/{orderId}/{file} {
+    // Foto laporan kerja (K4) — laporan/{uidKru}/{orderId}/{file}
+    match /laporan/{uid}/{orderId}/{file} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && isImageMax5MB();
+      allow write: if isSignedIn()
+          && request.auth.uid == uid
+          && isImageMax5MB();
     }
 
     match /{allPaths=**} {

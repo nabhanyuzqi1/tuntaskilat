@@ -35,12 +35,16 @@ service cloud.firestore {
         isAdmin()
       );
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      // update totalHarga/hargaSatuan HANYA lewat transaction tervalidasi backend,
-      // bukan write bebas klien
-      allow update: if isSignedIn() && (
-        resource.data.userId == request.auth.uid ||
-        resource.data.cleanerId == request.auth.uid ||
-        isAdmin()
+      // Skenario Black-Box #6: field uang (totalHarga/hargaSatuan/kuantitas)
+      // dan kepemilikan (userId/cleanerId/serviceId/jadwal) TIDAK BISA
+      // diubah klien — pelanggan/kru hanya boleh menyentuh status & foto
+      // laporan. Perubahan lain hanya oleh admin.
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        (resource.data.userId == request.auth.uid ||
+         resource.data.cleanerId == request.auth.uid) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'fotoSebelum', 'fotoSesudah'])
       );
       allow delete: if isAdmin();
     }

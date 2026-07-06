@@ -8,18 +8,21 @@ class StorageService {
 
   final FirebaseStorage _storage;
 
-  /// Unggah bukti bayar (P7). Mengembalikan URL untuk field
-  /// `payments.buktiBayar`.
+  /// Unggah bukti bayar (P7). Path diberi prefix UID pemilik supaya
+  /// Storage Rules bisa menolak penimpaan oleh pengguna lain.
+  /// Mengembalikan URL untuk field `payments.buktiBayar`.
   Future<String> uploadBuktiBayar({
+    required String userId,
     required String orderId,
     required Uint8List bytes,
     String contentType = 'image/jpeg',
   }) =>
-      _upload('bukti_bayar/$orderId.jpg', bytes, contentType);
+      _upload('bukti_bayar/$userId/$orderId.jpg', bytes, contentType);
 
-  /// Unggah foto laporan kerja kru (K4). Mengembalikan URL untuk
-  /// `orders.fotoSebelum` / `orders.fotoSesudah`.
+  /// Unggah foto laporan kerja kru (K4). Path diberi prefix UID kru.
+  /// Mengembalikan URL untuk `orders.fotoSebelum` / `orders.fotoSesudah`.
   Future<String> uploadFotoLaporan({
+    required String cleanerId,
     required String orderId,
     required bool sebelum,
     required int index,
@@ -27,7 +30,8 @@ class StorageService {
     String contentType = 'image/jpeg',
   }) =>
       _upload(
-        'laporan/$orderId/${sebelum ? 'sebelum' : 'sesudah'}_$index.jpg',
+        'laporan/$cleanerId/$orderId/'
+        '${sebelum ? 'sebelum' : 'sesudah'}_$index.jpg',
         bytes,
         contentType,
       );

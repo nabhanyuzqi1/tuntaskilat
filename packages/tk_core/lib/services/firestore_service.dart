@@ -277,15 +277,17 @@ class FirestoreService {
     required bool terima,
     String? alasan,
   }) async {
-    final pembayaran = await _payments
-        .where('orderId', isEqualTo: order.orderId)
-        .orderBy('waktu', descending: true)
-        .limit(1)
-        .get();
+    // Tanpa orderBy: equality + orderBy field lain butuh composite index.
+    // Payment per order praktis ≤2 (unggah ulang) — sort di klien.
+    final pembayaran =
+        await _payments.where('orderId', isEqualTo: order.orderId).get();
+    final docs = pembayaran.docs.toList()
+      ..sort((a, b) => (b.data()['waktu'] as Timestamp)
+          .compareTo(a.data()['waktu'] as Timestamp));
 
     final batch = _db.batch();
-    if (pembayaran.docs.isNotEmpty) {
-      batch.update(pembayaran.docs.first.reference, {
+    if (docs.isNotEmpty) {
+      batch.update(docs.first.reference, {
         'statusBayar':
             (terima ? StatusBayar.terverifikasi : StatusBayar.ditolak).wire,
       });
