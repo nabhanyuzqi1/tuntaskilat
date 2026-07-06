@@ -16,6 +16,7 @@ skill sesuai tugas, muat isinya sebagai instruksi aktif, lalu kerjakan:
 | **Orchestrator** | Tugas multi-langkah / lintas app; perlu dipecah & didelegasikan ke sub-agent; koordinasi + integrasi + verifikasi | [`.antigravity/skills/orchestrator.md`](.antigravity/skills/orchestrator.md) |
 | **Code Reviewer** | Meninjau diff/PR/berkas untuk bug, keamanan, performa, dan **kesetiaan pada TA** | [`.antigravity/skills/code-reviewer.md`](.antigravity/skills/code-reviewer.md) |
 | **Dosen Pembimbing TA** | Menilai apakah kode + naskah layak sidang; cek scope, klaim, kesiapan, dan siapkan tanya-jawab penguji | [`.antigravity/skills/dosen-pembimbing.md`](.antigravity/skills/dosen-pembimbing.md) |
+| **Review & Edit TA (.docx)** | Audit naskah TA + perbaiki temuan aman → revisi baru (konsistensi angka/gambar/sitasi, kesetiaan kode↔naskah, EYD) | [`.antigravity/skills/ta-review-docx.md`](.antigravity/skills/ta-review-docx.md) · Claude: [`.claude/skills/ta-review-docx/SKILL.md`](.claude/skills/ta-review-docx/SKILL.md) |
 
 Apa pun skill yang dipakai, **§1–§5 di bawah berlaku mutlak.**
 

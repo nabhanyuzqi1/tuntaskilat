@@ -14,7 +14,12 @@ GEMINI.md                         # penunjuk singkat untuk Gemini CLI
   orchestrator.md                 # pecah tugas → delegasi sub-agent → integrasi + verifikasi
   code-reviewer.md                # tinjau bug/keamanan/performa + kesetiaan TA
   dosen-pembimbing.md             # nilai kesetiaan kode↔naskah + kesiapan sidang
+  ta-review-docx.md               # audit + perbaiki naskah .docx (skrip Python dipakai bersama Claude)
 ```
+
+> `ta-review-docx` memakai skrip Python yang sama dengan skill Claude di
+> `.claude/skills/ta-review-docx/scripts/` (extract/verify/edit) — jalan identik
+> di kedua lingkungan. Aktifkan dgn *"Pakai skill ta-review-docx: review/edit naskah"*.
 
 ## Cara memakai di Antigravity
 
@@ -27,6 +32,8 @@ GEMINI.md                         # penunjuk singkat untuk Gemini CLI
    - *"Review diff ini sebagai code-reviewer"* — memuat `code-reviewer.md`.
    - *"Nilai kesiapan sidang sebagai dosen pembimbing"* — memuat
      `dosen-pembimbing.md`.
+   - *"Pakai skill ta-review-docx: review/perbaiki naskah TA"* — memuat
+     `ta-review-docx.md` (jalankan skrip di `.claude/skills/ta-review-docx/scripts/`).
    Atau simpan tiap berkas sebagai **Workflow** di Antigravity dan panggil
    dengan slash-command.
 3. **Agent Manager (paralel).** Skill `orchestrator` dirancang untuk memakai
