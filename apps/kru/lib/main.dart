@@ -10,19 +10,9 @@ import 'providers/app_providers.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  var firebaseSiap = false;
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    firebaseSiap = true;
-  } on UnsupportedError {
-    // firebase_options.dart masih placeholder — UI tetap bisa dijalankan.
-  }
   runApp(
-    ProviderScope(
-      overrides: [firebaseSiapProvider.overrideWithValue(firebaseSiap)],
-      child: const TkKruApp(),
+    const ProviderScope(
+      child: TkKruApp(),
     ),
   );
 }

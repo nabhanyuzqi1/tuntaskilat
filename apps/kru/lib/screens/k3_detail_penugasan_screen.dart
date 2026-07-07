@@ -142,9 +142,12 @@ class _K3DetailPenugasanScreenState
                 tujuan.latitude, tujuan.longitude) /
             1000;
 
-    return Column(children: [
+    return Stack(children: [
       // Peta rute
-      SizedBox(
+      Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
         height: 300,
         child: Stack(children: [
           FlutterMap(
@@ -250,19 +253,22 @@ class _K3DetailPenugasanScreenState
               ),
             ),
           ),
-        ]),
+        ],
       ),
       // Sheet detail
-      Expanded(
-        child: Transform.translate(
-          offset: const Offset(0, -22),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: TkColors.surface,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+      Positioned(
+        top: 278, // 300 - 22
+        left: 0,
+        right: 0,
+        bottom: 0,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: TkColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
               children: [
                 Center(
                   child: Container(
@@ -468,7 +474,6 @@ class _K3DetailPenugasanScreenState
                     ),
                   ),
               ],
-            ),
           ),
         ),
       ),

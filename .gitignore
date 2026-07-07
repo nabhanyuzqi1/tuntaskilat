@@ -18,3 +18,28 @@ firebase-debug.log
 
 # Coverage
 coverage/
+
+# Build artifacts / rilis
+*.apk
+*.aab
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Berkas kerja sementara (audit/edit docx, ekstraksi, hosting canvas)
+/scripts/
+/canvas_hosting/
+/apps/prototype/
+ta_paras.txt
+ta_tables.txt
+diagram_*.png
+create_*.py
+extract_*.py
+fix_*.py
+find_*.py
+search_*.py
+update_*.py
+inject_*.py
+remove_*.py
+revert_*.py

@@ -4,5 +4,31 @@
   },
   "storage": {
     "rules": "firebase/storage.rules"
-  }
+  },
+  "hosting": [
+    {
+      "target": "admin",
+      "public": "apps/admin/build/web",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "prototype",
+      "public": "apps/prototype",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
+    }
+  ]
 }

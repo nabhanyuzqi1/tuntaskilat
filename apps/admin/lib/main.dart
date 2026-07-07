@@ -8,19 +8,9 @@ import 'providers/app_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  var firebaseSiap = false;
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    firebaseSiap = true;
-  } on UnsupportedError {
-    // firebase_options.dart masih placeholder.
-  }
   runApp(
-    ProviderScope(
-      overrides: [firebaseSiapProvider.overrideWithValue(firebaseSiap)],
-      child: const TkAdminApp(),
+    const ProviderScope(
+      child: TkAdminApp(),
     ),
   );
 }
