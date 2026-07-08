@@ -71,5 +71,19 @@ service cloud.firestore {
       allow read, update: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn(); // idealnya ditulis backend/Cloud Function
     }
+
+    // Koleksi produk NYATA (di luar 7 koleksi TA): promo/voucher.
+    // Dibaca untuk pratinjau; dikelola admin. Pelanggan hanya boleh menaikkan
+    // `terpakai` tepat +1 saat memakai voucher di dalam transaction pemesanan.
+    match /vouchers/{kode} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['terpakai']) &&
+        request.resource.data.terpakai == resource.data.terpakai + 1
+      );
+    }
   }
 }

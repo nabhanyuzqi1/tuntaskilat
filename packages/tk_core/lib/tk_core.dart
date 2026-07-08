@@ -14,6 +14,8 @@ export 'models/payment_model.dart';
 export 'models/review_model.dart';
 export 'models/notification_model.dart';
 
+export 'seed/pricelist_seed.dart';
+
 export 'services/auth_service.dart';
 export 'services/firestore_service.dart';
 export 'services/storage_service.dart';

@@ -11,6 +11,7 @@ import '../models/review_model.dart';
 import '../models/service_model.dart';
 import '../models/user_model.dart';
 import '../models/voucher_model.dart';
+import '../seed/pricelist_seed.dart';
 import '../utils/validators.dart';
 
 /// Dilempar saat slot `jadwal` sudah terisi — transaction kedua pada slot yang
@@ -306,6 +307,19 @@ class FirestoreService {
 
   Future<void> hapusVoucher(String kode) =>
       _vouchers.doc(kode.trim().toUpperCase()).delete();
+
+  /// Isi/overwrite katalog `services` + `vouchers` contoh sesuai pricelist TK
+  /// dalam satu batch. Admin-only (Security Rules). Dipanggil dari Panel Admin.
+  Future<void> seedKatalogDanVoucher() async {
+    final batch = _db.batch();
+    for (final s in katalogSeed()) {
+      batch.set(_services.doc(s.serviceId), s.toMap());
+    }
+    for (final v in voucherSeed()) {
+      batch.set(_vouchers.doc(v.kode.toUpperCase()), v.toMap());
+    }
+    await batch.commit();
+  }
 
   /// Slot yang sudah terisi pada [hari] — untuk menampilkan slot disabled +
   /// ikon gembok di P5 (kaidah Pencegahan Kesalahan). Memakai `get` per ID
