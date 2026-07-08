@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tk_core/tk_core.dart';
 
 import 'package:firebase_core/firebase_core.dart';
-import 'package:tk_core/tk_core.dart';
 import '../firebase_options.dart';
 
 final firebaseInitProvider = FutureProvider<bool>((_) async {

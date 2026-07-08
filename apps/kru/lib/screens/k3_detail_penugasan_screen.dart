@@ -255,6 +255,7 @@ class _K3DetailPenugasanScreenState
           ),
         ],
       ),
+      ),
       // Sheet detail
       Positioned(
         top: 278, // 300 - 22
