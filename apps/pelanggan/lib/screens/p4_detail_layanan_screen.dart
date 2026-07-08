@@ -172,18 +172,18 @@ class _Hero extends StatelessWidget {
               width: 108,
               height: 108,
               decoration: BoxDecoration(
-                color: TkColors.surface,
+                gradient: serviceGradient(layanan.kategori),
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
-                      color: TkColors.primary.withValues(alpha: 0.18),
+                      color: TkColors.primary.withValues(alpha: 0.28),
                       blurRadius: 30,
                       offset: const Offset(0, 12),
                       spreadRadius: -6),
                 ],
               ),
               child: Icon(serviceIcon(layanan.ikon),
-                  size: 52, color: TkColors.primary),
+                  size: 52, color: Colors.white),
             ),
           ),
         ],

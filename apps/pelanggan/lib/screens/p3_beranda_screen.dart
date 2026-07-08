@@ -431,11 +431,12 @@ class _KartuLayanan extends StatelessWidget {
             Expanded(
               child: Container(
                 width: double.infinity,
-                color: TkColors.surfaceMuted,
+                decoration:
+                    BoxDecoration(gradient: serviceGradient(layanan.kategori)),
                 child: Icon(
                   serviceIcon(layanan.ikon),
                   size: 34,
-                  color: TkColors.primary,
+                  color: Colors.white,
                 ),
               ),
             ),
