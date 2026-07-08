@@ -130,6 +130,16 @@ class _K3DetailPenugasanScreenState
 
   Widget _isi(OrderModel order) {
     final kru = ref.watch(kruSayaProvider).valueOrNull;
+    
+    // Penentuan peran: Worker vs Helper
+    bool isLead = false;
+    if (order.penugasan.isNotEmpty) {
+      final p = order.penugasan.where((x) => x.cleanerId == kru?.cleanerId).firstOrNull;
+      isLead = p?.peran == PeranKru.worker;
+    } else {
+      isLead = order.cleanerId == kru?.cleanerId;
+    }
+
     final tujuan = order.lokasi != null
         ? LatLng(order.lokasi!.latitude, order.lokasi!.longitude)
         : const LatLng(-2.5329, 112.9508);
@@ -461,19 +471,38 @@ class _K3DetailPenugasanScreenState
                     ],
                   )
                 else if (order.status.tahapBerikutKru != null)
-                  SizedBox(
-                    height: 58,
-                    child: TkButton(
-                      label: switch (order.status) {
-                        OrderStatus.ditugaskan => 'Mulai Menuju Lokasi',
-                        OrderStatus.dalamPerjalanan => 'Mulai Pengerjaan',
-                        OrderStatus.diproses => 'Selesai & Buat Laporan',
-                        _ => 'Lanjut',
-                      },
-                      loading: _memproses,
-                      onPressed: () => _majukanStatus(order),
+                  if (isLead)
+                    SizedBox(
+                      height: 58,
+                      child: TkButton(
+                        label: switch (order.status) {
+                          OrderStatus.ditugaskan => 'Mulai Menuju Lokasi',
+                          OrderStatus.dalamPerjalanan => 'Mulai Pengerjaan',
+                          OrderStatus.diproses => 'Selesai & Buat Laporan',
+                          _ => 'Lanjut',
+                        },
+                        loading: _memproses,
+                        onPressed: () => _majukanStatus(order),
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: TkColors.accent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Anda ditugaskan sebagai Helper. Hanya Worker (Lead) yang dapat memajukan status dan membuat laporan akhir.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.montserrat(
+                          fontSize: 13,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                          color: TkColors.primaryDark,
+                        ),
+                      ),
                     ),
-                  ),
               ],
           ),
         ),
