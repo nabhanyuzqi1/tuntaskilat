@@ -72,7 +72,7 @@ class _Sidebar extends ConsumerWidget {
       width: 244,
       color: AdminUi.sidebarBg,
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-      child: Column(children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
           child: Row(children: [

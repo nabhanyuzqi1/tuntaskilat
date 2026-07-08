@@ -12,7 +12,9 @@ class AuthKruController extends AutoDisposeAsyncNotifier<UserModel?> {
   Future<UserModel?> build() async => null;
 
   Future<bool> masuk({required String email, required String password}) async {
-    if (!ref.read(firebaseSiapProvider)) {
+    // Tunggu Firebase selesai init — jangan langsung gagal jika belum siap.
+    final initResult = await ref.read(firebaseInitProvider.future);
+    if (!initResult) {
       state = AsyncError(
         kDebugMode
             ? pesanFirebaseBelumSiap

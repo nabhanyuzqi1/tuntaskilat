@@ -38,7 +38,9 @@ class AuthController extends AutoDisposeAsyncNotifier<UserModel?> {
   /// Masuk/daftar dengan akun Google (page-inventory P2 — akun pihak
   /// ketiga). Pembatalan oleh pengguna bukan error — kembali diam-diam.
   Future<bool> masukDenganGoogle() async {
-    if (!ref.read(firebaseSiapProvider)) {
+    // Tunggu Firebase selesai init.
+    final initResult = await ref.read(firebaseInitProvider.future);
+    if (!initResult) {
       state = AsyncError(
         kDebugMode
             ? pesanFirebaseBelumSiap
@@ -72,10 +74,9 @@ class AuthController extends AutoDisposeAsyncNotifier<UserModel?> {
   }
 
   Future<bool> _jalankan(Future<UserModel> Function() aksi) async {
-    if (!ref.read(firebaseSiapProvider)) {
-      // Detail teknis hanya untuk build debug; di release (yang seharusnya
-      // selalu punya firebase_options hasil flutterfire configure) pengguna
-      // melihat pesan umum bernada brand.
+    // Tunggu Firebase selesai init — jangan langsung gagal jika belum siap.
+    final initResult = await ref.read(firebaseInitProvider.future);
+    if (!initResult) {
       state = AsyncError(
         kDebugMode
             ? pesanFirebaseBelumSiap

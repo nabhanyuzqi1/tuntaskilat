@@ -17,7 +17,7 @@ class A7VoucherScreen extends ConsumerWidget {
     final vouchers = ref.watch(vouchersProvider).valueOrNull ?? const [];
     final aktif = vouchers.where((v) => v.aktif).length;
 
-    return Column(children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       AdminUi.topbar(
         judul: 'Kelola Voucher',
         subjudul: '${vouchers.length} voucher · $aktif aktif',

@@ -49,7 +49,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                 o.namaPelanggan.toLowerCase().contains(cari)))
         .toList(growable: false);
 
-    return Column(children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       AdminUi.topbar(
         judul: 'Kelola Pesanan',
         subjudul:
@@ -97,7 +97,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
             Container(
               clipBehavior: Clip.antiAlias,
               decoration: AdminUi.kartu(),
-              child: Column(children: [
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 AdminUi.judulTabel(const [
                   ('ID', 12),
                   ('PELANGGAN', 14),
@@ -493,7 +493,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                           fontSize: 13, color: TkColors.textMuted))
                   : Column(
                       mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text('Pilih 1 Worker (Lead) dan sisanya Helper jika perlu.',
                             style: GoogleFonts.montserrat(

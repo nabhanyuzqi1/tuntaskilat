@@ -38,7 +38,7 @@ class A4KelolaLayananScreen extends ConsumerWidget {
     final layanan = ref.watch(semuaLayananProvider).valueOrNull ?? const [];
     final aktifCount = layanan.where((s) => s.aktif).length;
 
-    return Column(children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       AdminUi.topbar(
         judul: 'Kelola Layanan',
         subjudul: '${layanan.length} layanan · $aktifCount aktif',
@@ -61,7 +61,7 @@ class A4KelolaLayananScreen extends ConsumerWidget {
             Container(
               clipBehavior: Clip.antiAlias,
               decoration: AdminUi.kartu(),
-              child: Column(children: [
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 AdminUi.judulTabel(const [
                   ('LAYANAN', 24),
                   ('TARIF', 11),

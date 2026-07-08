@@ -36,7 +36,7 @@ class A6PengaturanScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profil = ref.watch(profilAdminProvider).valueOrNull;
 
-    return Column(children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       AdminUi.topbar(
         judul: 'Pengaturan',
         subjudul: 'Profil admin, keamanan, dan preferensi panel',
@@ -211,7 +211,7 @@ class A6PengaturanScreen extends ConsumerWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: AdminUi.kartu(),
-      child: Column(children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         ListTile(
           onTap: () => _dialogUbahSandi(context, ref),
           contentPadding:
@@ -374,7 +374,7 @@ class A6PengaturanScreen extends ConsumerWidget {
       return Container(
         clipBehavior: Clip.antiAlias,
         decoration: AdminUi.kartu(),
-        child: Column(children: [
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           for (var i = 0; i < _A6.kunciNotif.length; i++) ...[
             if (i > 0)
               const Padding(

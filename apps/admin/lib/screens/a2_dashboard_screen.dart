@@ -40,7 +40,7 @@ class A2DashboardScreen extends ConsumerWidget {
         .length;
     final kruOnline = kru.where((k) => k.statusKetersediaan).length;
 
-    return Column(children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       AdminUi.topbar(
         judul: 'Dashboard',
         subjudul:
@@ -357,7 +357,7 @@ class A2DashboardScreen extends ConsumerWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: AdminUi.kartu(),
-      child: Column(children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
           child: Row(children: [

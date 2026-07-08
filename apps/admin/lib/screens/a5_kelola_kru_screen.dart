@@ -19,7 +19,7 @@ class A5KelolaKruScreen extends ConsumerWidget {
     final kru = ref.watch(semuaKruProvider).valueOrNull ?? const [];
     final online = kru.where((k) => k.statusKetersediaan).length;
 
-    return Column(children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       AdminUi.topbar(
         judul: 'Kelola Kru',
         subjudul: '${kru.length} kru · $online online',
@@ -42,7 +42,7 @@ class A5KelolaKruScreen extends ConsumerWidget {
             Container(
               clipBehavior: Clip.antiAlias,
               decoration: AdminUi.kartu(),
-              child: Column(children: [
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 AdminUi.judulTabel(const [
                   ('KRU', 20),
                   ('TELEPON', 12),

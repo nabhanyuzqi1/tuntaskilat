@@ -16,7 +16,7 @@ class TkTheme {
   /// Pakai via AppBarTheme (layar ber-AppBar) dan AnnotatedRegion di root
   /// MaterialApp.builder (layar tanpa AppBar seperti P1/OB/P2).
   static const systemOverlayStyle = SystemUiOverlayStyle(
-    statusBarColor: TkColors.surface,
+    statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark, // Android: ikon gelap
     statusBarBrightness: Brightness.light,
     systemNavigationBarColor: Colors.transparent,
