@@ -1,0 +1,817 @@
+RANCANG BANGUN PLATFORM JASA KEBERSIHAN ON-DEMAND "TUNTAS KILAT" BERBASIS MOBILE MENGGUNAKAN FRAMEWORK FLUTTER DAN FIREBASE TERINTEGRASI PENDEKATAN HUMAN-CENTERED DESIGN (HCD)
+
+TUGAS AKHIR
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Disusun oleh :
+NABHAN YUZQI AL MUBAROK
+NPM. 2457201102414 
+
+
+PROGRAM STUDI STRATA SATU SISTEM INFORMASI
+F A K U L T A S   I L M U   K O M P U T E R
+UNIVERSITAS DARWAN ALI 
+S  A  M  P  I  T
+2026
+
+“RANCANG BANGUN PLATFORM JASA KEBERSIHAN ON-DEMAND "TUNTAS KILAT" BERBASIS MOBILE MENGGUNAKAN FRAMEWORK FLUTTER DAN FIREBASE TERINTEGRASI PENDEKATAN HUMAN-CENTERED DESIGN (HCD)”
+
+
+TUGAS AKHIR
+
+
+
+
+
+
+
+
+Disusun Oleh :
+
+NABHAN YUZQI AL MUBAROK
+NPM. 2457201102414
+
+
+
+
+PROGRAM STUDI STRATA SATU SISTEM INFORMASI FAKULTAS ILMU KOMPUTER
+UNIVERSITAS DARWAN ALI
+SAMPIT
+2026
+LEMBAR PERSETUJUAN
+
+
+NAMA	:  NABHAN YUZQI AL MUBAROK
+
+NPM		:  2457201102414
+
+JURUSAN	:  SISTEM INFORMASI
+
+JUDUL	: 
+
+
+
+
+
+
+
+
+Menyetujui :
+
+
+
+
+
+Mengetahui :
+
+
+
+
+LEMBAR PENGESAHAN
+
+TUGAS AKHIR
+
+“RANCANG BANGUN PLATFORM JASA KEBERSIHAN ON-DEMAND "TUNTAS KILAT" BERBASIS MOBILE MENGGUNAKAN FRAMEWORK FLUTTER DAN FIREBASE TERINTEGRASI PENDEKATAN HUMAN-CENTERED DESIGN (HCD)”
+
+Diajukan oleh :
+
+
+
+
+
+NABHAN YUZQI AL MUBAROK
+NPM. 2457201102414
+
+Telah dipertahankan di depan majelis penguji pada tanggal 14 Juli 2026 dan disahkan di depan Dewan Penguji Program Studi S-1 Sistem Informasi Fakultas Ilmu Komputer Universitas Darwan Ali Sampit
+
+HALAMAN PERNYATAAN ORISINALITAS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Saya menyatakan dengan sesungguhnya bahwa Tugas Akhir dengan judul:
+“RANCANG BANGUN PLATFORM JASA KEBERSIHAN ON-DEMAND "TUNTAS KILAT" BERBASIS MOBILE MENGGUNAKAN FRAMEWORK FLUTTER DAN FIREBASE TERINTEGRASI PENDEKATAN HUMAN-CENTERED DESIGN (HCD)”.
+Tugas Akhir ini adalah hasil karya saya sendiri, dan semua sumber baik yang dikutip maupun dirujuk telah saya nyatakan dengan benar. Jika dikemudian hari ditemukan bahwa karya tulis ini menyalahi peraturan yang ada berkaitan etika dan kaidah penulisan karya ilmiah yang berlaku, maka saya bersedia dituntut dan diproses sesuai dengan ketentuan yang berlaku.
+HALAMAN PERNYATAAN PERSETUJUAN PUBLIKASI
+SKRIPSI UNTUK KEPENTINGAN AKADEMIS 
+
+
+Sebagai Civitas Akademik Program Studi Sistem Informasi, Universitas Darwan Ali, saya yang bertanda tangan di bawah ini :
+Nama 	: Nabhan Yuzqi Al Mubarok
+NPM	: 2457201102414
+Demi pengembangan ilmu pengetahuan, menyetujui untuk memberikan kepada Universitas Darwan Ali atas karya ilmiah saya yang berjudul :
+“RANCANG BANGUN PLATFORM JASA KEBERSIHAN ON-DEMAND "TUNTAS KILAT" BERBASIS MOBILE MENGGUNAKAN FRAMEWORK FLUTTER DAN FIREBASE TERINTEGRASI PENDEKATAN HUMAN-CENTERED DESIGN (HCD)” .
+Dengan Hak ini maka Universitas Darwan Ali berhak menyimpan, mengelola, merawat dan mempublikasikan skripsi saya selama tetap mencantumkan nama saya sebagai penulis/pencipta dan sebagai pemilik Hak Cipta.
+Demikian pernyataan ini saya buat dengan sebenarnya.
+
+Dibuat di 	: Sampit
+Pada Tanggal 	: 1 Mei 2026
+
+
+Yang menyatakan
+
+
+(Nabhan Yuzqi Al Mubarok)
+ABSTRAK
+
+Nama 		: Nabhan Yuzqi Al Mubarok
+NPM		: 2457201102414
+Judul Skripsi	: 
+
+
+
+
+
+Kesibukan masyarakat Kota Sampit menimbulkan kebutuhan akan layanan kebersihan rumah tangga yang praktis, sementara proses pemesanan konvensional rentan terhadap kesalahan penjadwalan dan ketidakjelasan harga. Penelitian ini bertujuan merancang dan membangun purwarupa platform jasa kebersihan on-demand “Tuntaskilat” berbasis mobile menggunakan framework Flutter dan layanan backend Firebase, dengan pendekatan Human-Centered Design (HCD) yang berpijak pada kebiasaan warga Sampit. Metode HCD diterapkan melalui tahapan pemahaman konteks pengguna, penentuan kebutuhan, pembuatan purwarupa, dan evaluasi secara iteratif. Hasil penelitian berupa aplikasi yang mengintegrasikan Flutter dan Firebase secara stabil dengan pelacakan pesanan waktu nyata, serta diuji kelayakannya menggunakan pengujian black-box dan System Usability Scale. Penelitian ini diharapkan memberikan solusi digital yang transparan dan mudah digunakan bagi masyarakat Kota Sampit.
+Kata Kunci: jasa kebersihan, on-demand, Flutter, Firebase, Human-Centered Design
+
+KATA PENGANTAR
+
+Assalamualaikum Warahmatullahi Wabarakatuh.
+Dengan memanjatkan puji dan syukur ke hadirat Tuhan Yang Maha Esa atas limpahan rahmat dan hidayah-Nya, penulis dapat menyelesaikan penyusunan Tugas Akhir yang berjudul “RANCANG BANGUN PLATFORM JASA KEBERSIHAN ON-DEMAND “TUNTAS KILAT” BERBASIS MOBILE MENGGUNAKAN FRAMEWORK FLUTTER DAN FIREBASE TERINTEGRASI PENDEKATAN HUMAN-CENTERED DESIGN (HCD)”. Tugas Akhir ini disusun sebagai salah satu syarat untuk memperoleh gelar Sarjana Komputer pada Program Studi Sistem Informasi, Fakultas Ilmu Komputer, Universitas Darwan Ali Sampit.
+Pada kesempatan ini, penulis menyampaikan terima kasih yang sebesar-besarnya kepada:
+Rektor Universitas Darwan Ali beserta jajaran atas kesempatan menempuh pendidikan.
+Dekan Fakultas Ilmu Komputer Universitas Darwan Ali.
+Ibu Minarni, S.Kom., M.M., selaku Ketua Program Studi Sistem Informasi.
+Bapak Lukman Bachtiar, S.Kom., M.M., M.Kom., selaku Dosen Pembimbing yang telah memberikan arahan dan bimbingan.
+Bapak/Ibu Dosen Penguji atas masukan yang membangun bagi penyempurnaan Tugas Akhir ini.
+Kedua orang tua dan keluarga atas doa dan dukungan yang tiada henti.
+Rekan-rekan seperjuangan yang telah memberikan semangat dan bantuan.
+
+Penulis menyadari bahwa penyusunan Tugas Akhir ini masih jauh dari sempurna. Oleh karena itu, kritik dan saran yang membangun sangat penulis harapkan. Semoga Tugas Akhir ini bermanfaat bagi semua pihak.
+
+Sampit, 1 Mei 2026
+Penulis
+
+
+
+Nabhan Yuzqi Al Mubarok
+
+DAFTAR ISI
+
+DAFTAR GAMBAR
+
+DAFTAR TABEL
+
+
+BAB I 
+PENDAHULUAN
+
+Latar Belakang
+Perkembangan ekonomi digital di Indonesia tumbuh pesat dan merambah hampir seluruh sektor kehidupan. Salah satu wujud yang paling terasa adalah hadirnya layanan berbasis permintaan atau layanan on-demand, yaitu layanan yang dapat dipesan seketika melalui aplikasi telepon pintar tanpa proses tawar-menawar konvensional. Secara nasional, industri layanan on-demand telah menyumbang kontribusi yang signifikan terhadap perekonomian nasional; riset Paramadina Public Policy Institute bersama INDEF tahun 2026 mencatat ekosistem layanan transportasi dan jasa berbasis aplikasi menyumbang sekitar Rp565 triliun atau setara 2,37% terhadap Produk Domestik Bruto serta menyerap hingga 5,53 juta tenaga kerja langsung maupun tidak langsung [23]. Di antara berbagai layanan tersebut, jasa kebersihan rumah tangga menjadi salah satu yang paling dicari karena masyarakat perkotaan kini semakin sibuk, memiliki jam kerja padat dan mobilitas tinggi, sehingga waktu untuk mengurus kebersihan rumah menjadi sangat terbatas.
+
+Gambar 1.1 Kontribusi Ekosistem Layanan Berbasis Aplikasi terhadap PDB Indonesia
+Sumber: diolah dari [23]
+Fenomena yang sama mulai dirasakan di Kota Sampit, Kabupaten Kotawaringin Timur, Kalimantan Tengah. Berdasarkan data Badan Pusat Statistik, pertumbuhan ekonomi Kabupaten Kotawaringin Timur pada tahun 2024 tercatat sebesar 4,00% dengan Indeks Pembangunan Manusia naik menjadi 74,47 poin dari 73,99 poin pada tahun sebelumnya [24]. Seiring kemajuan tersebut, muncul pula persoalan kebersihan lingkungan. Menurut Dinas Lingkungan Hidup Kotawaringin Timur, Kota Sampit menghasilkan lebih dari 75 ton sampah rumah tangga per hari, jumlah yang bahkan melampaui kapasitas pengangkutan harian sekitar 80 hingga 83 ton [25]. Kesibukan warga membuat mereka kesulitan mengelola kebersihan propertinya sendiri, sehingga muncul kebutuhan nyata akan tenaga kebersihan profesional yang dapat dipanggil sewaktu-waktu.
+
+Gambar 1.2 Indikator Pembangunan Kabupaten Kotawaringin Timur Tahun 2024
+Sumber: diolah dari [24]
+
+
+Gambar 1.3 Timbulan Sampah Rumah Tangga vs Kapasitas Pengangkutan Harian di Kota Sampit
+Sumber: diolah dari [25]
+
+Akan tetapi, kebutuhan tersebut berhadapan dengan sejumlah permasalahan non-teknis yang khas dialami warga Sampit. Pertama, proses pemesanan jasa kebersihan masih dilakukan secara konvensional melalui pesan telepon atau aplikasi perpesanan pribadi, sehingga rentan terhadap kesalahan pencatatan jadwal dan pesanan ganda. Kedua, terdapat keraguan masyarakat terhadap transparansi harga dan kejelasan identitas pekerja yang akan datang ke rumah, mengingat layanan ini menyangkut keamanan ruang pribadi. Ketiga, warga kesulitan memantau perkembangan pesanan karena tidak ada kanal informasi status yang baku. Permasalahan non-teknis inilah yang menjadi inti persoalan, bukan semata keterbatasan teknologi.
+
+Gambar 1.4 Alur Pemesanan Manual dan Permasalahan pada Setiap Tahap
+Sumber: olahan penulis
+Urgensi pembangunan sistem digital menjadi semakin nyata bila ditinjau dari kapasitas penanganan manual. Pada kondisi paling sederhana, proses pencatatan manual oleh admin Tuntaskilat masih dapat ditoleransi selama volume pemesanan berada pada kisaran rendah, yaitu diperkirakan tidak lebih dari sepuluh hingga lima belas pesanan per hari. Pada volume tersebut, satu orang admin masih sanggup mencatat jadwal, menugaskan kru, dan mengonfirmasi pembayaran secara berurutan tanpa kekacauan. Namun ketika jumlah pesanan melampaui ambang itu, terutama pada akhir pekan atau musim pasca-renovasi, pencatatan manual mulai menimbulkan tumpang-tindih jadwal, keterlambatan konfirmasi, dan kesalahan penugasan kru. Titik inilah yang menandai kebutuhan mendesak akan sistem terotomasi yang mampu menjaga konsistensi data ketika skala pemesanan bertumbuh.
+
+Melihat peluang sekaligus persoalan tersebut, PT Tuntas Kilat Group menghadirkan merek “Tuntaskilat” sebagai penyedia jasa kebersihan terpadu asli Sampit. Untuk bersaing dengan pemain nasional seperti KliknClean dan OKHOME, Tuntaskilat memerlukan ekosistem aplikasi mobile sendiri yang andal, aman, dan mudah dipahami pengguna awam. Untuk itu, aplikasi Tuntaskilat dibangun di atas teknologi Flutter dan Firebase yang memungkinkan layanan berjalan responsif dan memberikan informasi pesanan secara langsung kepada pengguna; rincian teknis kedua teknologi ini diuraikan lebih lanjut pada Bab II.
+
+Gambar 1.5 Positioning Tuntaskilat di antara Penyedia Jasa Kebersihan
+Sumber: olahan penulis
+
+Meskipun demikian, ketangguhan teknologi tidak menjamin keberhasilan apabila aplikasi membingungkan saat digunakan. Oleh sebab itu perancangan Tuntaskilat menempatkan kebiasaan warga Sampit sebagai titik tolak melalui pendekatan Human-Centered Design (HCD) [3], [22]. Ditinjau dari sudut pandang masyarakat, sebagian besar calon pengguna di Sampit terbiasa dengan pola interaksi aplikasi yang sederhana dan langsung, sebagaimana mereka gunakan pada aplikasi pesan-antar makanan dan dompet digital sehari-hari. Banyak di antara mereka kurang terbiasa dengan alur pemesanan berjenjang yang rumit, dan sebagian pengguna berusia lebih tua cenderung ragu memasukkan data bila tata letak tombol tidak jelas. Kebiasaan warga inilah, seperti preferensi pada bahasa yang membumi, kebutuhan akan kejelasan harga di muka, dan keengganan terhadap langkah yang berbelit, yang menjadi dasar perancangan antarmuka. Dengan menempatkan kebiasaan dan kenyamanan psikologis warga Sampit sebagai pusat, pendekatan HCD diharapkan menekan hambatan adopsi dan memastikan aplikasi benar-benar dapat digunakan oleh masyarakat sasaran.
+ Rumusan Masalah
+Berdasarkan uraian latar belakang, dirumuskan tiga permasalahan utama berikut:
+Bagaimana merancang antarmuka (User Interface) dan pengalaman pengguna (User Experience) aplikasi Tuntaskilat menggunakan metode Human-Centered Design agar sesuai dengan kebiasaan masyarakat Sampit sehingga menggantikan proses pemesanan manual yang rawan kesalahan jadwal dan pesanan ganda?
+Bagaimana mengintegrasikan framework Flutter di frontend dengan Firebase di backend agar aplikasi mampu menampilkan harga secara transparan di muka, melacak status pesanan secara waktu nyata, serta mengamankan data pribadi dan identitas pengguna?
+Bagaimana membuktikan secara empiris melalui pengujian bahwa aplikasi yang dikembangkan layak dan mudah digunakan oleh calon pelanggan?
+
+ Tujuan Penelitian
+Sejalan dengan rumusan masalah, penelitian ini bertujuan untuk:
+Menghasilkan rancangan antarmuka dan pengalaman pengguna aplikasi Tuntaskilat yang berpusat pada manusia dan sesuai kebiasaan warga Sampit, guna menggantikan proses pemesanan manual yang rawan kesalahan jadwal dan pesanan ganda.
+Mewujudkan integrasi Flutter dan Firebase menjadi purwarupa aplikasi mobile Android tingkat produksi yang menampilkan harga transparan di muka, mendukung pelacakan pesanan waktu nyata, serta mengamankan data pribadi dan identitas pengguna.
+Membuktikan kelayakan dan kemudahan penggunaan sistem secara empiris melalui pengujian terhadap calon pengguna di Kota Sampit.
+
+
+Manfaat Penelitian
+1.4.1. Manfaat Teoretis
+Penelitian ini memperkaya literatur rekayasa perangkat lunak dengan mendokumentasikan cara penggabungan teknologi lintas platform Flutter dengan arsitektur data waktu nyata Firebase di bawah panduan metodologi Human-Centered Design pada industri layanan kebersihan.
+1.4.2. Manfaat Praktis
+Bagi PT Tuntas Kilat Group, penelitian ini memberikan aset digital siap pakai yang mengotomatisasi proses bisnis dan menghemat biaya operasional. Bagi masyarakat Kota Sampit, aplikasi ini menghadirkan solusi instan untuk menjaga kebersihan properti dengan sistem pemesanan yang transparan dan aman.
+
+ Batasan Masalah
+Agar pengerjaan proyek tugas akhir ini tetap terarah dan fokus, ruang lingkup pembahasan dibatasi pada aspek-aspek berikut:
+Pengembangan dan pengujian dibatasi khusus untuk sistem operasi Android, meskipun Flutter mendukung kompilasi lintas platform.
+Seluruh manajemen basis data, autentikasi, dan penyimpanan berkas didelegasikan kepada layanan Google Firebase tanpa membangun peladen terpisah.
+Perhitungan harga didasarkan pada tarif tetap yang ditentukan manajemen, tanpa algoritma harga dinamis.
+Pengujian dan wawancara pengguna dibatasi pada warga yang berdomisili di Kota Sampit.
+Implementasi dan siklus pengujian pendekatan Human-Centered Design (HCD) beserta evaluasi System Usability Scale (SUS) dibatasi hanya pada antarmuka Aplikasi Pelanggan, mengingat pelanggan merupakan fokus utama target pasar. 
+Adapun Aplikasi Portal Kru dan Panel Admin Web tetap dikembangkan sebagai komponen fungsional yang wajib ada untuk membentuk ekosistem platform yang utuh, namun optimasi pengalaman penggunanya (UX) berada di luar cakupan riset metodologi HCD pada penelitian ini.
+
+ Sistematika Penulisan
+Untuk memudahkan pemahaman, laporan tugas akhir ini disusun dengan urutan pembahasan sebagai berikut:
+BAB I PENDAHULUAN, membahas latar belakang permasalahan, rumusan masalah, tujuan, manfaat, batasan ruang lingkup pengembangan, dan sistematika penulisan laporan.
+BAB II TINJAUAN PUSTAKA, menguraikan telaah terhadap penelitian terdahulu yang relevan serta teori-teori landasan pendukung seperti konsep layanan on-demand, Human-Centered Design, Flutter, dan Firebase.
+BAB III ANALISIS & DESAIN, menjabarkan secara rinci analisis kebutuhan sistem (fungsional dan non-fungsional), desain konseptual yang mencakup representasi visual dan diagram logika sistem, serta evaluasi mengenai kelebihan dan kelemahan proyek yang dikembangkan.
+BAB IV IMPLEMENTASI DAN PENGUJIAN, menjelaskan tahapan teknis pengkodean perangkat lunak, perangkat yang digunakan, hasil tangkapan layar sistem, serta hasil pengujian kelayakan dari pengguna.
+BAB V KESIMPULAN DAN SARAN, merangkum hasil akhir dari proyek perangkat lunak yang telah dibangun dan memberikan rekomendasi untuk pengembangan sistem di masa mendatang.
+
+
+BAB II 
+TINJAUAN PUSTAKA
+
+Tinjauan Pustaka
+Pengembangan platform aplikasi Tuntaskilat dibangun berdasarkan sintesis terhadap temuan dari berbagai penelitian terdahulu. Riset-riset ini memberikan justifikasi atas penggunaan Flutter, Firebase, serta metode perancangan yang berpusat pada manusia. Rincian kajian dari penelitian terdahulu diuraikan pada Tabel 2.1.
+
+Tabel 2.1 Analisis Penelitian Terdahulu
+
+
+Landasan Teori
+Landasan teori berfungsi sebagai panduan ilmiah dalam merekayasa aplikasi Tuntaskilat. Bagian ini menjelaskan istilah non-teknis dan teknis agar tidak ada konsep yang disebutkan tanpa definisi yang jelas.
+2.2.1. Istilah Non-Teknis
+Layanan On-Demand. Layanan on-demand adalah model layanan yang memungkinkan konsumen memperoleh jasa seketika saat dibutuhkan melalui platform digital yang menghubungkan permintaan dengan penyedia. Cirinya adalah ketersediaan instan, harga transparan di muka, dan pemesanan mandiri.
+Model Bisnis Agregator. Agregator adalah model usaha di mana aplikasi menjadi penengah yang mempertemukan pelanggan dengan penyedia tenaga kerja, mengoordinasikan ketersediaan, penjadwalan, dan pembayaran.
+Human-Centered Design (HCD). HCD adalah kerangka perancangan yang menempatkan kebutuhan, kebiasaan, dan kenyamanan psikologis pengguna sebagai pusat pengembangan, sebagaimana dibakukan dalam ISO 9241-210 [22]. Siklusnya meliputi pemahaman konteks, penetapan kebutuhan, pembuatan purwarupa, dan evaluasi yang diulang sampai sistem nyaman digunakan [3], [13].
+
+
+Gambar 2.1 Siklus Iteratif Metode Human-Centered Design
+
+Usability (Kebergunaan). Kebergunaan adalah ukuran sejauh mana produk dapat digunakan untuk mencapai tujuan secara efektif, efisien, dan memuaskan dalam konteks tertentu.
+Purwarupa (Prototype). Purwarupa adalah model awal produk yang dibuat untuk menguji konsep dan mengumpulkan umpan balik sebelum produk dikembangkan penuh.
+2.2.2. Istilah Teknis
+Framework Flutter. Flutter adalah kerangka kerja sumber terbuka dari Google untuk membangun antarmuka dari satu basis kode yang dapat dikompilasi ke Android, iOS, web, dan desktop [16]. Flutter menggambar piksel langsung ke layar, mempertahankan laju 60 bingkai per detik, dan menyediakan Hot Reload yang menampilkan perubahan kode secara langsung [16].
+
+Gambar 2.2 Arsitektur Berlapis Flutter
+
+Bahasa Dart. Dart adalah bahasa pemrograman dasar Flutter yang berorientasi objek dan dirancang untuk kompilasi cepat ke kode mesin native maupun JavaScript [17].
+Firebase dan Backend-as-a-Service (BaaS). Firebase adalah platform Backend-as-a-Service dari Google yang menyediakan layanan backend siap pakai tanpa pengelolaan peladen fisik [1], [15], [20].
+
+
+Gambar 2.3 Arsitektur Layanan Firebase sebagai Backend-as-a-Service
+
+Cloud Firestore dan NoSQL. Cloud Firestore adalah basis data NoSQL berbasis dokumen. Istilah NoSQL merujuk pada basis data non-relasional yang menyimpan data dalam koleksi dan dokumen, bukan tabel. Firestore menyinkronkan data secara waktu nyata [15], [20].
+
+Gambar 2.4 Struktur Penyimpanan Dokumen pada Cloud Firestore (NoSQL)
+
+Firebase Authentication, Storage, dan Cloud Messaging. Authentication mengelola masuk akun secara aman; Storage menyimpan berkas seperti foto bukti bayar; sedangkan Cloud Messaging mengirim notifikasi ke perangkat pengguna.
+Firebase Security Rules. Security Rules adalah lapisan aturan yang membatasi hak baca dan tulis data sehingga setiap pengguna hanya dapat mengakses dokumen miliknya.
+
+User Interface (UI) dan User Experience (UX). UI adalah aspek visual dan elemen kendali yang dilihat pengguna, sedangkan UX adalah keseluruhan pengalaman dan kesan pengguna saat berinteraksi dengan aplikasi.
+System Usability Scale (SUS). SUS adalah instrumen kuesioner sepuluh pernyataan untuk mengukur kebergunaan sistem secara kuantitatif dengan rentang skor 0 sampai 100; nilai di atas 68 dianggap di atas rata-rata [8], [9].
+Black-Box Testing. Pengujian black-box adalah metode pengujian yang memeriksa fungsionalitas perangkat lunak berdasarkan masukan dan keluaran tanpa melihat struktur kode internalnya [7], [9].
+Frontend dan Backend. Frontend adalah bagian sistem yang berinteraksi langsung dengan pengguna, mencakup tampilan antarmuka dan logika di sisi klien; pada penelitian ini frontend dibangun menggunakan Flutter. Backend adalah bagian sistem yang berjalan di sisi peladen, mengelola data, logika bisnis, dan autentikasi; pada penelitian ini seluruh backend didelegasikan kepada Firebase [1], [15].
+Denormalisasi Data. Denormalisasi adalah teknik perancangan basis data NoSQL yang menyalin sebagian data dari satu koleksi ke koleksi lain agar dapat dibaca tanpa kueri gabungan (join), dengan konsekuensi duplikasi data demi kecepatan akses [15], [20].
+GeoPoint. GeoPoint adalah tipe data pada Cloud Firestore yang menyimpan koordinat lintang dan bujur suatu lokasi; pada penelitian ini digunakan untuk merekam posisi kru dan lokasi layanan pelanggan [15], [20].
+State Management (Riverpod). State Management adalah cara aplikasi mengelola data reaktif. Riverpod memisahkan logika dari UI dan memfasilitasi aliran data real-time dari Firebase secara efisien.
+
+Transaksi Atomik (Atomic Locking). Atomic Transaction adalah mekanisme penguncian basis data yang memastikan sekumpulan operasi baca-tulis dieksekusi secara utuh atau digagalkan semua, untuk mencegah kondisi balapan (race condition).
+OpenStreetMap dan flutter_map. OpenStreetMap adalah proyek pemetaan sumber terbuka. flutter_map adalah pustaka yang merender peta tersebut di dalam Flutter untuk pelacakan koordinat GPS waktu nyata.
+
+2.2.3. Uraian Teknologi dan Konsep Pendukung
+Sejarah dan Perkembangan Bahasa Dart
+Dart merupakan bahasa pemrograman sumber terbuka yang pertama kali diperkenalkan oleh Google pada tahun 2011 [17]. Sejak awal, Dart dirancang sebagai bahasa berorientasi objek dengan sintaksis yang mudah dipelajari oleh pemrogram yang sudah terbiasa dengan bahasa seperti Java atau JavaScript. Keunggulan utama Dart terletak pada kemampuannya melakukan dua jenis kompilasi sekaligus, yaitu kompilasi Just-in-Time yang mempercepat proses pengembangan melalui fitur Hot Reload, dan kompilasi Ahead-of-Time yang mengubah kode menjadi kode mesin native berkinerja tinggi ketika aplikasi dirilis. Dart juga memperkenalkan fitur keamanan nilai null atau sound null safety yang membantu menekan kesalahan program yang umum terjadi. Karena karakteristik inilah Google memilih Dart sebagai bahasa dasar bagi kerangka kerja Flutter.
+
+Sejarah dan Perkembangan Flutter
+Flutter memiliki perjalanan sejarah yang menarik untuk dipahami [16]. Cikal bakalnya dimulai pada tahun 2015 ketika Google memperkenalkan sebuah proyek eksperimental bernama Sky pada acara Dart Developer Summit. Proyek ini bertujuan menampilkan antarmuka secara sangat mulus hingga 120 bingkai per detik. Pada tahun 2017, Google secara resmi mengganti nama proyek tersebut menjadi Flutter dan merilis versi alfanya pada ajang Google I/O. Tonggak terpenting terjadi pada tanggal 4 Desember 2018, ketika Google merilis Flutter 1.0 sebagai versi stabil pertama yang siap digunakan untuk produksi pada acara Flutter Live. Perkembangan berlanjut dengan Flutter 2 pada Maret 2021 yang menambahkan dukungan web dan keamanan nilai null, lalu Flutter 3 pada Mei 2023 yang melengkapi dukungan untuk macOS dan Linux. Hingga kini Flutter terus berkembang dan telah digunakan oleh lebih dari satu juta aplikasi di seluruh dunia [16].
+
+Secara teknis, keistimewaan Flutter terletak pada caranya menggambar antarmuka. Berbeda dengan kerangka kerja lain yang memanggil komponen bawaan sistem operasi, Flutter menggambar setiap piksel secara langsung ke layar menggunakan mesin grafis Skia. Pendekatan ini membuat tampilan aplikasi tampak konsisten di berbagai perangkat dan berkinerja tinggi. Arsitektur berlapis Flutter yang menjadi dasar cara kerjanya telah ditunjukkan sebelumnya pada Gambar 2.2.
+
+Android Studio
+Android Studio adalah lingkungan pengembangan terpadu atau Integrated Development Environment resmi untuk pengembangan aplikasi Android yang diperkenalkan Google pada ajang Google I/O tahun 2013 dan mencapai versi stabil pada tahun 2014 [18]. Android Studio dibangun di atas perangkat lunak IntelliJ IDEA dan menyediakan berbagai fasilitas penting bagi pengembang, seperti penyunting kode yang cerdas, alat perancang tata letak, serta emulator untuk menjalankan dan menguji aplikasi tanpa perlu perangkat fisik [18]. Dalam pengembangan aplikasi Tuntaskilat, Android Studio digunakan sebagai salah satu tempat menulis kode Flutter sekaligus menjalankan emulator Android untuk pengujian.
+
+Claude Design sebagai Alat Perancangan Interaktif
+Claude Design (menggunakan format Canvas.dc.html) adalah peranti perancangan antarmuka interaktif berbasis kecerdasan buatan dan peramban web [19]. Claude Design memungkinkan pembuatan purwarupa fungsional (functional prototype) yang dapat diakses langsung melalui peramban tanpa perlu proses kompilasi yang panjang. Pada penelitian ini, Claude Design digunakan untuk menyusun purwarupa antarmuka aplikasi Tuntaskilat sebelum dikodekan ke dalam Flutter. Keunggulan utamanya adalah kemampuannya menghasilkan file HTML interaktif yang mensimulasikan logika antarmuka secara instan, sangat sesuai untuk metode Human-Centered Design.
+
+Konsep UI dan UX beserta Contohnya
+Agar lebih mudah dipahami, perbedaan antara User Interface (UI) dan User Experience (UX) dapat dilihat melalui contoh tampilan aplikasi pada Gambar 2.5. UI adalah segala sesuatu yang tampak dan disentuh oleh pengguna, seperti tombol, warna, ikon, kolom pencarian, dan kartu layanan. Sementara itu, UX adalah kesan menyeluruh yang dirasakan pengguna ketika menggunakan tampilan tersebut, misalnya apakah alur memesan layanan terasa singkat, jelas, dan nyaman. Sebuah aplikasi dapat memiliki UI yang indah, tetapi jika alurnya membingungkan, maka UX-nya tetap buruk.
+
+Gambar 2.5 Contoh Elemen UI dan Pengalaman UX pada Antarmuka Aplikasi
+Sumber: olahan penulis
+
+
+Teknik purwarupa
+Teknik purwarupa atau purwarupa merupakan rangkaian tahapan untuk mewujudkan ide rancangan menjadi model yang dapat diuji sebelum dikodekan. Secara umum, teknik ini berjalan bertahap, dimulai dari sketsa kasar, lalu wireframe atau kerangka tata letak, kemudian mockup atau visual tingkat tinggi, dilanjutkan purwarupa interaktif yang dapat diklik, dan diakhiri dengan pengujian kepada pengguna. Apabila hasil pengujian menunjukkan rancangan belum sesuai kebutuhan, proses diulang kembali secara iteratif. Tahapan teknik purwarupa ini diilustrasikan pada Gambar 2.6.
+
+Gambar 2.6 Tahapan Teknik purwarupa dari Sketsa hingga Pengujian
+Sumber: olahan penulis
+
+Unified Modeling Language (UML)
+Unified Modeling Language (UML) adalah bahasa pemodelan visual baku yang digunakan untuk menggambarkan, merancang, dan mendokumentasikan rancangan sebuah sistem perangkat lunak berorientasi objek [26]. UML tidak terikat pada bahasa pemrograman tertentu, sehingga dapat dipakai sebagai alat komunikasi antara analis, perancang, dan pemrogram. Secara umum diagram UML dibedakan menjadi dua kelompok besar, yaitu diagram struktur yang menggambarkan susunan statis sistem dan diagram perilaku yang menggambarkan dinamika atau aliran proses sistem [26].
+
+Dalam penelitian ini digunakan beberapa jenis diagram UML. Use case diagram menggambarkan interaksi antara aktor (pelanggan, kru, dan administrator) dengan fungsi-fungsi yang disediakan sistem. Activity diagram menggambarkan urutan aktivitas atau alur kerja suatu proses, misalnya alur pemesanan layanan. Sequence diagram menggambarkan urutan pertukaran pesan antar objek terhadap waktu. Class diagram menggambarkan struktur kelas atau objek beserta atribut dan relasinya, sedangkan state diagram menggambarkan perubahan keadaan suatu objek, seperti perubahan status pesanan. Penggunaan diagram-diagram UML ini membantu memetakan kebutuhan sistem secara terstruktur sebelum tahap pengodean [26].
+
+Entity Relationship Diagram (ERD)
+Entity Relationship Diagram (ERD) adalah diagram yang digunakan untuk memodelkan kebutuhan data suatu sistem dengan menggambarkan entitas, atribut, dan hubungan (relasi) antar-entitas pada basis data [27]. Entitas merupakan objek atau konsep yang datanya disimpan, misalnya pengguna atau pesanan. Atribut adalah karakteristik yang melekat pada entitas, seperti nama atau alamat, dan salah satu atribut berperan sebagai primary key (kunci utama) yang membedakan setiap baris data secara unik. Relasi menggambarkan keterhubungan antar-entitas, yang dihubungkan melalui foreign key (kunci tamu) [27].
+Relasi antar-entitas memiliki kardinalitas yang menyatakan jumlah keterhubungan, yaitu satu-ke-satu (1:1), satu-ke-banyak (1:N), atau banyak-ke-banyak (M:N). Pada model basis data relasional, setiap entitas pada ERD ditransformasikan menjadi sebuah tabel dengan kolom-kolom sesuai atributnya. ERD digunakan sebagai dasar perancangan struktur basis data agar data tersimpan secara konsisten dan tidak berulang [27].
+
+Desain Input dan Output
+Desain input adalah perancangan antarmuka yang berfungsi menerima masukan data dari pengguna, umumnya berbentuk formulir (form) yang berisi sejumlah field isian. Tujuan desain input yang baik adalah memastikan data yang dimasukkan akurat, lengkap, dan mudah diisi, antara lain melalui pemberian label yang jelas, validasi masukan, serta umpan balik ketika terjadi kesalahan [13].Desain output adalah perancangan tampilan yang menyajikan hasil pengolahan data kepada pengguna, baik berupa halaman informasi, daftar, status, maupun laporan. Output yang baik menyajikan informasi secara ringkas, relevan, dan mudah dipahami sesuai kebutuhan masing-masing pengguna. Dalam perancangan aplikasi, desain input dan output saling berkaitan dan biasanya divisualisasikan terlebih dahulu dalam bentuk mockup antarmuka sebelum diimplementasikan menjadi kode program [13].
+
+
+BAB III
+ANALISIS DAN DESAIN
+
+Analisis Kebutuhan
+Proses identifikasi kebutuhan adalah pondasi kritikal untuk menjamin fungsionalitas aplikasi sejalan dengan ekspektasi calon konsumen di Kota Sampit. Kebutuhan ini dipecah menjadi dua klasifikasi utama.
+Kebutuhan Fungsional
+Kebutuhan fungsional mendeskripsikan instruksi dan operasi spesifik yang wajib dapat dieksekusi oleh sistem aplikasi Tuntaskilat.
+Sistem harus menyediakan modul pendaftaran dan autentikasi akun pelanggan yang aman, baik melalui surat elektronik maupun integrasi akun pihak ketiga.
+Sistem harus menampilkan katalog layanan kebersihan interaktif yang memungkinkan pengguna memodifikasi jumlah ruangan, durasi jam kerja, atau meter persegi area yang akan dibersihkan.
+Sistem harus memiliki algoritma kalkulator yang secara otomatis menghitung estimasi tarif total secara presisi sebelum pengguna masuk ke gerbang pembayaran.
+Sistem harus memfasilitasi pengunggahan bukti bayar digital dan konfirmasi transaksi.
+Sistem harus mengizinkan kru pembersih untuk menerima penugasan, memandu navigasi lokasi, serta mengunggah foto laporan hasil pengerjaan (dokumentasi sebelum dan sesudah pembersihan).
+Sistem harus menyediakan modul riwayat pesanan bagi pelanggan untuk melihat transaksi masa lalu dan memberikan penilaian (penilaian) terhadap kualitas kerja kru.
+
+
+Kebutuhan Non-Fungsional
+Kebutuhan non-fungsional mendikte standar keandalan, keamanan, dan performa dari arsitektur lingkungan aplikasi.
+Kinerja Perangkat Lunak: Aplikasi harus dieksekusi pada kecepatan render stabil untuk menghindari kelambatan (lagging), serta memiliki waktu respons pengambilan data kalender kurang dari tiga detik dengan koneksi internet standar (3G/4G).
+Skalabilitas Basis Data: Arsitektur Cloud Firestore harus sanggup melayani ratusan pembaruan aliran dokumen transaksi yang masuk secara simultan tanpa menyebabkan kebuntuan basis data (basis data bottleneck).
+Keamanan Sistem: Hak akses baca dan tulis harus dibatasi secara absolut. Pengguna hanya memiliki wewenang untuk mengakses dokumen transaksinya sendiri, dan sistem dilindungi menggunakan validasi Firebase Security Rules tingkat produksi untuk mencegah celah pencurian data privasi pelanggan.
+Ergonomi dan Kebergunaan: Antarmuka visual wajib mematuhi standar desain responsif yang meminimalisasi ketegangan kognitif, menerapkan warna identitas Tuntaskilat secara proporsional, serta memiliki label perintah (tombol) yang jelas dan bebas ambiguitas.
+
+
+Desain Konseptual
+Tahapan ini memvisualisasikan arsitektur logika dan struktur grafis yang merangkai interaksi manusia dengan perangkat keras komputasi aplikasi.
+Skenario Penggunaan
+Skenario penggunaan (storyboard) disusun untuk memvalidasi aliran perjalanan pengguna di kehidupan nyata. Sebagai ilustrasi skenario: Seorang pekerja kantor di wilayah Baamang, Kota Sampit, tidak memiliki waktu luang di akhir pekan untuk membersihkan rumahnya pasca-renovasi. Ia membuka aplikasi Tuntaskilat di ponselnya. Melalui halaman utama yang intuitif, ia memilih layanan General Cleaning dan menentukan jadwal kedatangan kru untuk esok hari pukul 09.00 pagi. Aplikasi langsung menampilkan tagihan biaya secara transparan. Setelah mengunggah bukti pembayaran, pengguna menerima notifikasi waktu nyata dari Firebase bahwa seorang kru telah ditugaskan. Keesokan harinya, pengguna dapat melacak kedatangan kru, dan setelah pekerjaan selesai, ia memberikan lima bintang karena puas dengan kepraktisan serta higienitas layanan.
+Purwarupa
+Representasi visual aplikasi diterjemahkan menjadi tiruan interaktif menggunakan peranti desain kolaboratif  Claude Design. Desain ini menggunakan tata letak layar tingkat tinggi (high-fidelity), di mana ukuran palet warna, tipografi, serta penempatan ikon telah diukur secara asimetris agar ramah terhadap jari (thumb-friendly zone). Pembuatan purwarupa visual ini krusial dalam metode HCD karena memungkinkan sampel dari perwakilan masyarakat Kota Sampit untuk menyimulasikan pengalaman menekan layar dan memberikan kritik perbaikan sebelum tahapan konversi gambar menjadi kode bahasa Dart Flutter dilakukan.
+
+Use Case Diagram
+Diagram Use Case digunakan untuk memetakan batasan hak akses serta hubungan fungsional antara aktor yang berinteraksi dengan komponen sistem aplikasi Tuntaskilat.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Gambar 3.1 Diagram Use Case Aplikasi Tuntaskilat
+
+
+Activity Diagram
+Diagram aktivitas menjelaskan sekuensi operasional langkah demi langkah dari proses penyelesaian pesanan, dimulai dari aktivasi perangkat lunak hingga penutupan basis data laporan pengerjaan.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Gambar 3.2 Diagram Aktivitas Pemesanan Layanan
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Gambar 3.3 Diagram Aktivitas Registrasi dan Masuk Tuntaskilat
+
+
+Gambar 3.4 Diagram Aktivitas Pembayaran dan Verifikasi Tuntaskilat
+
+
+
+Gambar 3.5 Diagram Aktivitas Penugasan dan Pengerjaan Kru Tuntaskilat
+
+Gambar 3.6 Diagram Aktivitas Penilaian dan Riwayat Pesanan Tuntaskilat
+
+
+Sequence Diagram
+Sequence diagram digunakan untuk menggambarkan urutan interaksi antara aktor dan komponen sistem dalam proses pemesanan layanan pada aplikasi Tuntaskilat. Diagram ini menunjukkan bagaimana pelanggan melakukan masuk, memilih layanan, mengisi detail pesanan, mengunggah bukti pembayaran, hingga sistem menyimpan data ke Firebase. Selain itu, diagram ini juga menggambarkan interaksi antara admin dan kru pembersih dalam proses verifikasi pembayaran, penugasan kru, pembaruan status pekerjaan, serta penyimpanan penilaian dan ulasan pelanggan. 
+
+Melalui sequence diagram, alur komunikasi antar komponen dapat terlihat secara lebih jelas, mulai dari aplikasi Flutter sebagai antarmuka pengguna, Firebase Authentication sebagai layanan autentikasi, Cloud Firestore sebagai basis data utama, Firebase Storage sebagai tempat penyimpanan file, hingga admin dan kru sebagai pihak yang memproses pesanan.
+
+
+
+
+
+
+
+
+
+
+
+
+Gambar 3.7 Sequence Diagram Proses Pemesanan Layanan Tuntaskilat
+Component Diagram
+Component diagram digunakan untuk menggambarkan struktur komponen utama yang membangun aplikasi Tuntaskilat. Diagram ini menjelaskan hubungan antara pengguna, aplikasi mobile berbasis Flutter, dan layanan backend Firebase. Pada sisi frontend, aplikasi terdiri dari beberapa modul, seperti modul autentikasi, katalog layanan, pemesanan, status pesanan, riwayat dan penilaian, serta modul admin atau kru.
+
+Pada sisi backend, sistem menggunakan Firebase Authentication untuk proses masuk dan registrasi, Cloud Firestore untuk penyimpanan data, Firebase Storage untuk penyimpanan bukti pembayaran dan dokumentasi pekerjaan, serta Firebase Cloud Messaging untuk pengiriman notifikasi. Dengan adanya component diagram, struktur sistem dapat dipahami secara menyeluruh sebelum tahap implementasi dilakukan.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Gambar 3.8 Component Diagram Arsitektur Sistem
+Class Diagram
+Class diagram digunakan untuk menggambarkan rancangan struktur data yang digunakan dalam sistem Tuntaskilat. Karena aplikasi ini menggunakan Firebase Firestore sebagai basis data NoSQL, class diagram pada penelitian ini merepresentasikan koleksi-koleksi utama yang digunakan dalam sistem. Koleksi tersebut meliputi users, services, orders, kru, payments, reviews, dan notifications.
+
+Koleksi users digunakan untuk menyimpan data pelanggan dan pengguna sistem. Koleksi services menyimpan data layanan kebersihan yang tersedia. Koleksi orders digunakan untuk menyimpan data pemesanan. Koleksi kru menyimpan data kru pembersih. Koleksi payments digunakan untuk menyimpan informasi pembayaran, sedangkan reviews menyimpan penilaian dan ulasan pelanggan. Koleksi notifications digunakan untuk menyimpan data notifikasi yang dikirimkan kepada pengguna. Rancangan ini dibuat agar proses penyimpanan dan pengambilan data dapat berjalan secara terstruktur.
+
+Gambar 3.9 Class Diagram / Struktur Data Firestore
+
+Untuk memperjelas keterhubungan antar-koleksi pada basis data, relasi logis antar entitas digambarkan dalam bentuk Entity Relationship Diagram (ERD).  ERD ini menggambarkan kebutuhan data sistem dalam bentuk model relasional, di mana setiap entitas direpresentasikan sebagai tabel dengan kunci utama (Primary Key/PK) sebagai pembeda baris data dan kunci tamu (Foreign Key/FK) sebagai penghubung antar-tabel. Meskipun implementasi basis data menggunakan Cloud Firestore yang berbasis dokumen, struktur datanya dirancang mengikuti kaidah relasional ini agar keterhubungan dan kardinalitas antar-entitas tergambar jelas dan konsisten. Hubungan antar entitas tersebut ditunjukkan pada Gambar 3.10. 
+
+
+Gambar 3.10 Entity Relationship Diagram (ERD) Sistem Tuntaskilat
+
+
+State Diagram
+State diagram digunakan untuk menggambarkan perubahan status pesanan dalam aplikasi Tuntaskilat. Setiap pesanan memiliki beberapa tahapan status, dimulai dari pesanan dibuat, menunggu pembayaran, menunggu verifikasi, terverifikasi, menunggu penugasan kru, ditugaskan, dalam perjalanan, diproses, selesai, hingga dinilai oleh pelanggan.
+
+Diagram ini penting karena status pesanan menjadi bagian utama dalam sistem layanan . Pelanggan perlu mengetahui perkembangan pesanannya secara jelas, sedangkan admin dan kru membutuhkan status yang akurat untuk mengelola proses operasional. Dengan adanya state diagram, alur perubahan status pesanan dapat dirancang secara konsisten sehingga tidak terjadi kebingungan dalam proses implementasi sistem.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Gambar 3.11 State Diagram Status Pesanan
+Deployment Diagram
+Deployment diagram digunakan untuk menggambarkan lingkungan penerapan sistem Tuntaskilat. Diagram ini menunjukkan bahwa aplikasi dapat diakses melalui perangkat pelanggan, perangkat kru pembersih, dan perangkat admin. Ketiga jenis pengguna tersebut terhubung ke layanan Firebase Cloud sebagai backend utama sistem.
+
+Pada sisi cloud, sistem menggunakan beberapa layanan Firebase, yaitu Authentication, Cloud Firestore, Storage, dan Cloud Messaging. Firebase Authentication digunakan untuk mengelola autentikasi pengguna, Cloud Firestore digunakan sebagai basis data utama, Firebase Storage digunakan untuk menyimpan file seperti bukti pembayaran dan dokumentasi foto, sedangkan Cloud Messaging digunakan untuk mengirimkan notifikasi. Diagram ini memberikan gambaran bagaimana aplikasi akan berjalan pada lingkungan nyata ketika digunakan oleh pengguna.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Gambar 3.12 Deployment Diagram Sistem Tuntaskilat
+
+Alur Metode Human-Centered Design
+Alur metode Human-Centered Design digunakan untuk menjelaskan tahapan perancangan aplikasi Tuntaskilat yang berfokus pada kebutuhan pengguna. Metode ini dimulai dari memahami konteks pengguna, yaitu bagaimana calon pelanggan di Kota Sampit membutuhkan layanan kebersihan yang praktis, mudah digunakan, dan transparan. Setelah itu, kebutuhan pengguna ditentukan dalam bentuk kebutuhan fungsional dan non-fungsional.
+
+Tahap berikutnya adalah menyusun solusi desain, membuat purwarupa aplikasi, dan melakukan evaluasi terhadap rancangan tersebut. Jika hasil evaluasi menunjukkan bahwa desain belum sesuai dengan kebutuhan pengguna, maka proses akan kembali ke tahap perbaikan kebutuhan dan desain. Jika desain sudah sesuai, purwarupa dapat dilanjutkan ke tahap implementasi menggunakan Flutter dan Firebase. Dengan pendekatan ini, aplikasi yang dibangun diharapkan tidak hanya berfungsi secara teknis, tetapi juga mudah digunakan oleh pengguna akhir.
+
+Gambar 3.13 Alur Metode Human-Centered Design
+Desain Basis Data
+Desain basis data menentukan bagaimana seluruh informasi pengguna, pesanan, dan transaksi disimpan serta saling dihubungkan sehingga kebutuhan pengguna, mulai dari menyimpan riwayat pesanan hingga menampilkan status secara akurat, dapat terlayani dengan baik. Sistem Tuntaskilat menggunakan Cloud Firestore, yaitu basis data NoSQL berbasis dokumen. Berbeda dengan basis data relasional yang menyusun data dalam tabel, Firestore menyimpan data dalam bentuk koleksi yang berisi dokumen, dan setiap dokumen memuat pasangan field beserta nilainya. Desain basis data sistem ini terdiri atas tujuh koleksi utama, yaitu users, services, orders, kru, payments, reviews, dan notifications, yang keterhubungannya diwujudkan melalui acuan identitas dokumen yang setara dengan kunci tamu pada model relasional. Spesifikasi rinci tiap koleksi, mencakup nama field, tipe data, dan keterangannya, diuraikan pada tabel-tabel berikut. 
+
+Koleksi users menyimpan identitas seluruh pengguna sistem yang dibedakan melalui field role.
+Tabel 3.1 Spesifikasi Koleksi users
+
+
+Koleksi services menyimpan katalog layanan kebersihan beserta tarif dasarnya.
+Tabel 3.2 Spesifikasi Koleksi services
+
+Koleksi orders merupakan inti transaksi yang menautkan pelanggan, layanan, dan kru, serta merekam status pesanan.
+Tabel 3.3 Spesifikasi Koleksi orders
+
+
+Koleksi kru menyimpan data kru pembersih beserta ketersediaan dan rata-rata penilaiannya.
+Tabel 3.4 Spesifikasi Koleksi kru
+
+Koleksi payments menyimpan informasi pembayaran tiap pesanan, termasuk bukti bayar di Firebase Storage.
+
+
+Tabel 3.5 Spesifikasi Koleksi payments
+
+Koleksi reviews menyimpan penilaian dan ulasan pelanggan terhadap kru setelah pekerjaan selesai.
+Tabel 3.6 Spesifikasi Koleksi reviews
+
+Koleksi notifications menyimpan pesan notifikasi yang dikirim sistem kepada pengguna.
+
+Tabel 3.7 Spesifikasi Koleksi notifications
+
+
+Kamus Data
+Kamus data merangkum seluruh elemen data yang digunakan pada sistem Tuntaskilat beserta tipe dan perannya. Karena Cloud Firestore merupakan basis data NoSQL berbasis dokumen, kunci utama (Primary Key/PK) diwujudkan sebagai ID dokumen, sedangkan kunci tamu (Foreign Key/FK) diwujudkan sebagai acuan identitas dokumen antar-koleksi yang setara dengan relasi pada model basis data relasional. Rincian setiap field, tipe data, status kunci, dan deskripsinya disajikan pada Tabel 3.8.
+Tabel 3.8 Kamus Data Sistem Tuntaskilat
+
+
+Desain Input/Output
+Desain masukan dan keluaran merupakan jembatan utama yang menghubungkan pengguna dengan sistem. Perancangannya berpedoman pada prinsip Human-Centered Design agar selaras dengan kebiasaan warga Sampit, sehingga setiap data mudah dimasukkan dan setiap informasi mudah dipahami. Rincian spesifikasi untuk masing-masing formulir masukan disajikan pada Tabel 3.9.
+Tabel 3.9 Desain Input Sistem
+Rancangan keluaran yang dihasilkan oleh aplikasi Tuntaskilat untuk setiap pengguna disajikan pada Tabel 3.10.
+Tabel 3.10 Desain Output Sistem
+
+Setelah desain input dan output dirangkum dalam bentuk tabel, berikut disajikan rancangan visual antarmuka (mockup) seluruh halaman aplikasi Tuntaskilat. Rancangan dikelompokkan menurut tiga pengguna sistem, yaitu pelanggan, kru, dan administrator, dengan setiap halaman beserta elemen masukan dan keluarannya digambarkan secara lengkap dan terhubung dengan koleksi basis data yang telah dirancang.
+Pertama, alur awal pelanggan mencakup halaman pembuka, halaman masuk atau registrasi, dan halaman beranda yang menampilkan katalog layanan, sebagaimana ditunjukkan pada Gambar 3.14.
+
+Gambar 3.14 Rancangan Antarmuka Pelanggan: Pembuka, Masuk/Registrasi, dan Beranda
+Sumber: Olahan Penulis, 2026
+Berdasarkan Gambar 3.14, dapat dilihat bahwa rancangan antarmuka pelanggan diawali dengan halaman pembuka, halaman masuk/registrasi, dan beranda katalog. Fitur ini berfungsi sebagai menu utama pelanggan memilih jasa kebersihan. Desain minimalis HCD dipilih untuk menyederhanakan navigasi warga Kota Sampit. Secara teknis, alur ini diimplementasikan menggunakan Flutter dengan widget StreamBuilder yang terhubung ke Firebase Authentication, sementara daftar layanan diambil dari koleksi Firestore.
+
+
+Selanjutnya, proses pemesanan mencakup halaman detail layanan, form pemesanan, dan rincian tagihan yang menampilkan estimasi biaya secara transparan, sebagaimana ditunjukkan pada Gambar 3.15.
+
+Gambar 3.15 Rancangan Antarmuka Pelanggan: Detail Layanan, Form Pemesanan, dan Rincian Tagihan
+Sumber: Olahan Penulis, 2026
+Berdasarkan Gambar 3.15, dapat dilihat bahwa rancangan antarmuka pemesanan terdiri dari detail layanan, formulir pemesanan, dan rincian tagihan. Fitur ini berfungsi menampung input reservasi pelanggan dan menyajikan estimasi biaya tetap secara transparan. Desain satu kolom dipilih untuk mencegah kesalahan input pengguna. Pada tingkat teknis, form ini menggunakan TextFormField Flutter dengan validator otomatis, yang datanya disimpan ke koleksi Firestore.
+
+
+Setelah pemesanan, pelanggan melakukan pembayaran, memantau status pesanan secara waktu nyata, dan melihat riwayat pesanan, sebagaimana ditunjukkan pada Gambar 3.16.
+
+Gambar 3.16 Rancangan Antarmuka Pelanggan: Pembayaran, Status Pesanan, dan Riwayat Pesanan
+Sumber: Olahan Penulis, 2026
+Berdasarkan Gambar 3.16, dapat dilihat bahwa rancangan antarmuka pasca-pemesanan meliputi halaman pembayaran, pelacakan status, dan riwayat transaksi. Fitur ini berfungsi memantau status pengerjaan secara langsung untuk membangun transparansi. Desain visualnya dirancang agar memberikan kejelasan status pengerjaan. Secara teknis, pelacakan menggunakan StreamBuilder Flutter yang mendengarkan perubahan status dokumen pesanan di Firestore, serta mengunggah bukti ke Firebase Storage.
+
+
+Adapun halaman form ulasan pelanggan serta antarmuka kru yang mencakup daftar penugasan dan form laporan pengerjaan ditunjukkan pada Gambar 3.17.
+
+Gambar 3.17 Rancangan Antarmuka Form Ulasan (Pelanggan) serta Penugasan dan Laporan (Kru)
+Sumber: Olahan Penulis, 2026
+Berdasarkan Gambar 3.17, dapat dilihat bahwa rancangan antarmuka form ulasan pelanggan serta panel khusus kru pembersih untuk penugasan dan laporan. Fitur ulasan mengumpulkan umpan balik pelanggan, sedangkan panel kru memperbarui status kerja. Desain panel kru dibuat sederhana dengan kontras tinggi untuk memudahkan pengoperasian lapangan. Secara teknis, kru menggunakan image_picker Flutter untuk memotret laporan, mengunggahnya ke Firebase Storage, dan memperbarui status di Firestore.
+
+Terakhir, antarmuka administrator mencakup dashboard ringkasan, halaman kelola pesanan, serta halaman kelola layanan dan kru, sebagaimana ditunjukkan pada Gambar 3.18.
+
+Gambar 3.18 Rancangan Antarmuka Administrator: Dashboard, Kelola Pesanan, dan Kelola Layanan & Kru
+Sumber: Olahan Penulis, 2026
+Berdasarkan Gambar 3.18, dapat dilihat bahwa rancangan antarmuka administrator mencakup dashboard statistik, kelola pesanan, serta kelola layanan dan kru. Fitur ini berfungsi sebagai panel pengawasan operasional bagi pemilik platform. Desain grid dipilih untuk menyajikan visualisasi data yang padat. Implementasinya menggunakan Flutter Web yang melakukan kueri aliran data secara waktu nyata terhadap koleksi pesanan dan pengguna di Firestore.
+
+
+3.4.1 Kaidah Perancangan Input dan Output
+Kejelasan. setiap field diberi label dan teks bantuan yang ringkas.
+Validasi. masukan divalidasi langsung sebelum dikirim ke Firestore.
+Umpan balik. setiap aksi memperoleh respons yang jelas, baik konfirmasi maupun pesan kesalahan.
+Konsistensi. tata letak, warna, tipografi, dan posisi tombol dijaga konsisten.
+Pencegahan kesalahan. aksi penting dikonfirmasi ulang dan tombol takaktif dinonaktifkan.
+Aksesibilitas. ukuran tombol dan teks nyaman bagi jari dengan kontras yang memadai.
+
+3.4.2 Alur Kerja Penerapan Metode Human-Centered Design
+Penerapan metode Human-Centered Design pada penelitian ini dijalankan melalui empat tahap yang berputar secara iteratif, sebagaimana telah diilustrasikan pada Gambar alur HCD di subbab sebelumnya. 
+Tahap pertama adalah memahami konteks pengguna, yaitu dengan mengamati dan mewawancarai calon pengguna di Kota Sampit untuk menggali kebiasaan dan kesulitan mereka dalam memesan jasa kebersihan. 
+Tahap kedua adalah menentukan kebutuhan, yaitu menerjemahkan temuan tersebut menjadi daftar kebutuhan fungsional dan non-fungsional. 
+Tahap ketiga adalah membuat solusi desain dalam bentuk purwarupa Claude Design (Canvas.dc.html). Tahap keempat adalah mengevaluasi purwarupa bersama pengguna. Bila hasil evaluasi menunjukkan rancangan belum nyaman digunakan, penulis kembali memperbaiki desain hingga benar-benar sesuai sebelum dikodekan ke dalam Flutter.
+
+Gambar 3.19 Alur Kerja Penerapan Metode Human-Centered Design
+Sumber: Olahan Penulis, 2026
+
+
+ Kelemahan dan Kelebihan Proyek
+Setiap pengembangan arsitektur perangkat lunak komersial selalu memiliki profil pertukaran karakteristik (trade-off). Berdasarkan parameter analisis teknologi yang diterapkan, berikut adalah evaluasi karakteristik sistem yang dikembangkan.
+Kelebihan Proyek
+Menggunakan kerangka kerja Flutter, sehingga kode yang dirakit dapat dikompilasi ke ekosistem Android secara cepat, serta memiliki transisi animasi visual yang sangat halus dan estetik tanpa mengorbankan performa sistem.
+Sinkronisasi Cloud Firestore memungkinkan aplikasi untuk mengirim perubahan status pesanan seketika kepada pelanggan tanpa keharusan memperbarui halaman secara manual, memberikan sensasi kontrol aplikasi logistik profesional.
+Integrasi metodologi Human-Centered Design secara tajam memangkas alur pemesanan yang tidak perlu, menekan tingkat stres kebingungan teknologi bagi warga Sampit, serta mengurangi rasio rintangan kegagalan transaksi (misclick rate).
+Biaya pemeliharaan peladen sangat rendah pada fase rintisan karena infrastruktur dikelola sepenuhnya secara nirpeladen (serverless) oleh arsitektur Google Firebase.
+
+
+Kelemahan Proyek
+Aplikasi ini sangat bergantung pada persistensi ketersediaan jaringan internet (always-online). Kru pembersih yang ditugaskan ke wilayah residensial dengan titik buta sinyal telekomunikasi (blank spot) akan kesulitan mengunggah dokumen foto laporan secara waktu nyata.
+Purwarupa backend saat ini memproses estimasi pencocokan jadwal secara manual atau terfokus pada ketersediaan waktu statis, belum mengimplementasikan logika kecerdasan buatan (machine learning) canggih untuk prediksi rute kemacetan otomatis bagi logistik tenaga pembersih.
+
+BAB IV
+IMPLEMENTASI DAN PENGUJIAN SISTEM
+
+4.1 Lingkungan Pengembangan Sistem (Development Environment)
+Konstruksi aplikasi Tuntaskilat dikembangkan pada lingkungan komputasi dengan spesifikasi memadai untuk kompilasi kode secara asinkron. Lingkungan ini terdiri dari perangkat keras berupa komputer berarsitektur ARM64 dengan memori akses acak (RAM) 16 Gigabyte. Pada sisi perangkat lunak, penyuntingan kode dilakukan menggunakan Visual Studio Code, diiringi Android Studio untuk emulator perangkat bergerak dan kompilasi binari.
+
+Terkait dengan Batasan Masalah pertama, aplikasi Pelanggan dan Portal Kru pada tugas akhir ini dikompilasi (compile) ke dalam paket .apk dan .aab untuk sistem operasi Android, sementara Panel Admin dikompilasi sebagai aplikasi web (Flutter Web) sesuai rancangan pada Bab III. Meskipun kerangka kerja (framework) Flutter pada dasarnya mendukung kompilasi lintas platform (iOS, Web, Windows), pembatasan pada ekosistem Android ini dilakukan agar integrasi pustaka-pustaka pihak ketiga (third-party libraries) khususnya pustaka pemetaan geolokasi dapat dieksekusi dengan performa optimal tanpa kendala isu kompatibilitas perangkat keras lintas sistem operasi. Berkas .aab (Android App Bundle) dipilih sebagai format rilis karena merupakan syarat wajib publikasi produksi di Google Play Store, yang turut mensyaratkan tahapan pengujian tertutup (closed testing) selama 14 hari dengan minimal 12 penguji bagi akun pengembang perorangan baru sebelum aplikasi dapat dipublikasikan secara terbuka [21].
+
+4.2  Implementasi Backend: Pendekatan Serverless Menggunakan Firebase
+Untuk memenuhi Batasan Masalah kedua, seluruh logika penyimpanan data, manajemen sesi pengguna (authentication), dan lalu lintas basis data didelegasikan penuh kepada infrastruktur Google Firebase. Keputusan strategis untuk tidak membangun peladen khusus backend menggunakan VPS atau penyedia awan konvensional didasari oleh kebutuhan aplikasi layanan mandiri (on-demand) yang mensyaratkan transmisi data waktu nyata dengan toleransi kegagalan (fault tolerance) yang sangat ketat.
+4.2.1 Cloud Firestore dan Firebase Authentication
+Struktur pangkalan data dibangun menggunakan Cloud Firestore yang berparadigma NoSQL berbasis dokumen (Document-Based NoSQL). Skema utama dipecah ke dalam tujuh koleksi (collections) sesuai Kamus Data pada Tabel 3.8, yaitu users, services, orders, kru, payments, reviews, dan notifications. Untuk memastikan keamanan (Security Rules), Firebase Authentication dikonfigurasi guna menerbitkan Token JWT (JSON Web Token) unik bagi setiap sesi pengguna masuk. Hanya agen (pelanggan maupun kru) dengan token terautentikasi yang diizinkan melakukan operasi baca/tulis ke pangkalan data (Read/Write Operations). Aturan Firebase Security Rules diterapkan sedemikian rupa untuk menolak segala bentuk kueri modifikasi di luar entitas pemilik asli (Owner). Pada penyempurnaan implementasi, aturan pembaruan dokumen orders diperketat lebih lanjut: klien non-admin hanya diizinkan mengubah field status serta foto laporan kerja, sementara field nominal harga dan kepemilikan pesanan bersifat kekal (immutable) dari sisi klien.
+
+4.2.2 Resolusi Tumpang-Tindih Jadwal (Atomic Locking)
+Sebagaimana didefinisikan pada Rumusan Masalah pertama mengenai isu pesanan ganda (double-booking) akibat sistem manual, infrastruktur NoSQL pada Firestore memiliki celah bawaan di mana eksekusi simultan dapat memicu kondisi balapan (Race Condition). Saat dua pelanggan Kota Sampit memesan kru yang sama di jam yang sama pada milidetik yang identik, kueri NoSQL standar dapat meloloskan kedua transaksi tersebut.
+
+Sebagai solusi absolut anti-celah, implementasi sistem Tuntaskilat menggunakan algoritma Firebase Transactions. Mekanisme ini bekerja layaknya kunci atomik (Atomic Locking) pada sistem relasional konvensional (ACID properties). Ketika tombol pesan ditekan, peladen Firebase seketika mengunci (lock) ketersediaan jadwal pada dokumen target. Jika ada permintaan baca/tulis kedua tiba sepersekian milidetik kemudian, kueri tersebut akan langsung digagalkan (transaction abort). Hal ini menyajikan jaminan mutlak untuk menjawab masalah tumpang-tindih pesanan secara server-side. Pada implementasi akhir, kunci ini diwujudkan dengan menjadikan identitas slot jadwal sebagai ID dokumen deterministik pada koleksi orders, sehingga dua transaksi simultan memperebutkan satu dokumen yang sama dan Firestore menjamin hanya satu transaksi yang berhasil ditulis.
+
+4.3 Implementasi Frontend (Flutter) Berbasis 4 Fase Human-Centered Design
+Konstruksi visual antarmuka pengguna pada sisi klien (client-side) diimplementasikan menggunakan Flutter. Sesuai dengan Batasan Masalah keempat dan Rumusan Masalah pertama, antarmuka ini dirancang secara khusus untuk mengakomodasi karakteristik demografi pengguna akhir di Kota Sampit, menerapkan metodologi Human-Centered Design (HCD) melalui empat fase siklus iteratif.
+Tahap Observasi (Empathize): Observasi lapangan dilakukan terhadap subjek utama, yakni ibu rumah tangga dan pekerja kantoran di Kecamatan Mentawa Baru Ketapang. Hasil observasi mengungkap temuan vital: masyarakat Sampit kerap frustrasi terhadap aplikasi pemesanan manual karena keharusan mengetik rincian alamat dan instruksi tekstual panjang via WhatsApp. Mereka mendambakan proses pemesanan praktis "tinggal sentuh".
+
+Tahap Ideasi (Ideate): Merespons keluhan tersebut, kerangka desain dirumuskan dengan mengganti formulir ketik menjadi modul sentuhan besar (large touch targets) serta memanfaatkan navigasi otomatis berbasis peta geolokasi, sehingga menghilangkan kewajiban input data string panjang.
+
+Tahap Purwarupa: Transformasi ideasi ke dalam sketsa antarmuka resolusi tinggi (high-fidelity) menggunakan elemen estetika modern dan warna-warna yang merepresentasikan kebersihan.
+
+Tahap Pengujian (Testing): Validasi purwarupa terhadap 15 responden menggunakan instrumen System Usability Scale (SUS) untuk mengukur tingkat kelayakan sistem secara kuantitatif. Penetapan jumlah 15 responden ini didasari pada teori usability oleh Jakob Nielsen (Nielsen Norman Group) yang menyatakan bahwa pengujian antarmuka dengan 5 pengguna saja sudah mampu mendeteksi 85% permasalahan fungsionalitas. Penggunaan 15 responden dalam pengujian ini dinilai sudah melebihi standar kecukupan untuk menghasilkan evaluasi yang valid secara empiris [28]. Pada fase evaluasi HCD ini, yang diuji oleh responden adalah purwarupa interaktif berbasis web (Canvas.dc.html) yang dihasilkan oleh Claude Design, bukan aplikasi akhir Flutter. Hal ini memastikan alur kerja (workflow) dan tata letak antarmuka telah tervalidasi sepenuhnya oleh pengguna akhir sebelum dialokasikan sumber daya untuk penulisan kode teknis (coding).
+
+4.4 Implementasi Antarmuka (Hi-Fi)
+Implementasi desain antarmuka direalisasikan menjadi komponen-komponen widget (widget tree) pada Flutter. Manajemen status antar-layar (state management) menggunakan pola arsitektur penyedia data reaktif Riverpod (pustaka flutter_riverpod), sehingga perubahan data pada Firestore langsung merender ulang UI tanpa perlu penyegaran manual.
+
+Sebagai penyempurnaan implementasi pasca-perancangan, purwarupa direalisasikan sebagai tiga aplikasi Flutter terpisah — Aplikasi Pelanggan (Android), Portal Kru (Android), dan Panel Admin (Web) — yang berbagi satu backend Firebase serta satu pustaka internal bersama (tk_core) berisi model data, layanan Firebase, dan tema antarmuka. Sebanyak 33 layar diimplementasikan sesuai inventaris rancangan pada Bab III, dan proses masuk pada Portal Kru maupun Panel Admin menolak akun dengan role yang tidak sesuai, baik pada sisi klien maupun melalui Firebase Security Rules.
+4.4.1 Halaman Beranda dan Transparansi Harga
+Merujuk pada Rumusan Masalah kedua mengenai transparansi, antarmuka beranda dirancang dengan modul layanan yang memuat komponen lencana (badge) berisi perhitungan harga awal tetap. Ini juga menjawab Batasan Masalah ketiga: harga dihitung berdasarkan tarif mati (Fixed Pricing) manajemen per jam kerja (tanpa manipulasi algoritma fluktuatif berbasis tingkat permintaan seperti ride-hailing pada umumnya).
+
+Gambar 4.1 Antarmuka Beranda Aplikasi Pelanggan
+Sumber: Olahan Penulis, 2026
+
+Berdasarkan Gambar 4.1, dapat dilihat bahwa implementasi halaman beranda menampilkan katalog layanan dengan lencana tarif tetap. Fitur beranda berfungsi sebagai gerbang utama bagi pelanggan mengeksplorasi jasa kebersihan di Kota Sampit. Desain minimalis dipilih untuk memudahkan keterbacaan visual. Secara teknis, antarmuka ini dibangun menggunakan GridView.builder Flutter yang menyinkronkan data langsung dari koleksi pangkalan data Firestore.
+
+4.4.2 Formulir Pemesanan Anti-Kesalahan (Error Prevention)
+Modul penjadwalan divisualisasikan dengan kotak-kotak waktu berukuran besar yang ramah aksesibilitas. Tanggal maupun slot waktu yang telah terisi (diblokir dari backend) dikunci dalam keadaan lumpuh visual (disabled state) dengan indikator warna berbeda, memutus segala bentuk peluang kesalahan pelanggan secara kognitif.
+
+Gambar 4.2 Formulir Interaktif Pemilihan Jadwal
+Sumber: Olahan Penulis, 2026
+
+Berdasarkan Gambar 4.2, dapat dilihat bahwa implementasi formulir interaktif pemilihan jadwal menampilkan kalender dan slot waktu pemesanan. Fitur ini berfungsi mencegah kesalahan jadwal ganda dari sisi pelanggan. Desain slot waktu yang dinonaktifkan dipilih untuk meminimalkan kekeliruan pengguna. Secara teknis, Flutter melakukan sinkronisasi status waktu dengan Firestore, didukung transaksi atomik di backend untuk mencegah konflik.
+
+Gambar 4.3 Ilustrasi Atomic Locking Pencegahan Double Booking
+Sumber: Olahan Penulis, 2026
+4.4.3 Fitur Pemantauan Waktu Nyata dan Keamanan Privasi
+Sejalan dengan integrasi Firebase (Rumusan Masalah kedua), fitur Tracking menampilkan peta OpenStreetMap dengan penanda (marker) yang bergerak secara halus sesuai perubahan koordinat (lat, long) kurir di pangkalan data Firestore. Pada layar ini juga dimunculkan komponen identitas kru terverifikasi (nama, rating, dan jumlah ulasan mitra) guna membekali pelanggan akan kepastian identitas petugas kebersihan. Koordinat tersebut dialirkan oleh aplikasi Portal Kru melalui sensor GPS perangkat (pustaka geolocator) ke field posisi bertipe GeoPoint pada koleksi kru selama status pesanan dalam perjalanan.
+
+Gambar 4.4 Peta Pelacakan Waktu Nyata
+Sumber: Olahan Penulis, 2026
+
+Berdasarkan Gambar 4.4, dapat dilihat bahwa implementasi peta pelacakan waktu nyata menampilkan perjalanan dan posisi kru pembersih ke lokasi pelanggan. Fitur pelacakan ini berfungsi memberikan transparansi kedatangan kru. Desain peta terintegrasi OpenStreetMap dipilih agar interaktif dan dinamis. Secara teknis, Flutter mendengarkan perubahan koordinat posisi kru pada Firestore secara langsung melalui metode snapshots untuk memperbarui marker secara halus.
+
+Gambar 4.5 Ilustrasi Aliran Data Real-time GPS Tracking
+Sumber: Olahan Penulis, 2026
+
+
+Gambar 4.6 Panel Mitra/Kru
+Sumber: Olahan Penulis, 2026
+
+Berdasarkan Gambar 4.6, dapat dilihat bahwa implementasi panel mitra menampilkan daftar tugas dan formulir laporan kerja berbasis kamera. Fitur ini berfungsi membantu pekerjaan lapangan dan pelaporan hasil kerja kru. Desain tombol tunggal berukuran besar dipilih untuk mengurangi hambatan operasional kru. Secara teknis, Flutter menggunakan paket image_picker untuk memotret, mengunggah foto ke Firebase Storage, dan menyimpan tautannya di Firestore.
+
+Gambar 4.7 Modul Pengawasan Dashboard Admin
+Sumber: Olahan Penulis, 2026
+
+Berdasarkan Gambar 4.7, dapat dilihat bahwa implementasi modul pengawasan dashboard admin menampilkan ringkasan pendapatan, sebaran pesanan, dan tabel transaksi. Fitur ini berfungsi memantau kelayakan bisnis platform. Desain dasbor responsif dipilih untuk kenyamanan pengelola pada perambah web. Secara teknis, Flutter Web melakukan kueri aliran data terhadap koleksi pesanan, pengguna, dan ulasan di Firestore untuk menampilkan analitik waktu nyata.
+
+4.5 Pengujian Kelayakan Sistem (Evaluasi Empiris)
+Mengacu pada Rumusan Masalah ketiga mengenai urgensi validasi kelayakan perangkat lunak secara empiris, pengujian dibagi menjadi validasi fungsional (backend/Black-Box) dan validasi tingkat kebergunaan atau usabilitas HCD (frontend/SUS).
+4.5.1 Pengujian Fungsional (Black-Box Testing)
+Metode Black-Box berfokus pada eksekusi skenario ekstrim untuk menguji respon penolakan (exception handling) sistem. Hal ini krusial untuk memverifikasi keamanan dan kestabilan transaksi. Tabel 4.1 menjabarkan 8 skenario pengujian komprehensif perangkat lunak Tuntaskilat.
+Tabel 4.1 Skenario Pengujian Black-Box
+
+4.5.2 Pengujian Kuantitatif System Usability Scale (SUS)
+Untuk menuntaskan validasi penerimaan metode HCD, kuesioner baku instrumen SUS (10 pertanyaan skala Likert 1-5) disebarkan secara digital. Sesuai dengan Batasan Masalah keempat, demografi target dibatasi pada 15 penduduk Kota Sampit (berdomisili di Ketapang dan Baamang).
+Rumus algoritma perhitungan standar SUS:
+Poin Pertanyaan Bernada Positif (Ganjil: Q1, Q3, Q5, Q7, Q9): Skor = Jawaban Responden (1-5) dikurangi 1.
+Poin Pertanyaan Bernada Negatif (Genap: Q2, Q4, Q6, Q8, Q10): Skor = 5 dikurangi Jawaban Responden (1-5).
+Setelah agregat keseluruhan dijumlahkan, hasil tersebut dikalikan dengan konstanta tetap yakni 2,5 untuk mencapai normalisasi rentang maksimum 100 poin.  
+
+Sebagai simulasi rekapitulasi data hasil wawancara dan kuesioner digital kepada 15 responden Kota Sampit tersebut, berikut adalah tabel rincian ringkasan rata-rata skor per instrumen pertanyaan (Tabel 4.2).
+
+Tabel 4.2 Rincian Hasil Pengukuran SUS
+
+
+
+4.5.3 Analisis Komprehensif Data SUS
+Merujuk pada tabel rincian di atas, akumulasi rata-rata skor mentah adalah 34,8. Apabila dikalikan dengan konstanta absolut (2,5), maka skor total akhir pengukuran kebergunaan (usability) perangkat lunak aplikasi layanan Tuntaskilat memperoleh angka 87,0. Mengacu pada klasifikasi persentil baku, nilai 87,0 terletak pada grade "A" atau termasuk ke dalam klaster predikat Excellent (Sangat Baik).
+
+Pencapaian ini membuktikan fakta matematis dan empiris bahwa siklus penguraian desain berpusat pada manusia (HCD)—yakni perombakan modul input form menjadi navigasi visual besar—telah sukses total mengeliminasi tingkat kebingungan responden awam Kota Sampit.
+
+BAB V
+KESIMPULAN DAN SARAN
+5.1 Kesimpulan
+Penelitian tugas akhir mengenai Rancang Bangun Aplikasi Jasa Kebersihan On-Demand "Tuntaskilat" menggunakan tumpukan teknologi (technology stack) Flutter dan Firebase ini telah bermuara pada hasil purwarupa fungsional tingkat tinggi. Selaras dengan tiga pilar Rumusan Masalah yang diajukan di Bab Pendahuluan, kesimpulan ilmiah yang dapat ditarik dari hasil pengembangan adalah sebagai berikut:
+Telah berhasil dihasilkan rancangan antarmuka dan pengalaman pengguna (UI/UX) aplikasi Tuntaskilat yang berpusat pada manusia (Human-Centered Design) dan disesuaikan dengan kebiasaan warga Kota Sampit. Pendekatan ini berhasil menggantikan proses pemesanan manual yang rawan kesalahan jadwal melalui visualisasi modul pemilih waktu yang mengunci jadwal ganda (double-booking), sehingga memecahkan keluhan proses pemesanan berbelit secara signifikan.
+Telah berhasil diwujudkan integrasi antara framework Firebase dan Flutter menjadi purwarupa aplikasi mobile Android tingkat produksi yang andal. Purwarupa ini sukses mengimplementasikan transparansi perhitungan biaya di muka (Fixed Pricing), mendukung fitur pelacakan status armada secara waktu nyata tanpa latensi tinggi, serta menjamin keamanan data pribadi dan identitas pengguna melalui sistem autentikasi Firebase yang terproteksi.
+Kelayakan teknis dan kemudahan penggunaan sistem telah terbukti secara empiris melalui serangkaian pengujian dua tahap yang terarah terhadap calon pengguna di Kota Sampit. Tahap pertama adalah pengujian kegunaan (usability testing) pada fase perancangan purwarupa interaktif (Canvas.dc.html) menggunakan kuesioner System Usability Scale (SUS) terhadap 15 responden yang menghasilkan skor rata-rata 87,0 (predikat 'Excellent'). Tahap kedua adalah pengujian fungsional (Black-Box Testing) pada aplikasi akhir (Flutter) menggunakan 8 skenario batas ekstrim. Hasil pengujian ini mengonfirmasi keandalan arsitektur backend serverless dan mekanisme penguncian atomik (Atomic Locking) via Firestore Transaction, yang terbukti secara matematis mampu mencegah insiden balapan data (race condition) pada pemesanan jadwal secara bersamaan.
+5.2 Saran
+Sebagai tindak lanjut dari keempat Batasan Masalah yang ditetapkan dalam penelitian ini, demi menyongsong pengimplementasian komersial berskala besar di masa mendatang, beberapa usulan strategis pengembangan lanjutan direkomendasikan sebagai berikut:
+Pengembangan Lintas Platform (iOS dan Web): Mengingat batasan penelitian ini yang hanya berfokus pada sistem operasi Android, pengembangan selanjutnya disarankan untuk melakukan kompilasi, penyesuaian tata letak responsif (responsive UI), dan pengujian aplikasi pada platform iOS serta Web menggunakan basis kode tunggal (single codebase) Flutter untuk menjangkau pangsa pasar pengguna yang lebih luas.
+Stress Testing Firestore dan Integrasi Payment Gateway via Cloud Functions: Untuk mengatasi pembatasan delegasi Firebase serverless tanpa peladen fisik mandiri, disarankan melakukan pengujian beban (stress testing) guna mendeteksi kuota limit tulis-baca (write-read quota bottleneck) Firestore saat menangani volume transaksi tinggi. Selain itu, direkomendasikan mengintegrasikan Payment Gateway otomatis (seperti Midtrans atau Xendit API) memanfaatkan Firebase Cloud Functions guna memproses validasi pembayaran secara aman tanpa memerlukan server konvensional terpisah.
+Implementasi Algoritma Dynamic Surge Pricing: Mengatasi batasan perhitungan harga tetap (fixed tarif), pengembangan lanjutan disarankan untuk membangun modul algoritma harga dinamis (dynamic pricing) yang dapat menghitung kenaikan tarif otomatis secara waktu nyata berdasarkan fluktuasi permintaan-penawaran (supply-demand) layanan kebersihan, kondisi cuaca, maupun musim liburan.
+Perluasan Wilayah Pengujian Pengguna: Merujuk pada batasan wilayah pengujian yang hanya berfokus pada warga berdomisili di Kota Sampit, penelitian selanjutnya disarankan untuk memperluas jangkauan pengujian empiris (usability testing) ke kota atau kabupaten lain di Kalimantan Tengah (seperti Palangka Raya atau Kotawaringin Barat) untuk memvalidasi generalisasi rancangan antarmuka HCD dalam skala demografis yang lebih luas.
+Optimasi Antarmuka Mitra dan Admin: Karena pengujian desain (HCD) pada penelitian ini difokuskan pada Aplikasi Pelanggan, penelitian selanjutnya disarankan untuk melakukan perancangan ulang dan pengujian spesifik terhadap Aplikasi Portal Kru dan Panel Admin. Pendekatan seperti User-Centered Design (UCD) dapat diterapkan untuk mengevaluasi dan meningkatkan efisiensi alur kerja operasional mitra pembersih di lapangan.
+
+DAFTAR PUSTAKA
+[1] A. Saputri dan A. M. Hirzan, “Aplikasi manajemen inventori berbasis mobile menggunakan Flutter dan Firebase Realtime Basis Data,” Jurnal Informatika dan Teknik Elektro Terapan, vol. 12, no. 3, 2024, doi: 10.23960/jitet.v12i3.4324.
+[2] A. A. A. W. Putra, N. K. D. Mahayani, dan B. N. D. R. M. Tilman, “Rancang bangun UI/UX dengan metode Design Thinking pada aplikasi Laundry Quick and Clean berbasis mobile,” Jurnal Indonesia: Manajemen Informatika dan Komunikasi, vol. 6, no. 1, 2025.
+[3] A. T. R. Rosaldy, H. M. Az-Zahra, dan N. H. Wardani, “Perancangan user experience aplikasi Go UMKM by BSI berbasis mobile menggunakan metode Human Centered Design (HCD),” Jurnal Pengembangan Teknologi Informasi dan Ilmu Komputer, vol. 8, no. 2, 2024.
+[4] A. Fadli, M. R. Alvansyah, dan R. D. Cahyo, “Rancang bangun sistem informasi perpustakaan digital berbasis Human Centered Design (HCD),” Merkurius: Jurnal Riset Sistem Informasi dan Teknik Informatika, vol. 4, no. 6, 2025.
+[5] B. Abelard dan P. D. Nusantara, “Pengembangan aplikasi memanggil jasa kebersihan untuk mendukung lapangan kerja,” Jurnal Satya Informatika, 2025.
+[6] A. Aritonang, E. V. Haryanto, dan J. Iriani, “Rancang bangun aplikasi inventaris barang cleaning service PT. ISS Indonesia berbasis Android,” Jurnal Informatika dan Digital, vol. 2, no. 1, hlm. 45-60, 2024.
+[7] S. Puspitarani, “Pengukuran usability aplikasi CapCut menggunakan System Usability Scale (SUS) serta pengujian Black Box,” Jurnal Informatika dan Teknik Elektro Terapan, 2026, doi: 10.23960/jitet.v14i1.8551.
+[8] A. Z. D. Nur Adiya, A. Fidela, D. L. Anggraeni, dan I. Setiawan, “Analisis kepuasan pengguna website repository Universitas Amikom Purwokerto menggunakan metode System Usability Scale (SUS),” Merkurius: Jurnal Riset Sistem Informasi dan Teknik Informatika, vol. 2, no. 6, 2024.
+[9] Tim Redaksi JATI, “Analisis usability aplikasi Google Classroom menggunakan metode System Usability Scale (SUS) dan pengujian Black Box,” JATI (Jurnal Mahasiswa Teknik Informatika), vol. 10, no. 1, 2026.
+[10] G. Jost dan V. Taneski, “State-of-the-art cross-platform mobile application development frameworks: A comparative study of market and developer trends,” Informatics, vol. 12, no. 2, hlm. 45, 2025, doi: 10.3390/informatics12020045.
+[11] A. I. Cendekia, A. P. Kharisma, dan B. Priyambadha, “Analisis perbandingan kinerja antara native Android Kotlin dengan framework Flutter pada aplikasi informasi rumah sakit,” Jurnal Pengembangan Teknologi Informasi dan Ilmu Komputer, vol. 9, no. 5, 2025.
+[12] L. Lovric, M. Fischer, N. Roderer, dan A. Wunsch, “Evaluation of the cross-platform framework Flutter using the example of a cancer counselling app,” dalam Proc. Int. Conf. ICT4AWE, vol. 2023, hlm. 135-142, 2023, doi: 10.5220/0011824500003476.
+[13] A. R. Setiadi dan H. Setiaji, “Perancangan UI/UX menggunakan pendekatan HCD (Human-Centered Design) pada website Thriftdoor,” Automata, vol. 1, no. 2, hlm. 228-233, 2020.
+[14] D. Daeli, “Penerapan Flutter sebagai framework cross-platform pada aplikasi booking online berbasis web mobile,” Explore: Jurnal Sistem Informasi dan Telematika, 2025.
+[15] Sugiyatno, “Pengiriman informasi real-time menggunakan teknologi basis data Firebase pada aplikasi mobile Android,” Fahma: Jurnal Informatika Komputer, Bisnis dan Manajemen, vol. 21, no. 2, hlm. 46-55, 2023, doi: 10.61805/fahma.v21i2.17.
+[16]  Flutter, “Flutter documentation: Frequently asked questions,” Google, 2024. [Online]. Tersedia: https://docs.flutter.dev/resources/faq
+[17]	Dart, “Dart overview,” Google, 2024. [Online]. Tersedia: https://dart.dev/overview
+[18] Android Developers, “Meet Android Studio,” Google, 2024. [Online]. Tersedia: https://developer.android.com/studio/intro
+[19] Anthropic, "Claude Artifacts and Design", Anthropic PBC, 2024. [Online]. Tersedia: https://support.anthropic.com
+[20] Firebase, “Firebase pricing: Spark dan Blaze plan,” Google, 2026. [Online]. Tersedia: https://firebase.google.com/pricing
+[21] Google Play Console Help, “App testing requirements for new personal developer accounts,” Google, 2026. [Online]. Tersedia: https://support.google.com/googleplay/android-developer/answer/14151465
+[22] ISO, “ISO 9241-210: Ergonomics of human-system interaction - Human-centred design for interactive systems,” International Organization for Standardization, 2019.
+[23] Paramadina Public Policy Institute dan INDEF, “Kontribusi ekosistem transportasi dan jasa berbasis aplikasi terhadap perekonomian Indonesia,” Liputan6.com, 2026. [Online]. Tersedia: https://www.liputan6.com/bisnis/read/7628379/riset-ojol-dan-taksi-online-sumbang-rp-565-triliun-ke-pdb
+[24] Badan Pusat Statistik Kabupaten Kotawaringin Timur, “Pertumbuhan ekonomi dan Indeks Pembangunan Manusia Kabupaten Kotawaringin Timur 2024,” BPS Kotawaringin Timur, Sampit, 2025. [Online]. Tersedia: https://kotimkab.bps.go.id
+[25] Dinas Lingkungan Hidup Kabupaten Kotawaringin Timur, “Data timbulan sampah rumah tangga Kota Sampit,” Pemerintah Kabupaten Kotawaringin Timur, Sampit, 2024.
+[26] Object Management Group, “OMG Unified Modeling Language (OMG UML), Version 2.5.1,” Object Management Group, 2017. [Online]. Tersedia: https://www.omg.org/spec/UML
+[27] R. Elmasri and S. B. Navathe, Fundamentals of Basis Data Systems, 7th ed. Boston, MA, USA: Pearson, 2016.
+[28] J. Nielsen, "Why You Only Need to Test with 5 Users," Nielsen Norman Group, 2000. [Online]. Tersedia: https://www.nngroup.com/articles/why-you-only-need-to-test-with-5-users

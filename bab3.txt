@@ -1,0 +1,130 @@
+0: BAB III ANALISIS & DESAIN, menjabarkan secara rinci analisis kebutuhan sistem (fungsional dan non-fungsional), desain konseptual yang mencakup representasi visual dan diagram logika sistem, serta evaluasi mengenai kelebihan dan kelemahan proyek yang dikembangkan.
+1: BAB III
+2: ANALISIS DAN DESAIN
+4: Analisis Kebutuhan
+5: Proses identifikasi kebutuhan adalah pondasi kritikal untuk menjamin fungsionalitas aplikasi sejalan dengan ekspektasi calon konsumen di Kota Sampit. Kebutuhan ini dipecah menjadi dua klasifikasi utama.
+6: Kebutuhan Fungsional
+7: Kebutuhan fungsional mendeskripsikan instruksi dan operasi spesifik yang wajib dapat dieksekusi oleh sistem aplikasi Tuntaskilat.
+8: Sistem harus menyediakan modul pendaftaran dan autentikasi akun pelanggan yang aman, baik melalui surat elektronik maupun integrasi akun pihak ketiga.
+9: Sistem harus menampilkan katalog layanan kebersihan interaktif yang memungkinkan pengguna memodifikasi jumlah ruangan, durasi jam kerja, atau meter persegi area yang akan dibersihkan.
+10: Sistem harus memiliki algoritma kalkulator yang secara otomatis menghitung estimasi tarif total secara presisi sebelum pengguna masuk ke gerbang pembayaran.
+11: Sistem harus memfasilitasi pengunggahan bukti bayar digital dan konfirmasi transaksi.
+12: Sistem harus mengizinkan kru pembersih untuk menerima penugasan, memandu navigasi lokasi, serta mengunggah foto laporan hasil pengerjaan (dokumentasi sebelum dan sesudah pembersihan).
+13: Sistem harus menyediakan modul riwayat pesanan bagi pelanggan untuk melihat transaksi masa lalu dan memberikan penilaian (penilaian) terhadap kualitas kerja kru.
+16: Kebutuhan Non-Fungsional
+17: Kebutuhan non-fungsional mendikte standar keandalan, keamanan, dan performa dari arsitektur lingkungan aplikasi.
+18: Kinerja Perangkat Lunak: Aplikasi harus dieksekusi pada kecepatan render stabil untuk menghindari kelambatan (lagging), serta memiliki waktu respons pengambilan data kalender kurang dari tiga detik dengan koneksi internet standar (3G/4G).
+19: Skalabilitas Basis Data: Arsitektur Cloud Firestore harus sanggup melayani ratusan pembaruan aliran dokumen transaksi yang masuk secara simultan tanpa menyebabkan kebuntuan basis data (basis data bottleneck).
+20: Keamanan Sistem: Hak akses baca dan tulis harus dibatasi secara absolut. Pengguna hanya memiliki wewenang untuk mengakses dokumen transaksinya sendiri, dan sistem dilindungi menggunakan validasi Firebase Security Rules tingkat produksi untuk mencegah celah pencurian data privasi pelanggan.
+21: Ergonomi dan Kebergunaan: Antarmuka visual wajib mematuhi standar desain responsif yang meminimalisasi ketegangan kognitif, menerapkan warna identitas Tuntaskilat secara proporsional, serta memiliki label perintah (tombol) yang jelas dan bebas ambiguitas.
+24: Desain Konseptual
+25: Tahapan ini memvisualisasikan arsitektur logika dan struktur grafis yang merangkai interaksi manusia dengan perangkat keras komputasi aplikasi.
+26: Skenario Penggunaan
+27: Skenario penggunaan (storyboard) disusun untuk memvalidasi aliran perjalanan pengguna di kehidupan nyata. Sebagai ilustrasi skenario: Seorang pekerja kantor di wilayah Baamang, Kota Sampit, tidak memiliki waktu luang di akhir pekan untuk membersihkan rumahnya pasca-renovasi. Ia membuka aplikasi Tuntaskilat di ponselnya. Melalui halaman utama yang intuitif, ia memilih layanan General Cleaning dan menentukan jadwal kedatangan kru untuk esok hari pukul 09.00 pagi. Aplikasi langsung menampilkan tagihan biaya secara transparan. Setelah mengunggah bukti pembayaran, pengguna menerima notifikasi waktu nyata dari Firebase bahwa seorang kru telah ditugaskan. Keesokan harinya, pengguna dapat melacak kedatangan kru, dan setelah pekerjaan selesai, ia memberikan lima bintang karena puas dengan kepraktisan serta higienitas layanan.
+28: Purwarupa
+29: Representasi visual aplikasi diterjemahkan menjadi tiruan interaktif menggunakan peranti desain kolaboratif  Figma. Desain ini menggunakan tata letak layar tingkat tinggi (high-fidelity), di mana ukuran palet warna, tipografi, serta penempatan ikon telah diukur secara asimetris agar ramah terhadap jari (thumb-friendly zone). Pembuatan purwarupa visual ini krusial dalam metode HCD karena memungkinkan sampel dari perwakilan masyarakat Kota Sampit untuk menyimulasikan pengalaman menekan layar dan memberikan kritik perbaikan sebelum tahapan konversi gambar menjadi kode bahasa Dart Flutter dilakukan.
+31: Use Case Diagram
+32: Diagram Use Case digunakan untuk memetakan batasan hak akses serta hubungan fungsional antara aktor yang berinteraksi dengan komponen sistem aplikasi Tuntaskilat.
+49: Gambar 3.1 Diagram Use Case Aplikasi Tuntaskilat
+52: Activity Diagram
+53: Diagram aktivitas menjelaskan sekuensi operasional langkah demi langkah dari proses penyelesaian pesanan, dimulai dari aktivasi perangkat lunak hingga penutupan basis data laporan pengerjaan.
+79: Gambar 3.2 Diagram Aktivitas Pemesanan Layanan
+107: Gambar 3.3 Diagram Aktivitas Registrasi dan Masuk Tuntaskilat
+110: Gambar 3.4 Diagram Aktivitas Pembayaran dan Verifikasi Tuntaskilat
+114: Gambar 3.5 Diagram Aktivitas Penugasan dan Pengerjaan Kru Tuntaskilat
+116: Gambar 3.6 Diagram Aktivitas Penilaian dan Riwayat Pesanan Tuntaskilat
+119: Sequence Diagram
+120: Sequence diagram digunakan untuk menggambarkan urutan interaksi antara aktor dan komponen sistem dalam proses pemesanan layanan pada aplikasi Tuntaskilat. Diagram ini menunjukkan bagaimana pelanggan melakukan masuk, memilih layanan, mengisi detail pesanan, mengunggah bukti pembayaran, hingga sistem menyimpan data ke Firebase. Selain itu, diagram ini juga menggambarkan interaksi antara admin dan kru pembersih dalam proses verifikasi pembayaran, penugasan kru, pembaruan status pekerjaan, serta penyimpanan penilaian dan ulasan pelanggan. 
+122: Melalui sequence diagram, alur komunikasi antar komponen dapat terlihat secara lebih jelas, mulai dari aplikasi Flutter sebagai antarmuka pengguna, Firebase Authentication sebagai layanan autentikasi, Cloud Firestore sebagai basis data utama, Firebase Storage sebagai tempat penyimpanan file, hingga admin dan kru sebagai pihak yang memproses pesanan.
+135: Gambar 3.7 Sequence Diagram Proses Pemesanan Layanan Tuntaskilat
+136: Component Diagram
+137: Component diagram digunakan untuk menggambarkan struktur komponen utama yang membangun aplikasi Tuntaskilat. Diagram ini menjelaskan hubungan antara pengguna, aplikasi mobile berbasis Flutter, dan layanan backend Firebase. Pada sisi frontend, aplikasi terdiri dari beberapa modul, seperti modul autentikasi, katalog layanan, pemesanan, status pesanan, riwayat dan penilaian, serta modul admin atau kru.
+139: Pada sisi backend, sistem menggunakan Firebase Authentication untuk proses masuk dan registrasi, Cloud Firestore untuk penyimpanan data, Firebase Storage untuk penyimpanan bukti pembayaran dan dokumentasi pekerjaan, serta Firebase Cloud Messaging untuk pengiriman notifikasi. Dengan adanya component diagram, struktur sistem dapat dipahami secara menyeluruh sebelum tahap implementasi dilakukan.
+153: Gambar 3.8 Component Diagram Arsitektur Sistem
+154: Class Diagram
+155: Class diagram digunakan untuk menggambarkan rancangan struktur data yang digunakan dalam sistem Tuntaskilat. Karena aplikasi ini menggunakan Firebase Firestore sebagai basis data NoSQL, class diagram pada penelitian ini merepresentasikan koleksi-koleksi utama yang digunakan dalam sistem. Koleksi tersebut meliputi users, services, orders, kru, payments, reviews, dan notifications.
+157: Koleksi users digunakan untuk menyimpan data pelanggan dan pengguna sistem. Koleksi services menyimpan data layanan kebersihan yang tersedia. Koleksi orders digunakan untuk menyimpan data pemesanan. Koleksi kru menyimpan data kru pembersih. Koleksi payments digunakan untuk menyimpan informasi pembayaran, sedangkan reviews menyimpan penilaian dan ulasan pelanggan. Koleksi notifications digunakan untuk menyimpan data notifikasi yang dikirimkan kepada pengguna. Rancangan ini dibuat agar proses penyimpanan dan pengambilan data dapat berjalan secara terstruktur.
+159: Gambar 3.9 Class Diagram / Struktur Data Firestore
+161: Untuk memperjelas keterhubungan antar-koleksi pada basis data, relasi logis antar entitas digambarkan dalam bentuk Entity Relationship Diagram (ERD).  ERD ini menggambarkan kebutuhan data sistem dalam bentuk model relasional, di mana setiap entitas direpresentasikan sebagai tabel dengan kunci utama (Primary Key/PK) sebagai pembeda baris data dan kunci tamu (Foreign Key/FK) sebagai penghubung antar-tabel. Meskipun implementasi basis data menggunakan Cloud Firestore yang berbasis dokumen, struktur datanya dirancang mengikuti kaidah relasional ini agar keterhubungan dan kardinalitas antar-entitas tergambar jelas dan konsisten. Hubungan antar entitas tersebut ditunjukkan pada Gambar 3.10. 
+164: Gambar 3.10 Entity Relationship Diagram (ERD) Sistem Tuntaskilat
+167: State Diagram
+168: State diagram digunakan untuk menggambarkan perubahan status pesanan dalam aplikasi Tuntaskilat. Setiap pesanan memiliki beberapa tahapan status, dimulai dari pesanan dibuat, menunggu pembayaran, menunggu verifikasi, terverifikasi, menunggu penugasan kru, ditugaskan, dalam perjalanan, diproses, selesai, hingga dinilai oleh pelanggan.
+170: Diagram ini penting karena status pesanan menjadi bagian utama dalam sistem layanan . Pelanggan perlu mengetahui perkembangan pesanannya secara jelas, sedangkan admin dan kru membutuhkan status yang akurat untuk mengelola proses operasional. Dengan adanya state diagram, alur perubahan status pesanan dapat dirancang secara konsisten sehingga tidak terjadi kebingungan dalam proses implementasi sistem.
+203: Gambar 3.11 State Diagram Status Pesanan
+204: Deployment Diagram
+205: Deployment diagram digunakan untuk menggambarkan lingkungan penerapan sistem Tuntaskilat. Diagram ini menunjukkan bahwa aplikasi dapat diakses melalui perangkat pelanggan, perangkat kru pembersih, dan perangkat admin. Ketiga jenis pengguna tersebut terhubung ke layanan Firebase Cloud sebagai backend utama sistem.
+207: Pada sisi cloud, sistem menggunakan beberapa layanan Firebase, yaitu Authentication, Cloud Firestore, Storage, dan Cloud Messaging. Firebase Authentication digunakan untuk mengelola autentikasi pengguna, Cloud Firestore digunakan sebagai basis data utama, Firebase Storage digunakan untuk menyimpan file seperti bukti pembayaran dan dokumentasi foto, sedangkan Cloud Messaging digunakan untuk mengirimkan notifikasi. Diagram ini memberikan gambaran bagaimana aplikasi akan berjalan pada lingkungan nyata ketika digunakan oleh pengguna.
+221: Gambar 3.12 Deployment Diagram Sistem Tuntaskilat
+223: Alur Metode Human-Centered Design
+224: Alur metode Human-Centered Design digunakan untuk menjelaskan tahapan perancangan aplikasi Tuntaskilat yang berfokus pada kebutuhan pengguna. Metode ini dimulai dari memahami konteks pengguna, yaitu bagaimana calon pelanggan di Kota Sampit membutuhkan layanan kebersihan yang praktis, mudah digunakan, dan transparan. Setelah itu, kebutuhan pengguna ditentukan dalam bentuk kebutuhan fungsional dan non-fungsional.
+226: Tahap berikutnya adalah menyusun solusi desain, membuat purwarupa aplikasi, dan melakukan evaluasi terhadap rancangan tersebut. Jika hasil evaluasi menunjukkan bahwa desain belum sesuai dengan kebutuhan pengguna, maka proses akan kembali ke tahap perbaikan kebutuhan dan desain. Jika desain sudah sesuai, purwarupa dapat dilanjutkan ke tahap implementasi menggunakan Flutter dan Firebase. Dengan pendekatan ini, aplikasi yang dibangun diharapkan tidak hanya berfungsi secara teknis, tetapi juga mudah digunakan oleh pengguna akhir.
+228: Gambar 3.13 Alur Metode Human-Centered Design
+229: Desain Basis Data
+230: Desain basis data menentukan bagaimana seluruh informasi pengguna, pesanan, dan transaksi disimpan serta saling dihubungkan sehingga kebutuhan pengguna, mulai dari menyimpan riwayat pesanan hingga menampilkan status secara akurat, dapat terlayani dengan baik. Sistem Tuntaskilat menggunakan Cloud Firestore, yaitu basis data NoSQL berbasis dokumen. Berbeda dengan basis data relasional yang menyusun data dalam tabel, Firestore menyimpan data dalam bentuk koleksi yang berisi dokumen, dan setiap dokumen memuat pasangan field beserta nilainya. Desain basis data sistem ini terdiri atas tujuh koleksi utama, yaitu users, services, orders, kru, payments, reviews, dan notifications, yang keterhubungannya diwujudkan melalui acuan identitas dokumen yang setara dengan kunci tamu pada model relasional. Spesifikasi rinci tiap koleksi, mencakup nama field, tipe data, dan keterangannya, diuraikan pada tabel-tabel berikut. 
+232: Koleksi users menyimpan identitas seluruh pengguna sistem yang dibedakan melalui field role.
+233: Tabel 3.1 Spesifikasi Koleksi users
+236: Koleksi services menyimpan katalog layanan kebersihan beserta tarif dasarnya.
+237: Tabel 3.2 Spesifikasi Koleksi services
+239: Koleksi orders merupakan inti transaksi yang menautkan pelanggan, layanan, dan kru, serta merekam status pesanan.
+240: Tabel 3.3 Spesifikasi Koleksi orders
+242: Koleksi kru menyimpan data kru pembersih beserta ketersediaan dan rata-rata penilaiannya.
+243: Tabel 3.4 Spesifikasi Koleksi kru
+245: Koleksi payments menyimpan informasi pembayaran tiap pesanan, termasuk bukti bayar di Firebase Storage.
+247: Tabel 3.5 Spesifikasi Koleksi payments
+249: Koleksi reviews menyimpan penilaian dan ulasan pelanggan terhadap kru setelah pekerjaan selesai.
+250: Tabel 3.6 Spesifikasi Koleksi reviews
+252: Koleksi notifications menyimpan pesan notifikasi yang dikirim sistem kepada pengguna.
+253: Tabel 3.7 Spesifikasi Koleksi notifications
+256: Kamus Data
+257: Kamus data merangkum seluruh elemen data yang digunakan pada sistem Tuntaskilat beserta tipe dan perannya. Karena Cloud Firestore merupakan basis data NoSQL berbasis dokumen, kunci utama (Primary Key/PK) diwujudkan sebagai ID dokumen, sedangkan kunci tamu (Foreign Key/FK) diwujudkan sebagai acuan identitas dokumen antar-koleksi yang setara dengan relasi pada model basis data relasional. Rincian setiap field, tipe data, status kunci, dan deskripsinya disajikan pada Tabel 3.8.
+258: Tabel 3.8 Kamus Data Sistem Tuntaskilat
+261: Desain Input/Output
+262: Desain masukan dan keluaran merupakan jembatan utama yang menghubungkan pengguna dengan sistem. Perancangannya berpedoman pada prinsip Human-Centered Design agar selaras dengan kebiasaan warga Sampit, sehingga setiap data mudah dimasukkan dan setiap informasi mudah dipahami. Rincian spesifikasi untuk masing-masing formulir masukan disajikan pada Tabel 3.9.
+263: Tabel 3.9 Desain Input Sistem
+264: Rancangan keluaran yang dihasilkan oleh aplikasi Tuntaskilat untuk setiap pengguna disajikan pada Tabel 3.10.
+265: Tabel 3.10 Desain Output Sistem
+267: Setelah desain input dan output dirangkum dalam bentuk tabel, berikut disajikan rancangan visual antarmuka (mockup) seluruh halaman aplikasi Tuntaskilat. Rancangan dikelompokkan menurut tiga pengguna sistem, yaitu pelanggan, kru, dan administrator, dengan setiap halaman beserta elemen masukan dan keluarannya digambarkan secara lengkap dan terhubung dengan koleksi basis data yang telah dirancang.
+268: Pertama, alur awal pelanggan mencakup halaman pembuka, halaman masuk atau registrasi, dan halaman beranda yang menampilkan katalog layanan, sebagaimana ditunjukkan pada Gambar 3.14.
+270: Gambar 3.14 Rancangan Antarmuka Pelanggan: Pembuka, Masuk/Registrasi, dan Beranda
+271: Sumber: Olahan Penulis, 2026
+272: Berdasarkan Gambar 3.14, dapat dilihat bahwa rancangan antarmuka pelanggan diawali dengan halaman pembuka, halaman masuk/registrasi, dan beranda katalog. Fitur ini berfungsi sebagai menu utama pelanggan memilih jasa kebersihan. Desain minimalis HCD dipilih untuk menyederhanakan navigasi warga Kota Sampit. Secara teknis, alur ini diimplementasikan menggunakan Flutter dengan widget StreamBuilder yang terhubung ke Firebase Authentication, sementara daftar layanan diambil dari koleksi Firestore.
+275: Selanjutnya, proses pemesanan mencakup halaman detail layanan, form pemesanan, dan rincian tagihan yang menampilkan estimasi biaya secara transparan, sebagaimana ditunjukkan pada Gambar 3.15.
+277: Gambar 3.15 Rancangan Antarmuka Pelanggan: Detail Layanan, Form Pemesanan, dan Rincian Tagihan
+278: Sumber: Olahan Penulis, 2026
+279: Berdasarkan Gambar 3.15, dapat dilihat bahwa rancangan antarmuka pemesanan terdiri dari detail layanan, formulir pemesanan, dan rincian tagihan. Fitur ini berfungsi menampung input reservasi pelanggan dan menyajikan estimasi biaya tetap secara transparan. Desain satu kolom dipilih untuk mencegah kesalahan input pengguna. Pada tingkat teknis, form ini menggunakan TextFormField Flutter dengan validator otomatis, yang datanya disimpan ke koleksi Firestore.
+282: Setelah pemesanan, pelanggan melakukan pembayaran, memantau status pesanan secara waktu nyata, dan melihat riwayat pesanan, sebagaimana ditunjukkan pada Gambar 3.16.
+284: Gambar 3.16 Rancangan Antarmuka Pelanggan: Pembayaran, Status Pesanan, dan Riwayat Pesanan
+285: Sumber: Olahan Penulis, 2026
+286: Berdasarkan Gambar 3.16, dapat dilihat bahwa rancangan antarmuka pasca-pemesanan meliputi halaman pembayaran, pelacakan status, dan riwayat transaksi. Fitur ini berfungsi memantau status pengerjaan secara langsung untuk membangun transparansi. Desain visualnya dirancang agar memberikan kejelasan status pengerjaan. Secara teknis, pelacakan menggunakan StreamBuilder Flutter yang mendengarkan perubahan status dokumen pesanan di Firestore, serta mengunggah bukti ke Firebase Storage.
+289: Adapun halaman form ulasan pelanggan serta antarmuka kru yang mencakup daftar penugasan dan form laporan pengerjaan ditunjukkan pada Gambar 3.17.
+291: Gambar 3.17 Rancangan Antarmuka Form Ulasan (Pelanggan) serta Penugasan dan Laporan (Kru)
+292: Sumber: Olahan Penulis, 2026
+293: Berdasarkan Gambar 3.17, dapat dilihat bahwa rancangan antarmuka form ulasan pelanggan serta panel khusus kru pembersih untuk penugasan dan laporan. Fitur ulasan mengumpulkan umpan balik pelanggan, sedangkan panel kru memperbarui status kerja. Desain panel kru dibuat sederhana dengan kontras tinggi untuk memudahkan pengoperasian lapangan. Secara teknis, kru menggunakan image_picker Flutter untuk memotret laporan, mengunggahnya ke Firebase Storage, dan memperbarui status di Firestore.
+295: Terakhir, antarmuka administrator mencakup dashboard ringkasan, halaman kelola pesanan, serta halaman kelola layanan dan kru, sebagaimana ditunjukkan pada Gambar 3.18.
+297: Gambar 3.18 Rancangan Antarmuka Administrator: Dashboard, Kelola Pesanan, dan Kelola Layanan & Kru
+298: Sumber: Olahan Penulis, 2026
+299: Berdasarkan Gambar 3.18, dapat dilihat bahwa rancangan antarmuka administrator mencakup dashboard statistik, kelola pesanan, serta kelola layanan dan kru. Fitur ini berfungsi sebagai panel pengawasan operasional bagi pemilik platform. Desain grid dipilih untuk menyajikan visualisasi data yang padat. Implementasinya menggunakan Flutter Web yang melakukan kueri aliran data secara waktu nyata terhadap koleksi pesanan dan pengguna di Firestore.
+302: 3.4.1 Kaidah Perancangan Input dan Output
+303: Kejelasan. setiap field diberi label dan teks bantuan yang ringkas.
+304: Validasi. masukan divalidasi langsung sebelum dikirim ke Firestore.
+305: Umpan balik. setiap aksi memperoleh respons yang jelas, baik konfirmasi maupun pesan kesalahan.
+306: Konsistensi. tata letak, warna, tipografi, dan posisi tombol dijaga konsisten.
+307: Pencegahan kesalahan. aksi penting dikonfirmasi ulang dan tombol takaktif dinonaktifkan.
+308: Aksesibilitas. ukuran tombol dan teks nyaman bagi jari dengan kontras yang memadai.
+310: 3.4.2 Alur Kerja Penerapan Metode Human-Centered Design
+311: Penerapan metode Human-Centered Design pada penelitian ini dijalankan melalui empat tahap yang berputar secara iteratif, sebagaimana telah diilustrasikan pada Gambar alur HCD di subbab sebelumnya. 
+312: Tahap pertama adalah memahami konteks pengguna, yaitu dengan mengamati dan mewawancarai calon pengguna di Kota Sampit untuk menggali kebiasaan dan kesulitan mereka dalam memesan jasa kebersihan. 
+313: Tahap kedua adalah menentukan kebutuhan, yaitu menerjemahkan temuan tersebut menjadi daftar kebutuhan fungsional dan non-fungsional. 
+314: Tahap ketiga adalah membuat solusi desain dalam bentuk purwarupa Figma. Tahap keempat adalah mengevaluasi purwarupa bersama pengguna. Bila hasil evaluasi menunjukkan rancangan belum nyaman digunakan, penulis kembali memperbaiki desain hingga benar-benar sesuai sebelum dikodekan ke dalam Flutter.
+316: Gambar 3.19 Alur Kerja Penerapan Metode Human-Centered Design
+317: Sumber: Olahan Penulis, 2026
+320:  Kelemahan dan Kelebihan Proyek
+321: Setiap pengembangan arsitektur perangkat lunak komersial selalu memiliki profil pertukaran karakteristik (trade-off). Berdasarkan parameter analisis teknologi yang diterapkan, berikut adalah evaluasi karakteristik sistem yang dikembangkan.
+322: Kelebihan Proyek
+323: Menggunakan kerangka kerja Flutter, sehingga kode yang dirakit dapat dikompilasi ke ekosistem Android secara cepat, serta memiliki transisi animasi visual yang sangat halus dan estetik tanpa mengorbankan performa sistem.
+324: Sinkronisasi Cloud Firestore memungkinkan aplikasi untuk mengirim perubahan status pesanan seketika kepada pelanggan tanpa keharusan memperbarui halaman secara manual, memberikan sensasi kontrol aplikasi logistik profesional.
+325: Integrasi metodologi Human-Centered Design secara tajam memangkas alur pemesanan yang tidak perlu, menekan tingkat stres kebingungan teknologi bagi warga Sampit, serta mengurangi rasio rintangan kegagalan transaksi (misclick rate).
+326: Biaya pemeliharaan peladen sangat rendah pada fase rintisan karena infrastruktur dikelola sepenuhnya secara nirpeladen (serverless) oleh arsitektur Google Firebase.
+329: Kelemahan Proyek
+330: Aplikasi ini sangat bergantung pada persistensi ketersediaan jaringan internet (always-online). Kru pembersih yang ditugaskan ke wilayah residensial dengan titik buta sinyal telekomunikasi (blank spot) akan kesulitan mengunggah dokumen foto laporan secara waktu nyata.
+331: Purwarupa backend saat ini memproses estimasi pencocokan jadwal secara manual atau terfokus pada ketersediaan waktu statis, belum mengimplementasikan logika kecerdasan buatan (machine learning) canggih untuk prediksi rute kemacetan otomatis bagi logistik tenaga pembersih.
