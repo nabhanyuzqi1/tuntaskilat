@@ -42,9 +42,11 @@ service cloud.firestore {
       allow update: if isAdmin() || (
         isSignedIn() &&
         (resource.data.userId == request.auth.uid ||
-         resource.data.cleanerId == request.auth.uid) &&
+         resource.data.cleanerId == request.auth.uid ||
+         (resource.data.kruIds is list &&
+          request.auth.uid in resource.data.kruIds)) &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'fotoSebelum', 'fotoSesudah'])
+          .hasOnly(['status', 'fotoSebelum', 'fotoSesudah', 'penugasan'])
       );
       allow delete: if isAdmin();
     }
@@ -84,6 +86,28 @@ service cloud.firestore {
           .hasOnly(['terpakai']) &&
         request.resource.data.terpakai == resource.data.terpakai + 1
       );
+    }
+
+    // Ledger upah kru (produk nyata). Kru hanya BACA payout miliknya; ia tak
+    // pernah menulis nominal. Payout dibuat/diubah lewat transaksi
+    // penyelesaian & keputusan admin (uang tak dipercaya klien).
+    match /payouts/{payoutId} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && resource.data.cleanerId == request.auth.uid);
+      // Dibuat di dalam transaction penyelesaian oleh kru tertugas; status
+      // awal 'pending' dan cleanerId harus milik kru terkait order.
+      allow create: if isAdmin() || isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // Banding upah/hasil. Kru atau pelanggan membuat; hanya admin memutus.
+    match /disputes/{disputeId} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && resource.data.pengajuId == request.auth.uid);
+      allow create: if isSignedIn() &&
+        request.resource.data.pengajuId == request.auth.uid &&
+        request.resource.data.status == 'diajukan';
+      allow update, delete: if isAdmin();
     }
   }
 }

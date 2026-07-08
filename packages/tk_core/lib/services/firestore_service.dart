@@ -4,9 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/kru_model.dart';
 import '../models/notification_model.dart';
+import '../models/dispute_model.dart';
 import '../models/order_model.dart';
 import '../models/payment_model.dart';
+import '../models/payout_model.dart';
 import '../models/pricing.dart';
+import '../models/wage.dart';
 import '../models/review_model.dart';
 import '../models/service_model.dart';
 import '../models/user_model.dart';
@@ -71,6 +74,14 @@ class FirestoreService {
   /// Koleksi `vouchers` — lapisan produk nyata (di luar 7 koleksi TA).
   CollectionReference<Map<String, dynamic>> get _vouchers =>
       _db.collection('vouchers');
+
+  /// Ledger upah kru (lapisan produk nyata).
+  CollectionReference<Map<String, dynamic>> get _payouts =>
+      _db.collection('payouts');
+
+  /// Banding upah/hasil kerja (lapisan produk nyata).
+  CollectionReference<Map<String, dynamic>> get _disputes =>
+      _db.collection('disputes');
 
   // ---------------------------------------------------------------- services
 
@@ -376,8 +387,10 @@ class FirestoreService {
           .map((d) => OrderModel.fromMap(d.id, d.data()))
           .toList(growable: false));
 
+  /// Order yang menugaskan kru ini (worker ATAU helper) — pakai `kruIds`
+  /// array-contains agar helper juga melihat pekerjaannya.
   Stream<List<OrderModel>> watchOrdersByKru(String cleanerId) => _orders
-      .where('cleanerId', isEqualTo: cleanerId)
+      .where('kruIds', arrayContains: cleanerId)
       .snapshots()
       .map((s) => s.docs
           .map((d) => OrderModel.fromMap(d.id, d.data()))
@@ -512,6 +525,199 @@ class FirestoreService {
     });
     await batch.commit();
   }
+
+  // ------------------------------------------------- penugasan multi-kru
+
+  /// A3 — penugasan MULTI kru (worker + helper). Isi `penugasan` + `kruIds`,
+  /// `cleanerId`/`namaKru` = lead (worker pertama, kompatibel), status →
+  /// `ditugaskan`. Menolak bila jumlah kru < [minPetugas] (dari paket).
+  Future<void> tugaskanKruMulti({
+    required OrderModel order,
+    required List<Penugasan> penugasan,
+    int minPetugas = 1,
+  }) async {
+    if (penugasan.isEmpty) {
+      throw ArgumentError('Minimal satu kru harus ditugaskan.');
+    }
+    if (penugasan.length < minPetugas) {
+      throw ArgumentError(
+          'Layanan ini butuh $minPetugas petugas, baru ${penugasan.length}.');
+    }
+    final ids = penugasan.map((p) => p.cleanerId).toList();
+    if (ids.toSet().length != ids.length) {
+      throw ArgumentError('Kru tidak boleh ganda dalam satu order.');
+    }
+    // Lead = worker pertama bila ada, jika tidak kru pertama.
+    final lead = penugasan.firstWhere((p) => p.peran == PeranKru.worker,
+        orElse: () => penugasan.first);
+
+    final batch = _db.batch();
+    batch.update(_orders.doc(order.orderId), {
+      'penugasan': penugasan.map((p) => p.toMap()).toList(),
+      'kruIds': ids,
+      'cleanerId': lead.cleanerId,
+      'namaKru': lead.nama,
+      'status': OrderStatus.ditugaskan.wire,
+    });
+    final notifRef = _notifications.doc();
+    final labelKru = penugasan.length == 1
+        ? lead.nama
+        : '${lead.nama} + ${penugasan.length - 1} kru lain';
+    batch.set(notifRef, {
+      'notificationId': notifRef.id,
+      'userId': order.userId,
+      'judul': 'Kru ditugaskan untuk pesanan Anda',
+      'pesan': '$labelKru akan datang sesuai jadwal Anda. Pantau di '
+          'halaman Status Pesanan.',
+      'waktu': Timestamp.now(),
+      'dibaca': false,
+      'orderId': order.orderId,
+    });
+    await batch.commit();
+  }
+
+  /// Kru menandai "selesai bagian saya" (+ foto). Dalam satu transaction:
+  /// tandai konfirmasi kru ini; bila SEMUA kru sudah konfirmasi → status
+  /// `selesai` + buat ledger `payouts` (bagi upah adil, komisi platform).
+  /// Mengembalikan true bila order menjadi selesai pada panggilan ini.
+  Future<bool> konfirmasiSelesaiKru({
+    required String orderId,
+    required String cleanerId,
+    String? fotoUrl,
+    KonfigUpah konfig = const KonfigUpah(),
+  }) async {
+    final orderRef = _orders.doc(orderId);
+    return _db.runTransaction<bool>((tx) async {
+      final snap = await tx.get(orderRef);
+      if (!snap.exists) throw StateError('Order tidak ditemukan.');
+      final order = OrderModel.fromMap(snap.id, snap.data()!);
+      if (order.penugasan.isEmpty) {
+        throw StateError('Order belum memiliki penugasan kru.');
+      }
+      if (!order.kruIds.contains(cleanerId)) {
+        throw StateError('Anda tidak ditugaskan pada order ini.');
+      }
+      if (order.status == OrderStatus.selesai ||
+          order.status == OrderStatus.dinilai) {
+        return false; // sudah selesai
+      }
+
+      final baru = order.penugasan
+          .map((p) => p.cleanerId == cleanerId
+              ? p.copyWith(sudahKonfirmasi: true, fotoUrl: fotoUrl)
+              : p)
+          .toList();
+      final semua = baru.every((p) => p.sudahKonfirmasi);
+
+      tx.update(orderRef, {
+        'penugasan': baru.map((p) => p.toMap()).toList(),
+        if (semua) 'status': OrderStatus.selesai.wire,
+      });
+
+      if (semua) {
+        // Bagi upah: komisi platform + pool per bobot peran (Σ == total).
+        final hasil = bagiUpah(order.totalHarga, baru, konfig: konfig);
+        for (final p in baru) {
+          final payRef = _payouts.doc('${orderId}_${p.cleanerId}');
+          tx.set(
+              payRef,
+              PayoutModel(
+                payoutId: payRef.id,
+                orderId: orderId,
+                cleanerId: p.cleanerId,
+                namaKru: p.nama,
+                peran: p.peran,
+                jumlah: hasil.bagian[p.cleanerId] ?? 0,
+                status: StatusPayout.pending,
+                waktu: DateTime.now(),
+              ).toMap());
+        }
+      }
+      return semua;
+    });
+  }
+
+  /// Payout milik seorang kru (portal Kru — upah saya).
+  Stream<List<PayoutModel>> watchPayoutsByKru(String cleanerId) => _payouts
+      .where('cleanerId', isEqualTo: cleanerId)
+      .snapshots()
+      .map((s) => s.docs
+          .map((d) => PayoutModel.fromMap(d.id, d.data()))
+          .toList(growable: false));
+
+  /// Seluruh payout (Panel Admin).
+  Stream<List<PayoutModel>> watchSemuaPayouts() => _payouts.snapshots().map(
+      (s) => s.docs
+          .map((d) => PayoutModel.fromMap(d.id, d.data()))
+          .toList(growable: false));
+
+  /// Tandai payout sudah dibayar (admin).
+  Future<void> tandaiPayoutDibayar(String payoutId) =>
+      _payouts.doc(payoutId).update({'status': StatusPayout.dibayar.wire});
+
+  // ------------------------------------------------------------- banding
+
+  /// Ajukan banding (kru/pelanggan). Payout terkait order DITAHAN selama
+  /// banding terbuka (dalam satu transaction, jadi konsisten).
+  Future<void> ajukanBanding({
+    required String orderId,
+    required String pengajuId,
+    required String pengajuNama,
+    required PengajuBanding pengaju,
+    required String alasan,
+    String? buktiUrl,
+  }) async {
+    final dispRef = _disputes.doc();
+    final payoutSnap =
+        await _payouts.where('orderId', isEqualTo: orderId).get();
+    final batch = _db.batch();
+    batch.set(
+        dispRef,
+        DisputeModel(
+          disputeId: dispRef.id,
+          orderId: orderId,
+          pengajuId: pengajuId,
+          pengajuNama: pengajuNama,
+          pengaju: pengaju,
+          alasan: alasan,
+          status: StatusBanding.diajukan,
+          waktu: DateTime.now(),
+          buktiUrl: buktiUrl,
+        ).toMap());
+    for (final d in payoutSnap.docs) {
+      batch.update(d.reference, {'status': StatusPayout.ditahan.wire});
+    }
+    await batch.commit();
+  }
+
+  /// Admin memutus banding: catat keputusan (+catatan audit) & lepas tahanan
+  /// payout (kembali `pending`). Penyesuaian jumlah dilakukan admin terpisah
+  /// bila diterima — tidak ada pembalikan diam-diam.
+  Future<void> tanganiBanding({
+    required DisputeModel banding,
+    required bool diterima,
+    required String catatanAdmin,
+  }) async {
+    final payoutSnap =
+        await _payouts.where('orderId', isEqualTo: banding.orderId).get();
+    final batch = _db.batch();
+    batch.update(_disputes.doc(banding.disputeId), {
+      'status':
+          (diterima ? StatusBanding.diterima : StatusBanding.ditolak).wire,
+      'catatanAdmin': catatanAdmin,
+      'waktuResolusi': Timestamp.now(),
+    });
+    for (final d in payoutSnap.docs) {
+      batch.update(d.reference, {'status': StatusPayout.pending.wire});
+    }
+    await batch.commit();
+  }
+
+  /// Banding milik seorang kru / seluruhnya (admin).
+  Stream<List<DisputeModel>> watchDisputes() => _disputes.snapshots().map(
+      (s) => s.docs
+          .map((d) => DisputeModel.fromMap(d.id, d.data()))
+          .toList(growable: false));
 
   /// A4 — tambah/ubah layanan (rules: `services.write` admin-only).
   ///

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'pricing.dart';
+import 'wage.dart';
 
 /// Status pesanan sesuai State Diagram (Gambar 3.11 TA):
 /// dibuat → menunggu_pembayaran → menunggu_verifikasi →
@@ -64,6 +65,8 @@ class OrderModel {
     this.voucherKode = '',
     this.potongan = 0,
     this.rincian = const [],
+    this.penugasan = const [],
+    this.kruIds = const [],
   });
 
   final String orderId;
@@ -109,6 +112,17 @@ class OrderModel {
   /// Rincian baris harga (paket/durasi/add-on/luas) untuk ditampilkan.
   final List<BarisRincian> rincian;
 
+  /// Penugasan multi-kru (worker + helper). `cleanerId` = lead (kompatibel).
+  /// Kosong untuk order lama bertugas tunggal.
+  final List<Penugasan> penugasan;
+
+  /// ID semua kru tertugas — untuk query `array-contains` di portal Kru.
+  final List<String> kruIds;
+
+  /// True bila semua kru tertugas sudah konfirmasi "selesai bagian saya".
+  bool get semuaKruKonfirmasi =>
+      penugasan.isNotEmpty && penugasan.every((p) => p.sudahKonfirmasi);
+
   factory OrderModel.fromMap(String id, Map<String, dynamic> map) => OrderModel(
         orderId: id,
         userId: map['userId'] as String? ?? '',
@@ -139,6 +153,11 @@ class OrderModel {
             .map((e) =>
                 BarisRincian.fromMap(Map<String, dynamic>.from(e as Map)))
             .toList(),
+        penugasan: ((map['penugasan'] as List?) ?? [])
+            .map((e) =>
+                Penugasan.fromMap(Map<String, dynamic>.from(e as Map)))
+            .toList(),
+        kruIds: (map['kruIds'] as List?)?.cast<String>() ?? const [],
       );
 
   Map<String, dynamic> toMap() => {
@@ -166,5 +185,7 @@ class OrderModel {
         'voucherKode': voucherKode,
         'potongan': potongan,
         'rincian': rincian.map((e) => e.toMap()).toList(),
+        'penugasan': penugasan.map((e) => e.toMap()).toList(),
+        'kruIds': kruIds,
       };
 }
