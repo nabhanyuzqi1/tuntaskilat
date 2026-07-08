@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'pricing.dart';
+
 /// Status pesanan sesuai State Diagram (Gambar 3.11 TA):
 /// dibuat → menunggu_pembayaran → menunggu_verifikasi →
 /// (ditolak ↩ upload ulang | terverifikasi) → menunggu_penugasan →
@@ -58,6 +60,10 @@ class OrderModel {
     required this.catatan,
     this.fotoSebelum = const [],
     this.fotoSesudah = const [],
+    this.subtotal = 0,
+    this.voucherKode = '',
+    this.potongan = 0,
+    this.rincian = const [],
   });
 
   final String orderId;
@@ -91,6 +97,18 @@ class OrderModel {
   final List<String> fotoSebelum;
   final List<String> fotoSesudah;
 
+  /// Harga sebelum potongan voucher (produk nyata; di TA totalHarga = subtotal).
+  final num subtotal;
+
+  /// Kode voucher yang dipakai ('' bila tak ada).
+  final String voucherKode;
+
+  /// Potongan dari voucher (Rupiah). `totalHarga = subtotal - potongan`.
+  final num potongan;
+
+  /// Rincian baris harga (paket/durasi/add-on/luas) untuk ditampilkan.
+  final List<BarisRincian> rincian;
+
   factory OrderModel.fromMap(String id, Map<String, dynamic> map) => OrderModel(
         orderId: id,
         userId: map['userId'] as String? ?? '',
@@ -114,6 +132,13 @@ class OrderModel {
             (map['fotoSebelum'] as List?)?.cast<String>() ?? const [],
         fotoSesudah:
             (map['fotoSesudah'] as List?)?.cast<String>() ?? const [],
+        subtotal: map['subtotal'] as num? ?? map['totalHarga'] as num? ?? 0,
+        voucherKode: map['voucherKode'] as String? ?? '',
+        potongan: map['potongan'] as num? ?? 0,
+        rincian: ((map['rincian'] as List?) ?? [])
+            .map((e) =>
+                BarisRincian.fromMap(Map<String, dynamic>.from(e as Map)))
+            .toList(),
       );
 
   Map<String, dynamic> toMap() => {
@@ -137,5 +162,9 @@ class OrderModel {
         'catatan': catatan,
         'fotoSebelum': fotoSebelum,
         'fotoSesudah': fotoSesudah,
+        'subtotal': subtotal,
+        'voucherKode': voucherKode,
+        'potongan': potongan,
+        'rincian': rincian.map((e) => e.toMap()).toList(),
       };
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tk_core/tk_core.dart';
 
+import '../providers/app_providers.dart';
 import '../providers/pemesanan_providers.dart';
 import '../widgets/service_icon.dart';
 import 'p5_form_pemesanan_screen.dart' show JudulHariID;
@@ -49,7 +50,6 @@ class P6RincianTagihanScreen extends ConsumerWidget {
       );
     }
 
-    final satuan = satuanSingkat(draft.layanan.satuan);
     return Scaffold(
       backgroundColor: _latarLembut,
       body: SafeArea(
@@ -130,13 +130,11 @@ class P6RincianTagihanScreen extends ConsumerWidget {
                         const SizedBox(height: 14),
                         const Divider(),
                         const SizedBox(height: 14),
-                        _barisBiaya(
-                          draft.layanan.namaLayanan,
-                          '${PriceBadge.formatRupiah(draft.layanan.harga)} × '
-                          '${draft.kuantitas.round()} $satuan',
-                          PriceBadge.formatRupiah(draft.total),
-                        ),
-                        const SizedBox(height: 14),
+                        for (final r in draft.hasil.rincian) ...[
+                          _barisBiaya(r.label, '',
+                              PriceBadge.formatRupiah(r.jumlah)),
+                          const SizedBox(height: 14),
+                        ],
                         _barisBiaya('Biaya layanan',
                             'Tanpa biaya tambahan', 'Gratis'),
                         const SizedBox(height: 14),
@@ -150,16 +148,38 @@ class P6RincianTagihanScreen extends ConsumerWidget {
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                     color: TkColors.inkSoft)),
-                            Text(PriceBadge.formatRupiah(draft.total),
+                            Text(PriceBadge.formatRupiah(draft.subtotal),
                                 style: GoogleFonts.montserrat(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: TkColors.inkSoft)),
                           ],
                         ),
+                        if (draft.potongan > 0) ...[
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Voucher ${draft.voucherKode}',
+                                  style: GoogleFonts.montserrat(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: TkColors.primary)),
+                              Text(
+                                  '- ${PriceBadge.formatRupiah(draft.potongan)}',
+                                  style: GoogleFonts.montserrat(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: TkColors.primary)),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  _KartuVoucher(draft: draft),
                   const SizedBox(height: 14),
                   _kartu(
                     child: Column(
@@ -397,6 +417,170 @@ class _GarisPutus extends StatelessWidget {
                 color: i.isEven ? TkColors.border : Colors.transparent,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kartu input voucher (kode → potongan). Validasi pratinjau di klien;
+/// backend memvalidasi ulang (kuota/berlaku) di dalam transaction saat bayar.
+class _KartuVoucher extends ConsumerStatefulWidget {
+  const _KartuVoucher({required this.draft});
+  final DraftPesanan draft;
+
+  @override
+  ConsumerState<_KartuVoucher> createState() => _KartuVoucherState();
+}
+
+class _KartuVoucherState extends ConsumerState<_KartuVoucher> {
+  late final TextEditingController _kode =
+      TextEditingController(text: widget.draft.voucherKode);
+  bool _loading = false;
+  String? _pesan;
+
+  @override
+  void dispose() {
+    _kode.dispose();
+    super.dispose();
+  }
+
+  String _alasan(VoucherTolak t) => switch (t) {
+        VoucherTolak.tidakAda => 'Kode voucher tidak ditemukan',
+        VoucherTolak.nonaktif => 'Voucher tidak aktif',
+        VoucherTolak.kadaluarsa => 'Voucher sudah kedaluwarsa',
+        VoucherTolak.kuotaHabis => 'Kuota voucher habis',
+        VoucherTolak.minimalBelanja =>
+          'Minimal belanja belum terpenuhi',
+      };
+
+  Future<void> _terapkan() async {
+    final kode = _kode.text.trim().toUpperCase();
+    if (kode.isEmpty) return;
+    setState(() {
+      _loading = true;
+      _pesan = null;
+    });
+    try {
+      final v = await ref.read(firestoreServiceProvider).cariVoucher(kode);
+      if (v == null) {
+        setState(() => _pesan = 'Kode voucher tidak ditemukan');
+        return;
+      }
+      final r = v.hitungPotongan(widget.draft.subtotal, DateTime.now());
+      if (r.tolak != null) {
+        setState(() => _pesan = _alasan(r.tolak!));
+        return;
+      }
+      ref.read(draftPesananProvider.notifier).state =
+          widget.draft.salin(voucherKode: v.kode, voucher: v);
+      setState(() => _pesan = null);
+    } catch (_) {
+      setState(() => _pesan = 'Gagal memeriksa voucher. Coba lagi.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _hapus() {
+    _kode.clear();
+    ref.read(draftPesananProvider.notifier).state =
+        widget.draft.salin(hapusVoucher: true);
+    setState(() => _pesan = null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final terpasang = widget.draft.voucher != null;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: TkColors.surface,
+        borderRadius: BorderRadius.circular(TkRadius.card),
+        border: Border.all(color: const Color(0x0D0F281C)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            const Icon(Icons.local_offer_outlined,
+                size: 18, color: TkColors.primary),
+            const SizedBox(width: 8),
+            Text('Voucher',
+                style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: TkColors.inkSoft)),
+          ]),
+          const SizedBox(height: 12),
+          if (terpasang)
+            Row(children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: TkColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.check_circle,
+                        size: 16, color: TkColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${widget.draft.voucherKode} · hemat '
+                        '${PriceBadge.formatRupiah(widget.draft.potongan)}',
+                        style: GoogleFonts.montserrat(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: TkColors.primaryDark),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+              const SizedBox(width: 10),
+              TextButton(onPressed: _hapus, child: const Text('Hapus')),
+            ])
+          else
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _kode,
+                  textCapitalization: TextCapitalization.characters,
+                  style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: TkColors.inkSoft),
+                  decoration: const InputDecoration(
+                    hintText: 'Masukkan kode voucher',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _terapkan,
+                  child: _loading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Terapkan'),
+                ),
+              ),
+            ]),
+          if (_pesan != null) ...[
+            const SizedBox(height: 8),
+            Text(_pesan!,
+                style: GoogleFonts.montserrat(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: TkColors.error)),
+          ],
         ],
       ),
     );

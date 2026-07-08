@@ -379,7 +379,9 @@ class _BarPesan extends ConsumerWidget {
                   onPressed: () {
                     // Mulai draft baru untuk layanan ini.
                     ref.read(draftPesananProvider.notifier).state =
-                        DraftPesanan(layanan: layanan, kuantitas: 1);
+                        DraftPesanan(
+                            layanan: layanan,
+                            pilihan: pilihanDefault(layanan));
                     Navigator.of(context).pushNamed(
                       P5FormPemesananScreen.route,
                       arguments: layanan,

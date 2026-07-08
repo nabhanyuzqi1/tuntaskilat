@@ -8,7 +8,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:tk_core/tk_core.dart';
 
 import '../providers/pemesanan_providers.dart';
-import '../widgets/service_icon.dart';
 import 'p6_rincian_tagihan_screen.dart';
 
 /// P5 — Form Pemesanan (Gambar TA 3.15 & 4.2). Input kuantitas, jadwal
@@ -26,7 +25,7 @@ class P5FormPemesananScreen extends ConsumerStatefulWidget {
 
 class _P5FormPemesananScreenState
     extends ConsumerState<P5FormPemesananScreen> {
-  num _kuantitas = 1;
+  PilihanHarga? _pilihan;
   late DateTime _bulanTampil;
   DateTime? _tanggalPilih;
   int? _jamPilih;
@@ -44,7 +43,7 @@ class _P5FormPemesananScreenState
     // Pulihkan draft (mis. saat kembali dari P6 untuk mengedit).
     final draft = ref.read(draftPesananProvider);
     if (draft != null) {
-      _kuantitas = draft.kuantitas;
+      _pilihan = draft.pilihan;
       _tanggalPilih = draft.tanggal;
       _jamPilih = draft.jam;
       _lokasi = draft.lokasi;
@@ -128,14 +127,18 @@ class _P5FormPemesananScreenState
   }
 
   void _simpanDraft(ServiceModel layanan) {
+    final sebelumnya = ref.read(draftPesananProvider);
     ref.read(draftPesananProvider.notifier).state = DraftPesanan(
       layanan: layanan,
-      kuantitas: _kuantitas,
+      pilihan: _pilihan ?? pilihanDefault(layanan),
       tanggal: _tanggalPilih,
       jam: _jamPilih,
       alamat: _alamat.text.trim(),
       lokasi: _lokasi,
       catatan: _catatan.text.trim(),
+      // Pertahankan voucher yang mungkin sudah dipasang di P6.
+      voucherKode: sebelumnya?.voucherKode ?? '',
+      voucher: sebelumnya?.voucher,
     );
   }
 
@@ -168,7 +171,8 @@ class _P5FormPemesananScreenState
   Widget build(BuildContext context) {
     final layanan =
         ModalRoute.of(context)!.settings.arguments as ServiceModel;
-    final satuan = satuanSingkat(layanan.satuan);
+    final pilihan = _pilihan ??= pilihanDefault(layanan);
+    final hasil = layanan.hitungHarga(pilihan);
 
     return Scaffold(
       body: SafeArea(
@@ -180,12 +184,10 @@ class _P5FormPemesananScreenState
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
                 children: [
-                  _Stepper(
-                    label: 'Jumlah ${_labelSatuan(satuan)}',
-                    sub: '${PriceBadge.formatRupiah(layanan.harga)} '
-                        'per $satuan',
-                    nilai: _kuantitas,
-                    onUbah: (v) => setState(() => _kuantitas = v),
+                  _PemilihHarga(
+                    layanan: layanan,
+                    pilihan: pilihan,
+                    onUbah: (p) => setState(() => _pilihan = p),
                   ),
                   const SizedBox(height: 22),
                   _JudulBagian('Pilih Tanggal'),
@@ -270,9 +272,7 @@ class _P5FormPemesananScreenState
               ),
             ),
             _SheetEstimasi(
-              layanan: layanan,
-              kuantitas: _kuantitas,
-              satuan: satuan,
+              hasil: hasil,
               loading: false,
               onLanjut: () => _submit(layanan),
             ),
@@ -282,12 +282,225 @@ class _P5FormPemesananScreenState
     );
   }
 
-  static String _labelSatuan(String satuan) => switch (satuan) {
-        'ruang' => 'Ruangan',
-        'jam' => 'Jam',
-        'm²' => 'Meter Persegi',
-        _ => satuan[0].toUpperCase() + satuan.substring(1),
-      };
+}
+
+/// Pilihan harga awal berdasarkan skema layanan.
+PilihanHarga pilihanDefault(ServiceModel s) {
+  switch (s.tipeHarga) {
+    case TipeHarga.perLuas:
+      return PilihanHarga(
+          tierId: s.tiers.isNotEmpty ? s.tiers.first.id : null, luas: 10);
+    case TipeHarga.paket:
+      final p = s.paketOpsi.isNotEmpty ? s.paketOpsi.first : null;
+      return PilihanHarga(
+        paketId: p?.id,
+        durasiJam: (p != null && p.durasi.isNotEmpty) ? p.durasi.first.jam : null,
+        addOnIds: const [],
+      );
+    case TipeHarga.mulaiDari:
+      return const PilihanHarga(kuantitas: 1);
+  }
+}
+
+/// Selektor harga dinamis sesuai pricelist TK: kuantitas (mulai dari),
+/// tier + luas m² (jasa rumput), atau paket + durasi + tambah jam + add-on
+/// (home cleaning). Menghasilkan [PilihanHarga] via [onUbah].
+class _PemilihHarga extends StatefulWidget {
+  const _PemilihHarga(
+      {required this.layanan, required this.pilihan, required this.onUbah});
+
+  final ServiceModel layanan;
+  final PilihanHarga pilihan;
+  final ValueChanged<PilihanHarga> onUbah;
+
+  @override
+  State<_PemilihHarga> createState() => _PemilihHargaState();
+}
+
+class _PemilihHargaState extends State<_PemilihHarga> {
+  late final TextEditingController _luas =
+      TextEditingController(text: widget.pilihan.luas?.toString() ?? '');
+
+  @override
+  void dispose() {
+    _luas.dispose();
+    super.dispose();
+  }
+
+  PilihanHarga get p => widget.pilihan;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (widget.layanan.tipeHarga) {
+      case TipeHarga.mulaiDari:
+        return _Stepper(
+          label: 'Jumlah',
+          sub: 'Mulai dari ${PriceBadge.formatRupiah(widget.layanan.harga)}',
+          nilai: p.kuantitas,
+          onUbah: (v) => widget.onUbah(p.copyWith(kuantitas: v)),
+        );
+
+      case TipeHarga.perLuas:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _JudulBagian('Kondisi Lahan'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final t in widget.layanan.tiers)
+                  _Chip(
+                    label:
+                        '${t.nama}  ·  ${PriceBadge.formatRupiah(t.hargaPerM2)}/m²',
+                    aktif: (p.tierId ?? widget.layanan.tiers.first.id) == t.id,
+                    onTap: () => widget.onUbah(p.copyWith(tierId: t.id)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _JudulBagian('Luas Area (m²)'),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _luas,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              style: GoogleFonts.montserrat(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: TkColors.inkSoft),
+              decoration: const InputDecoration(
+                hintText: 'mis. 60',
+                suffixText: 'm²',
+              ),
+              onChanged: (v) {
+                final luas = num.tryParse(v.replaceAll(',', '.')) ?? 0;
+                widget.onUbah(p.copyWith(luas: luas));
+              },
+            ),
+          ],
+        );
+
+      case TipeHarga.paket:
+        final paket = widget.layanan.paketOpsi.firstWhere(
+          (x) => x.id == p.paketId,
+          orElse: () => widget.layanan.paketOpsi.isNotEmpty
+              ? widget.layanan.paketOpsi.first
+              : const PaketOpsi(
+                  id: '', nama: '-', jumlahPetugas: 1, durasi: [], hargaTambahJam: 0),
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _JudulBagian('Pilih Paket'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final pk in widget.layanan.paketOpsi)
+                  _Chip(
+                    label: '${pk.nama} · ${pk.jumlahPetugas} petugas',
+                    aktif: paket.id == pk.id,
+                    onTap: () => widget.onUbah(p.copyWith(
+                      paketId: pk.id,
+                      durasiJam:
+                          pk.durasi.isNotEmpty ? pk.durasi.first.jam : null,
+                    )),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _JudulBagian('Durasi'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final d in paket.durasi)
+                  _Chip(
+                    label: '${d.jam} jam · ${PriceBadge.formatRupiah(d.harga)}',
+                    aktif: (p.durasiJam ??
+                            (paket.durasi.isNotEmpty
+                                ? paket.durasi.first.jam
+                                : 0)) ==
+                        d.jam,
+                    onTap: () => widget.onUbah(p.copyWith(durasiJam: d.jam)),
+                  ),
+              ],
+            ),
+            if (paket.hargaTambahJam > 0) ...[
+              const SizedBox(height: 16),
+              _Stepper(
+                label: 'Tambah Jam',
+                sub: '${PriceBadge.formatRupiah(paket.hargaTambahJam)} / jam',
+                nilai: p.tambahJam,
+                onUbah: (v) =>
+                    widget.onUbah(p.copyWith(tambahJam: v.round())),
+              ),
+            ],
+            if (widget.layanan.addOns.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _JudulBagian('Layanan Tambahan'),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final a in widget.layanan.addOns)
+                    _Chip(
+                      label:
+                          '${a.nama}  +${PriceBadge.formatRupiah(a.harga)}',
+                      aktif: p.addOnIds.contains(a.id),
+                      onTap: () {
+                        final baru = List<String>.from(p.addOnIds);
+                        baru.contains(a.id)
+                            ? baru.remove(a.id)
+                            : baru.add(a.id);
+                        widget.onUbah(p.copyWith(addOnIds: baru));
+                      },
+                    ),
+                ],
+              ),
+            ],
+          ],
+        );
+    }
+  }
+}
+
+/// Chip pilihan (tier/paket/durasi/add-on) bergaya brand.
+class _Chip extends StatelessWidget {
+  const _Chip({required this.label, required this.aktif, required this.onTap});
+  final String label;
+  final bool aktif;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: aktif
+                ? TkColors.primary
+                : TkColors.primary.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(
+                color: aktif
+                    ? TkColors.primary
+                    : TkColors.primary.withValues(alpha: 0.16)),
+          ),
+          child: Text(label,
+              style: GoogleFonts.montserrat(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: aktif ? TkColors.surface : TkColors.primaryDark)),
+        ),
+      );
 }
 
 class _Header extends StatelessWidget {
@@ -950,24 +1163,19 @@ class _KartuAlamatPeta extends StatelessWidget {
 
 class _SheetEstimasi extends StatelessWidget {
   const _SheetEstimasi({
-    required this.layanan,
-    required this.kuantitas,
-    required this.satuan,
+    required this.hasil,
     required this.loading,
     required this.onLanjut,
   });
 
-  final ServiceModel layanan;
-  final num kuantitas;
-  final String satuan;
+  final HasilHarga hasil;
   final bool loading;
   final VoidCallback onLanjut;
 
   @override
   Widget build(BuildContext context) {
-    // Fixed pricing: total = harga × kuantitas, tanpa biaya tambahan
-    // (biaya platform ditunda bersama A6 — di luar skema TA).
-    final subtotal = layanan.harga * kuantitas;
+    // Harga dinamis: subtotal = hasil kalkulasi model (dihitung ulang backend).
+    final subtotal = hasil.subtotal;
 
     Widget baris(String label, String nilai) => Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1027,19 +1235,25 @@ class _SheetEstimasi extends StatelessWidget {
                           color: TkColors.primaryDark)),
                 ),
               ]),
-              Text(
-                '${kuantitas.round()} $satuan × '
-                '${PriceBadge.formatRupiah(layanan.harga)}',
-                style: GoogleFonts.montserrat(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: TkColors.textMuted),
+              Flexible(
+                child: Text(
+                  hasil.rincian.isEmpty ? '' : hasil.rincian.first.label,
+                  textAlign: TextAlign.right,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.montserrat(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: TkColors.textMuted),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          baris('Subtotal', PriceBadge.formatRupiah(subtotal)),
-          const SizedBox(height: 5),
+          for (final r in hasil.rincian) ...[
+            baris(r.label, PriceBadge.formatRupiah(r.jumlah)),
+            const SizedBox(height: 5),
+          ],
           baris('Biaya layanan', 'Gratis'),
           const SizedBox(height: 12),
           const Divider(),

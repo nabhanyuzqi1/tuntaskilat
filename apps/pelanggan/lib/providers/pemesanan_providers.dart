@@ -22,48 +22,72 @@ final slotTerisiProvider =
 class DraftPesanan {
   const DraftPesanan({
     required this.layanan,
-    required this.kuantitas,
+    required this.pilihan,
     this.tanggal,
     this.jam,
     this.alamat = '',
     this.lokasi,
     this.catatan = '',
+    this.voucherKode = '',
+    this.voucher,
   });
 
   final ServiceModel layanan;
-  final num kuantitas;
+
+  /// Pilihan harga dinamis (tier/luas, paket/durasi/add-on, atau kuantitas).
+  final PilihanHarga pilihan;
   final DateTime? tanggal;
   final int? jam;
   final String alamat;
   final GeoPoint? lokasi;
   final String catatan;
 
+  /// Voucher yang diterapkan pelanggan (kosong bila tak ada).
+  final String voucherKode;
+  final VoucherModel? voucher;
+
   DateTime? get jadwal => tanggal == null || jam == null
       ? null
       : DateTime(tanggal!.year, tanggal!.month, tanggal!.day, jam!);
 
-  num get total => layanan.harga * kuantitas;
+  /// Rincian + subtotal dari model (sumber kebenaran sama dgn backend).
+  HasilHarga get hasil => layanan.hitungHarga(pilihan);
+  num get subtotal => hasil.subtotal;
 
-  bool get lengkap =>
-      jadwal != null && alamat.trim().isNotEmpty && lokasi != null;
+  /// Potongan voucher (pratinjau; backend memvalidasi ulang saat bayar).
+  num get potongan => voucher == null
+      ? 0
+      : voucher!.hitungPotongan(subtotal, DateTime.now()).potongan;
+
+  num get total => subtotal - potongan;
+
+  bool get lengkap => jadwal != null &&
+      alamat.trim().isNotEmpty &&
+      lokasi != null &&
+      subtotal > 0;
 
   DraftPesanan salin({
-    num? kuantitas,
+    PilihanHarga? pilihan,
     DateTime? tanggal,
     int? jam,
     String? alamat,
     GeoPoint? lokasi,
     String? catatan,
+    String? voucherKode,
+    VoucherModel? voucher,
     bool hapusJam = false,
+    bool hapusVoucher = false,
   }) =>
       DraftPesanan(
         layanan: layanan,
-        kuantitas: kuantitas ?? this.kuantitas,
+        pilihan: pilihan ?? this.pilihan,
         tanggal: tanggal ?? this.tanggal,
         jam: hapusJam ? null : (jam ?? this.jam),
         alamat: alamat ?? this.alamat,
         lokasi: lokasi ?? this.lokasi,
         catatan: catatan ?? this.catatan,
+        voucherKode: hapusVoucher ? '' : (voucherKode ?? this.voucherKode),
+        voucher: hapusVoucher ? null : (voucher ?? this.voucher),
       );
 }
 
@@ -130,10 +154,11 @@ class PembayaranController extends AutoDisposeAsyncNotifier<OrderModel?> {
             pelanggan: profil,
             serviceId: draft.layanan.serviceId,
             jadwal: draft.jadwal!,
-            kuantitas: draft.kuantitas,
+            pilihan: draft.pilihan,
             alamatLayanan: draft.alamat.trim(),
             lokasi: draft.lokasi!,
             metode: metode,
+            voucherKode: draft.voucherKode,
             buktiBayar: buktiUrl,
             catatan: draft.catatan.trim(),
           );
@@ -142,6 +167,9 @@ class PembayaranController extends AutoDisposeAsyncNotifier<OrderModel?> {
     } on JadwalPenuhException {
       state = const AsyncData(null);
       return (order: null, error: 'Jadwal Penuh', jadwalPenuh: true);
+    } on VoucherException catch (e) {
+      state = const AsyncData(null);
+      return (order: null, error: e.toString(), jadwalPenuh: false);
     } on LuarWilayahLayananException {
       state = const AsyncData(null);
       return (

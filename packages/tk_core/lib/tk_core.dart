@@ -5,7 +5,9 @@
 library;
 
 export 'models/user_model.dart';
+export 'models/pricing.dart';
 export 'models/service_model.dart';
+export 'models/voucher_model.dart';
 export 'models/order_model.dart';
 export 'models/kru_model.dart';
 export 'models/payment_model.dart';

@@ -6,9 +6,11 @@ import '../models/kru_model.dart';
 import '../models/notification_model.dart';
 import '../models/order_model.dart';
 import '../models/payment_model.dart';
+import '../models/pricing.dart';
 import '../models/review_model.dart';
 import '../models/service_model.dart';
 import '../models/user_model.dart';
+import '../models/voucher_model.dart';
 import '../utils/validators.dart';
 
 /// Dilempar saat slot `jadwal` sudah terisi — transaction kedua pada slot yang
@@ -30,6 +32,21 @@ class LuarWilayahLayananException implements Exception {
   String toString() => 'Out of Delivery Range';
 }
 
+/// Dilempar saat voucher ditolak backend (kuota habis, kadaluarsa, dll).
+class VoucherException implements Exception {
+  const VoucherException(this.alasan);
+  final VoucherTolak alasan;
+
+  @override
+  String toString() => switch (alasan) {
+        VoucherTolak.tidakAda => 'Kode voucher tidak ditemukan',
+        VoucherTolak.nonaktif => 'Voucher tidak aktif',
+        VoucherTolak.kadaluarsa => 'Voucher sudah kedaluwarsa',
+        VoucherTolak.kuotaHabis => 'Kuota voucher sudah habis',
+        VoucherTolak.minimalBelanja => 'Belanja belum memenuhi minimal voucher',
+      };
+}
+
 class FirestoreService {
   FirestoreService({FirebaseFirestore? firestore})
       : _db = firestore ?? FirebaseFirestore.instance;
@@ -49,6 +66,10 @@ class FirestoreService {
       _db.collection('reviews');
   CollectionReference<Map<String, dynamic>> get _notifications =>
       _db.collection('notifications');
+
+  /// Koleksi `vouchers` — lapisan produk nyata (di luar 7 koleksi TA).
+  CollectionReference<Map<String, dynamic>> get _vouchers =>
+      _db.collection('vouchers');
 
   // ---------------------------------------------------------------- services
 
@@ -164,16 +185,14 @@ class FirestoreService {
     required UserModel pelanggan,
     required String serviceId,
     required DateTime jadwal,
-    required num kuantitas,
+    required PilihanHarga pilihan,
     required String alamatLayanan,
     required GeoPoint lokasi,
     required MetodeBayar metode,
+    String? voucherKode,
     String? buktiBayar,
     String catatan = '',
   }) async {
-    if (kuantitas <= 0) {
-      throw ArgumentError.value(kuantitas, 'kuantitas', 'harus > 0');
-    }
     if (!Validators.isDalamWilayahSampit(lokasi.latitude, lokasi.longitude)) {
       throw const LuarWilayahLayananException();
     }
@@ -181,9 +200,13 @@ class FirestoreService {
     final orderRef = _orders.doc(slotOrderId(jadwal));
     final serviceRef = _services.doc(serviceId);
     final paymentRef = _payments.doc();
+    final kode = (voucherKode ?? '').trim().toUpperCase();
+    final voucherRef = kode.isEmpty ? null : _vouchers.doc(kode);
     final tunai = metode == MetodeBayar.tunai;
+    final sekarang = DateTime.now();
 
     return _db.runTransaction<OrderModel>((tx) async {
+      // Baca SEMUA dokumen dulu (aturan transaction Firestore).
       final slotSnap = await tx.get(orderRef);
       if (slotSnap.exists) throw JadwalPenuhException(jadwal);
 
@@ -196,20 +219,38 @@ class FirestoreService {
         throw StateError('Layanan ${service.namaLayanan} sedang nonaktif.');
       }
 
-      final total = service.harga * kuantitas;
+      // Hitung ULANG subtotal dari dokumen services — jangan percaya klien.
+      final hasil = service.hitungHarga(pilihan);
+      if (hasil.subtotal <= 0) {
+        throw ArgumentError('Pilihan harga tidak valid (subtotal 0).');
+      }
+
+      // Validasi voucher di dalam transaction (kuota/berlaku/min belanja).
+      num potongan = 0;
+      VoucherModel? voucher;
+      if (voucherRef != null) {
+        final vSnap = await tx.get(voucherRef);
+        if (!vSnap.exists) throw const VoucherException(VoucherTolak.tidakAda);
+        voucher = VoucherModel.fromMap(vSnap.id, vSnap.data()!);
+        final r = voucher.hitungPotongan(hasil.subtotal, sekarang);
+        if (r.tolak != null) throw VoucherException(r.tolak!);
+        potongan = r.potongan;
+      }
+
+      final total = hasil.subtotal - potongan;
       final order = OrderModel(
         orderId: orderRef.id,
         userId: pelanggan.userId,
         serviceId: serviceId,
         cleanerId: '',
-        tanggalPesan: DateTime.now(),
+        tanggalPesan: sekarang,
         jadwal: jadwal,
         totalHarga: total,
         status: tunai
             ? OrderStatus.menungguPenugasan
             : OrderStatus.menungguVerifikasi,
         hargaSatuan: service.harga,
-        kuantitas: kuantitas,
+        kuantitas: pilihan.kuantitas,
         namaLayanan: service.namaLayanan,
         satuan: service.satuan,
         namaPelanggan: pelanggan.nama,
@@ -217,6 +258,10 @@ class FirestoreService {
         alamatLayanan: alamatLayanan,
         lokasi: lokasi,
         catatan: catatan,
+        subtotal: hasil.subtotal,
+        voucherKode: voucher?.kode ?? '',
+        potongan: potongan,
+        rincian: hasil.rincian,
       );
       final payment = PaymentModel(
         paymentId: paymentRef.id,
@@ -226,13 +271,41 @@ class FirestoreService {
         jumlah: total,
         buktiBayar: buktiBayar,
         statusBayar: StatusBayar.menunggu,
-        waktu: DateTime.now(),
+        waktu: sekarang,
       );
       tx.set(orderRef, order.toMap());
       tx.set(paymentRef, payment.toMap());
+      if (voucherRef != null && voucher != null) {
+        tx.update(voucherRef, {'terpakai': voucher.terpakai + 1});
+      }
       return order;
     });
   }
+
+  // ---------------------------------------------------------------- vouchers
+
+  /// Cari voucher by kode (untuk pratinjau di klien; validasi final tetap di
+  /// backend transaction). Mengembalikan null bila tak ada.
+  Future<VoucherModel?> cariVoucher(String kode) async {
+    final k = kode.trim().toUpperCase();
+    if (k.isEmpty) return null;
+    final snap = await _vouchers.doc(k).get();
+    if (!snap.exists) return null;
+    return VoucherModel.fromMap(snap.id, snap.data()!);
+  }
+
+  /// Seluruh voucher — untuk kelola di Panel Admin.
+  Stream<List<VoucherModel>> watchVouchers() => _vouchers.snapshots().map((s) =>
+      s.docs
+          .map((d) => VoucherModel.fromMap(d.id, d.data()))
+          .toList(growable: false));
+
+  /// Buat/ubah voucher (docId = kode UPPERCASE). Admin-only via Security Rules.
+  Future<void> simpanVoucher(VoucherModel v) =>
+      _vouchers.doc(v.kode.toUpperCase()).set(v.toMap());
+
+  Future<void> hapusVoucher(String kode) =>
+      _vouchers.doc(kode.trim().toUpperCase()).delete();
 
   /// Slot yang sudah terisi pada [hari] — untuk menampilkan slot disabled +
   /// ikon gembok di P5 (kaidah Pencegahan Kesalahan). Memakai `get` per ID
