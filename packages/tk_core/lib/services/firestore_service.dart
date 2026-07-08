@@ -514,21 +514,17 @@ class FirestoreService {
   }
 
   /// A4 — tambah/ubah layanan (rules: `services.write` admin-only).
+  ///
+  /// Menyimpan SELURUH field (termasuk skema harga dinamis: tipeHarga, tiers,
+  /// paketOpsi, addOns, kategori, gambar) — jangan membangun ulang sebagian
+  /// field agar data pricing tidak terhapus saat admin menyunting layanan.
   Future<ServiceModel> simpanLayanan(ServiceModel layanan) async {
     final ref = layanan.serviceId.isEmpty
         ? _services.doc()
         : _services.doc(layanan.serviceId);
-    final tersimpan = ServiceModel(
-      serviceId: ref.id,
-      namaLayanan: layanan.namaLayanan,
-      deskripsi: layanan.deskripsi,
-      harga: layanan.harga,
-      satuan: layanan.satuan,
-      aktif: layanan.aktif,
-      ikon: layanan.ikon,
-    );
-    await ref.set(tersimpan.toMap());
-    return tersimpan;
+    final map = layanan.toMap()..['serviceId'] = ref.id;
+    await ref.set(map);
+    return ServiceModel.fromMap(ref.id, map);
   }
 
   Future<void> setLayananAktif(String serviceId, bool aktif) =>
