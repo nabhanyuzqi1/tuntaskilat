@@ -62,6 +62,12 @@ final semuaLayananProvider = StreamProvider<List<ServiceModel>>((ref) {
   return ref.watch(firestoreServiceProvider).watchSemuaLayanan();
 });
 
+/// Daftar voucher — A7 kelola promo (lapisan produk nyata, di luar TA).
+final vouchersProvider = StreamProvider<List<VoucherModel>>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
+  return ref.watch(firestoreServiceProvider).watchVouchers();
+});
+
 /// Jumlah pesanan menunggu verifikasi — badge sidebar & KPI A2.
 final menungguVerifikasiProvider = Provider<int>((ref) =>
     ref
