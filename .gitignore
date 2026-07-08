@@ -23,6 +23,11 @@ coverage/
 *.apk
 *.aab
 
+# Signing rilis (RAHASIA — jangan pernah di-commit)
+*.jks
+*.keystore
+**/key.properties
+
 # Python cache
 __pycache__/
 *.pyc
