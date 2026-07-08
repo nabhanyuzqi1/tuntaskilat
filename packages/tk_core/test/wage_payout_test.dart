@@ -49,7 +49,7 @@ void main() {
     });
   });
 
-  group('konfirmasiSelesaiKru — payout terbit hanya saat SEMUA konfirmasi', () {
+  group('submitLaporanKerja — payout terbit untuk semua kru', () {
     const lokasi = GeoPoint(-2.5329, 112.9508);
     const pelanggan = UserModel(
       userId: 'u1',
@@ -102,21 +102,12 @@ void main() {
       );
     });
 
-    test('konfirmasi pertama: belum selesai, belum ada payout', () async {
-      final selesai = await service
-          .konfirmasiSelesaiKru(orderId: orderId, cleanerId: 'kruA');
-      expect(selesai, false);
-      final o = await db.collection('orders').doc(orderId).get();
-      expect(o.data()!['status'], isNot('selesai'));
-      final pay = await db.collection('payouts').get();
-      expect(pay.docs, isEmpty);
-    });
-
-    test('konfirmasi kedua: selesai + 2 payout adil (Σ == pool)', () async {
-      await service.konfirmasiSelesaiKru(orderId: orderId, cleanerId: 'kruA');
-      final selesai = await service
-          .konfirmasiSelesaiKru(orderId: orderId, cleanerId: 'kruB');
-      expect(selesai, true);
+    test('submitLaporanKerja: order selesai + payout adil (Σ == pool)', () async {
+      await service.submitLaporanKerja(
+        orderId: orderId,
+        fotoSebelum: ['url1'],
+        fotoSesudah: ['url2'],
+      );
 
       final o = await db.collection('orders').doc(orderId).get();
       expect(o.data()!['status'], 'selesai');
@@ -132,9 +123,13 @@ void main() {
       expect((byKru['kruA'] as num) + (byKru['kruB'] as num), 144000);
     });
 
-    test('kru di luar penugasan tak boleh konfirmasi', () async {
+    test('submitLaporanKerja: gagal jika order tidak ditemukan', () async {
       await expectLater(
-        service.konfirmasiSelesaiKru(orderId: orderId, cleanerId: 'asing'),
+        service.submitLaporanKerja(
+          orderId: 'invalid_id',
+          fotoSebelum: [],
+          fotoSesudah: [],
+        ),
         throwsA(isA<StateError>()),
       );
     });

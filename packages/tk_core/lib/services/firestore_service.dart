@@ -427,12 +427,58 @@ class FirestoreService {
     required String orderId,
     required List<String> fotoSebelum,
     required List<String> fotoSesudah,
-  }) =>
-      _orders.doc(orderId).update({
+    KonfigUpah konfig = const KonfigUpah(),
+  }) async {
+    final orderRef = _orders.doc(orderId);
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(orderRef);
+      if (!snap.exists) throw StateError('Order tidak ditemukan.');
+      final order = OrderModel.fromMap(snap.id, snap.data()!);
+
+      // Update Order
+      tx.update(orderRef, {
         'fotoSebelum': fotoSebelum,
         'fotoSesudah': fotoSesudah,
         'status': OrderStatus.selesai.wire,
       });
+
+      // Hitung dan simpan Payout
+      if (order.penugasan.isNotEmpty) {
+        final hasil = bagiUpah(order.totalHarga, order.penugasan, konfig: konfig);
+        for (final p in order.penugasan) {
+          final payRef = _payouts.doc('${orderId}_${p.cleanerId}');
+          tx.set(
+              payRef,
+              PayoutModel(
+                payoutId: payRef.id,
+                orderId: orderId,
+                cleanerId: p.cleanerId,
+                namaKru: p.nama,
+                peran: p.peran,
+                jumlah: hasil.bagian[p.cleanerId] ?? 0,
+                status: StatusPayout.pending,
+                waktu: DateTime.now(),
+              ).toMap());
+        }
+      } else {
+        // Fallback untuk pesanan lama (single cleaner tanpa `penugasan`)
+        final payRef = _payouts.doc('${orderId}_${order.cleanerId}');
+        final komisi = (order.totalHarga * konfig.komisiPersen / 100).round();
+        tx.set(
+            payRef,
+            PayoutModel(
+              payoutId: payRef.id,
+              orderId: orderId,
+              cleanerId: order.cleanerId,
+              namaKru: 'Kru',
+              peran: PeranKru.worker,
+              jumlah: order.totalHarga - komisi,
+              status: StatusPayout.pending,
+              waktu: DateTime.now(),
+            ).toMap());
+      }
+    });
+  }
 
   // ------------------------------------------------------------------- admin
 
@@ -576,66 +622,7 @@ class FirestoreService {
     await batch.commit();
   }
 
-  /// Kru menandai "selesai bagian saya" (+ foto). Dalam satu transaction:
-  /// tandai konfirmasi kru ini; bila SEMUA kru sudah konfirmasi → status
-  /// `selesai` + buat ledger `payouts` (bagi upah adil, komisi platform).
-  /// Mengembalikan true bila order menjadi selesai pada panggilan ini.
-  Future<bool> konfirmasiSelesaiKru({
-    required String orderId,
-    required String cleanerId,
-    String? fotoUrl,
-    KonfigUpah konfig = const KonfigUpah(),
-  }) async {
-    final orderRef = _orders.doc(orderId);
-    return _db.runTransaction<bool>((tx) async {
-      final snap = await tx.get(orderRef);
-      if (!snap.exists) throw StateError('Order tidak ditemukan.');
-      final order = OrderModel.fromMap(snap.id, snap.data()!);
-      if (order.penugasan.isEmpty) {
-        throw StateError('Order belum memiliki penugasan kru.');
-      }
-      if (!order.kruIds.contains(cleanerId)) {
-        throw StateError('Anda tidak ditugaskan pada order ini.');
-      }
-      if (order.status == OrderStatus.selesai ||
-          order.status == OrderStatus.dinilai) {
-        return false; // sudah selesai
-      }
 
-      final baru = order.penugasan
-          .map((p) => p.cleanerId == cleanerId
-              ? p.copyWith(sudahKonfirmasi: true, fotoUrl: fotoUrl)
-              : p)
-          .toList();
-      final semua = baru.every((p) => p.sudahKonfirmasi);
-
-      tx.update(orderRef, {
-        'penugasan': baru.map((p) => p.toMap()).toList(),
-        if (semua) 'status': OrderStatus.selesai.wire,
-      });
-
-      if (semua) {
-        // Bagi upah: komisi platform + pool per bobot peran (Σ == total).
-        final hasil = bagiUpah(order.totalHarga, baru, konfig: konfig);
-        for (final p in baru) {
-          final payRef = _payouts.doc('${orderId}_${p.cleanerId}');
-          tx.set(
-              payRef,
-              PayoutModel(
-                payoutId: payRef.id,
-                orderId: orderId,
-                cleanerId: p.cleanerId,
-                namaKru: p.nama,
-                peran: p.peran,
-                jumlah: hasil.bagian[p.cleanerId] ?? 0,
-                status: StatusPayout.pending,
-                waktu: DateTime.now(),
-              ).toMap());
-        }
-      }
-      return semua;
-    });
-  }
 
   /// Payout milik seorang kru (portal Kru — upah saya).
   Stream<List<PayoutModel>> watchPayoutsByKru(String cleanerId) => _payouts
