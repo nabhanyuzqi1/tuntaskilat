@@ -466,90 +466,135 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                 .timeout(const Duration(seconds: 8),
                     onTimeout: () => const []);
     if (!context.mounted) return;
-    final kru = await showDialog<KruModel>(
+
+    // Admin bebas menugaskan berapapun, min 1 worker
+    int minPetugas = 1;
+
+    final penugasan = await showDialog<List<Penugasan>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Tugaskan kru untuk #${o.orderId}',
-            style: GoogleFonts.montserrat(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: TkColors.inkSoft)),
-        content: SizedBox(
-          width: 420,
-          child: semuaKru.isEmpty
-              ? Text('Belum ada kru terdaftar. Tambahkan lewat menu Kru.',
-                  style: GoogleFonts.montserrat(
-                      fontSize: 13, color: TkColors.textMuted))
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 340),
-                      child: ListView(shrinkWrap: true, children: [
-                    for (final k in semuaKru)
-                      ListTile(
-                        onTap: k.statusKetersediaan
-                            ? () => Navigator.of(ctx).pop(k)
-                            : null,
-                        enabled: k.statusKetersediaan,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFFDCE7E0),
-                          child: Text(
-                            k.nama.isEmpty
-                                ? 'TK'
-                                : k.nama
-                                    .trim()
-                                    .split(RegExp(r'\s+'))
-                                    .take(2)
-                                    .map((x) => x[0].toUpperCase())
-                                    .join(),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          final List<KruModel> worker = [];
+          final List<KruModel> helper = [];
+
+          return AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text('Tugaskan kru (Butuh min. $minPetugas)',
+                style: GoogleFonts.montserrat(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: TkColors.inkSoft)),
+            content: SizedBox(
+              width: 500,
+              child: semuaKru.isEmpty
+                  ? Text('Belum ada kru terdaftar. Tambahkan lewat menu Kru.',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 13, color: TkColors.textMuted))
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Pilih 1 Worker (Lead) dan sisanya Helper jika perlu.',
                             style: GoogleFonts.montserrat(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: TkColors.primaryDark),
-                          ),
+                                fontSize: 13, color: TkColors.textMuted)),
+                        const SizedBox(height: 12),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 340),
+                          child: ListView(shrinkWrap: true, children: [
+                            for (final k in semuaKru)
+                              ListTile(
+                                enabled: k.statusKetersediaan,
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                leading: Checkbox(
+                                  value: worker.contains(k) || helper.contains(k),
+                                  onChanged: k.statusKetersediaan ? (val) {
+                                    setState(() {
+                                      if (val == true) {
+                                        if (worker.isEmpty) {
+                                          worker.add(k);
+                                        } else {
+                                          helper.add(k);
+                                        }
+                                      } else {
+                                        worker.remove(k);
+                                        helper.remove(k);
+                                      }
+                                    });
+                                  } : null,
+                                ),
+                                title: Row(children: [
+                                  Expanded(
+                                    child: Text(k.nama,
+                                        style: GoogleFonts.montserrat(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: TkColors.inkSoft)),
+                                  ),
+                                  if (worker.contains(k))
+                                    AdminUi.chipStatus('Worker', TkColors.primary)
+                                  else if (helper.contains(k))
+                                    AdminUi.chipStatus('Helper', TkColors.accent)
+                                ]),
+                                subtitle: Text(
+                                    '★ ${k.rataRating.toStringAsFixed(1).replaceAll('.', ',')} · '
+                                    '${k.jumlahUlasan.round()} ulasan',
+                                    style: GoogleFonts.montserrat(
+                                        fontSize: 12, color: TkColors.textMuted)),
+                                trailing: AdminUi.chipStatus(
+                                  k.statusKetersediaan ? 'Online' : 'Offline',
+                                  k.statusKetersediaan
+                                      ? TkColors.primary
+                                      : TkColors.textMuted,
+                                ),
+                              ),
+                          ]),
                         ),
-                        title: Text(k.nama,
-                            style: GoogleFonts.montserrat(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: TkColors.inkSoft)),
-                        subtitle: Text(
-                            '★ ${k.rataRating.toStringAsFixed(1).replaceAll('.', ',')} · '
-                            '${k.jumlahUlasan.round()} ulasan',
-                            style: GoogleFonts.montserrat(
-                                fontSize: 12, color: TkColors.textMuted)),
-                        trailing: AdminUi.chipStatus(
-                          k.statusKetersediaan ? 'Online' : 'Offline',
-                          k.statusKetersediaan
-                              ? TkColors.primary
-                              : TkColors.textMuted,
-                        ),
-                      ),
-                      ]),
+                      ],
                     ),
-                  ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Batal')),
+              ElevatedButton(
+                onPressed: (worker.length + helper.length) >= minPetugas
+                    ? () {
+                        final hasil = <Penugasan>[];
+                        for (final w in worker) {
+                          hasil.add(Penugasan(
+                              cleanerId: w.cleanerId,
+                              nama: w.nama,
+                              peran: PeranKru.worker));
+                        }
+                        for (final h in helper) {
+                          hasil.add(Penugasan(
+                              cleanerId: h.cleanerId,
+                              nama: h.nama,
+                              peran: PeranKru.helper));
+                        }
+                        Navigator.of(ctx).pop(hasil);
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(120, 48),
                 ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Batal')),
-        ],
+                child: const Text('Tugaskan'),
+              ),
+            ],
+          );
+        }
       ),
     );
-    if (kru == null) return;
+    if (penugasan == null || penugasan.isEmpty) return;
     try {
       await ref
           .read(firestoreServiceProvider)
-          .tugaskanKru(order: o, kru: kru);
+          .tugaskanKruMulti(order: o, penugasan: penugasan, minPetugas: minPetugas);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('${kru.nama} ditugaskan ke pesanan '
+            content: Text('${penugasan.length} kru ditugaskan ke pesanan '
                 '#${o.orderId}.')));
       }
     } catch (e) {
