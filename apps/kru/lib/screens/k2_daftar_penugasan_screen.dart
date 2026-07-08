@@ -45,16 +45,16 @@ class K2DaftarPenugasanScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: _latarLembut,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                color: TkColors.surface,
-                border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
-              ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              color: TkColors.surface,
+              border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
+            ),
+            child: SafeArea(
+              bottom: false,
               child: Column(children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
@@ -95,8 +95,9 @@ class K2DaftarPenugasanScreen extends ConsumerWidget {
                 ),
               ]),
             ),
-            Expanded(
-              child: tugas.when(
+          ),
+          Expanded(
+            child: tugas.when(
                 loading: () => const Center(
                     child: CircularProgressIndicator(
                         color: TkColors.primaryDark)),

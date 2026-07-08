@@ -45,7 +45,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeOut,
       );
     } else {
-      _selesai(keTabDaftar: true);
+      _selesai(keTabDaftar: false);
     }
   }
 

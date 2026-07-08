@@ -9,10 +9,10 @@ import 'beranda_providers.dart';
 
 /// Slot terisi pada hari tertentu — dipakai P5 untuk menampilkan slot
 /// disabled + ikon gembok (kaidah Pencegahan Kesalahan).
-final slotTerisiProvider =
-    StreamProvider.autoDispose.family<Set<DateTime>, DateTime>((ref, hari) {
+final slotTerisiProvider = StreamProvider.autoDispose
+    .family<Set<DateTime>, ({String serviceId, DateTime hari})>((ref, args) {
   if (!ref.watch(firebaseSiapProvider)) return Stream.value(const {});
-  return ref.watch(firestoreServiceProvider).watchSlotTerisi(hari);
+  return ref.watch(firestoreServiceProvider).watchSlotTerisi(args.serviceId, args.hari);
 });
 
 /// Draft pemesanan (P5) — dipegang sementara sampai pelanggan konfirmasi

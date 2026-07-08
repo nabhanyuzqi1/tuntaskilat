@@ -59,6 +59,6 @@ flutter_native_splash:
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: tool/brand_src/icon_legacy.png
+  image_path: tool/brand_src/icon_legacy_whitebg.png
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: tool/brand_src/icon_adaptive_foreground.png

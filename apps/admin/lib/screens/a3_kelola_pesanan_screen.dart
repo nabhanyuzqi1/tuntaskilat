@@ -505,6 +505,21 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                             for (final k in semuaKru)
                               ListTile(
                                 enabled: k.statusKetersediaan,
+                                onTap: k.statusKetersediaan ? () {
+                                  final val = !(worker.contains(k) || helper.contains(k));
+                                  setState(() {
+                                    if (val == true) {
+                                      if (worker.isEmpty) {
+                                        worker.add(k);
+                                      } else {
+                                        helper.add(k);
+                                      }
+                                    } else {
+                                      worker.remove(k);
+                                      helper.remove(k);
+                                    }
+                                  });
+                                } : null,
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 2),
                                 leading: Checkbox(

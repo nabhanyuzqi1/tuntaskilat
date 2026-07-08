@@ -50,7 +50,7 @@ void main() {
         alamatLayanan: 'Jl. Ahmad Yani, Sampit',
         lokasi: lokasiSampit,
       );
-      expect(order.orderId, FirestoreService.slotOrderId(jadwal));
+      expect(order.orderId, FirestoreService.slotOrderId('s1', jadwal));
       expect(order.status, OrderStatus.dibuat);
 
       expect(
@@ -83,7 +83,7 @@ void main() {
         alamatLayanan: 'Jl. Iskandar, Sampit',
         lokasi: lokasiSampit,
       );
-      expect(lain.orderId, isNot(FirestoreService.slotOrderId(jadwal)));
+      expect(lain.orderId, isNot(FirestoreService.slotOrderId('s1', jadwal)));
     });
   });
 
@@ -243,12 +243,12 @@ void main() {
       // (perilaku Firestore asli juga) — tunggu sampai event yang memuat
       // slot terkunci muncul, jangan pakai .first.
       await expectLater(
-        service.watchSlotTerisi(DateTime(2026, 7, 10)),
+        service.watchSlotTerisi('s1', DateTime(2026, 7, 10)),
         emitsThrough(equals({DateTime(2026, 7, 10, 13)})),
       );
 
       await expectLater(
-        service.watchSlotTerisi(DateTime(2026, 7, 11)),
+        service.watchSlotTerisi('s1', DateTime(2026, 7, 11)),
         emitsThrough(isEmpty),
       );
     });

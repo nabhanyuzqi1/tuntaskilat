@@ -28,15 +28,13 @@ class P3BerandaScreen extends ConsumerWidget {
     final pesanUlang = ref.watch(pesanUlangProvider);
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _HeaderBeranda(),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 18, 24, 108),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _HeaderBeranda(),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(24, 18, 24, 108),
                 children: [
                   const _BannerPromo(),
                   _JudulSection(
@@ -96,11 +94,13 @@ class _HeaderBeranda extends ConsumerWidget {
         color: TkColors.surface,
         border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
       ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 6, 24, 0),
-            child: Row(
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 0),
+              child: Row(
               children: [
                 CircleAvatar(
                   radius: 22,
@@ -160,6 +160,7 @@ class _HeaderBeranda extends ConsumerWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }

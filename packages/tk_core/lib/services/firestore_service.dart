@@ -115,9 +115,10 @@ class FirestoreService {
   /// dua pemesanan pada slot yang sama memperebutkan SATU dokumen `orders`
   /// yang sama, dan `runTransaction` menjamin hanya satu yang menang
   /// (Atomic Locking, TA Bab IV 4.2.2 — tanpa koleksi di luar 7 koleksi TA).
-  static String slotOrderId(DateTime jadwal) {
+  static String slotOrderId(String prefix, DateTime jadwal) {
     String dua(int n) => n.toString().padLeft(2, '0');
-    return 'slot_${jadwal.year}${dua(jadwal.month)}${dua(jadwal.day)}'
+    final p = prefix.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
+    return 'TK-$p-${jadwal.year}${dua(jadwal.month)}${dua(jadwal.day)}'
         '${dua(jadwal.hour)}${dua(jadwal.minute)}';
   }
 
@@ -144,7 +145,7 @@ class FirestoreService {
       throw const LuarWilayahLayananException();
     }
 
-    final orderRef = _orders.doc(slotOrderId(jadwal));
+    final orderRef = _orders.doc(slotOrderId(serviceId, jadwal));
     final serviceRef = _services.doc(serviceId);
 
     return _db.runTransaction<OrderModel>((tx) async {
@@ -209,7 +210,7 @@ class FirestoreService {
       throw const LuarWilayahLayananException();
     }
 
-    final orderRef = _orders.doc(slotOrderId(jadwal));
+    final orderRef = _orders.doc(slotOrderId(serviceId, jadwal));
     final serviceRef = _services.doc(serviceId);
     final paymentRef = _payments.doc();
     final kode = (voucherKode ?? '').trim().toUpperCase();
@@ -336,12 +337,12 @@ class FirestoreService {
   /// ikon gembok di P5 (kaidah Pencegahan Kesalahan). Memakai `get` per ID
   /// slot deterministik, BUKAN query — Security Rules mengizinkan `get`
   /// dokumen order untuk pengguna masuk, sementara `list` tetap owner-only.
-  Stream<Set<DateTime>> watchSlotTerisi(DateTime hari) {
+  Stream<Set<DateTime>> watchSlotTerisi(String serviceId, DateTime hari) {
     final slots = jamSlot
         .map((jam) => DateTime(hari.year, hari.month, hari.day, jam))
         .toList(growable: false);
     final streams = slots
-        .map((s) => _orders.doc(slotOrderId(s)).snapshots())
+        .map((s) => _orders.doc(slotOrderId(serviceId, s)).snapshots())
         .toList(growable: false);
 
     late final StreamController<Set<DateTime>> controller;
@@ -556,6 +557,7 @@ class FirestoreService {
     batch.update(_orders.doc(order.orderId), {
       'cleanerId': kru.cleanerId,
       'namaKru': kru.nama,
+      'kruIds': [kru.cleanerId], // Diperlukan agar kru bisa baca lewat aturan 'in kruIds'
       'status': OrderStatus.ditugaskan.wire,
     });
     final notifRef = _notifications.doc();
