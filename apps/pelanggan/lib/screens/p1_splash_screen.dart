@@ -8,6 +8,7 @@ import 'package:tk_core/tk_core.dart';
 import '../providers/app_providers.dart';
 import 'onboarding_screen.dart';
 import 'p2_auth_screen.dart';
+import 'p2b_lengkapi_profil_screen.dart';
 import 'p3_beranda_screen.dart';
 
 /// P1 — Pembuka (Splash). Gambar TA 3.14.
@@ -54,13 +55,23 @@ class _P1SplashScreenState extends ConsumerState<P1SplashScreen>
     _sudahNavigasi = true;
 
     final onboardingSelesai = await ref.read(onboardingSelesaiProvider.future);
-    final sudahLogin =
-        siap && ref.read(authServiceProvider).currentUser != null;
+    final authUser = ref.read(authServiceProvider).currentUser;
+    final sudahLogin = siap && authUser != null;
+    
+    var profilLengkap = true;
+    if (sudahLogin) {
+      final profil = await ref.read(authServiceProvider).fetchProfile(authUser.uid);
+      if (profil == null || profil.noTelepon.isEmpty || profil.alamat.isEmpty) {
+        profilLengkap = false;
+      }
+    }
+
     if (!mounted) return;
+    
     final tujuan = !onboardingSelesai
         ? OnboardingScreen.route
         : sudahLogin
-            ? P3BerandaScreen.route
+            ? (profilLengkap ? P3BerandaScreen.route : P2bLengkapiProfilScreen.route)
             : P2AuthScreen.route;
     Navigator.of(context).pushReplacementNamed(tujuan);
   }

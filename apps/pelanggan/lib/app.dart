@@ -9,6 +9,8 @@ import 'screens/p10_form_ulasan_screen.dart';
 import 'screens/p13_ubah_kata_sandi_screen.dart';
 import 'screens/p14_bantuan_screen.dart';
 import 'screens/p15_edit_profil_screen.dart';
+import 'screens/p2a_izin_screen.dart';
+import 'screens/p2b_lengkapi_profil_screen.dart';
 import 'screens/p2_auth_screen.dart';
 import 'screens/p3_beranda_screen.dart';
 import 'screens/p4_detail_layanan_screen.dart';
@@ -39,6 +41,8 @@ class TkPelangganApp extends StatelessWidget {
         P1SplashScreen.route: (_) => const P1SplashScreen(),
         OnboardingScreen.route: (_) => const OnboardingScreen(),
         P2AuthScreen.route: (_) => const P2AuthScreen(),
+        P2aIzinScreen.route: (_) => const P2aIzinScreen(),
+        P2bLengkapiProfilScreen.route: (_) => const P2bLengkapiProfilScreen(),
         // '/p3' membuka shell 4 tab (Beranda/Riwayat/Notifikasi/Profil).
         P3BerandaScreen.route: (_) => const HomeShell(),
         P4DetailLayananScreen.route: (_) => const P4DetailLayananScreen(),
