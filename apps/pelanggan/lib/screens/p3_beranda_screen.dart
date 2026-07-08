@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tk_core/tk_core.dart';
 
 import '../providers/app_providers.dart';
 import '../providers/beranda_providers.dart';
+import '../providers/notifikasi_providers.dart';
 import '../widgets/service_icon.dart';
 import '../widgets/tk_bottom_nav.dart';
 import 'home_shell.dart';
@@ -27,8 +29,16 @@ class P3BerandaScreen extends ConsumerWidget {
     final layanan = ref.watch(layananTersaringProvider);
     final pesanUlang = ref.watch(pesanUlangProvider);
 
-    return Scaffold(
-      body: Column(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const _HeaderBeranda(),
@@ -66,6 +76,7 @@ class P3BerandaScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
     );
   }
 }
@@ -165,25 +176,44 @@ class _HeaderBeranda extends ConsumerWidget {
   }
 }
 
-class _TombolNotifikasi extends StatelessWidget {
+class _TombolNotifikasi extends ConsumerWidget {
   const _TombolNotifikasi({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final adaBaru = ref.watch(adaNotifBelumDibacaProvider);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: TkColors.surfaceMuted,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: const Icon(Icons.notifications_outlined,
-            size: 21, color: TkColors.inkSoft),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: TkColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.notifications_outlined,
+                size: 21, color: TkColors.inkSoft),
+          ),
+          if (adaBaru)
+            Positioned(
+              right: 12,
+              top: 12,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: TkColors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
