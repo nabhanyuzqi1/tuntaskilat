@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "admin-web",
+      "name": "admin-web-produk",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "5599", "--directory", "/Users/nabhan/tkapps/apps/admin/build/web"],
-      "port": 5599
+      "runtimeArgs": ["-m", "http.server", "5601", "--directory", "/Users/nabhan/tkapps/apps/admin/build/web"],
+      "port": 5601
     }
   ]
 }

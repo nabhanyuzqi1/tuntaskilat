@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "tuntaskilat-homeservices"
+  },
   "targets": {
     "tuntaskilat-homeservices": {
       "hosting": {
