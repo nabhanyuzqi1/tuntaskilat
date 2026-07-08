@@ -38,7 +38,9 @@ class AuthController extends AutoDisposeAsyncNotifier<UserModel?> {
   /// Masuk/daftar dengan akun Google (page-inventory P2 — akun pihak
   /// ketiga). Pembatalan oleh pengguna bukan error — kembali diam-diam.
   Future<bool> masukDenganGoogle() async {
-    if (!ref.read(firebaseSiapProvider)) {
+    // Tunggu Firebase selesai init.
+    final initResult = await ref.read(firebaseInitProvider.future);
+    if (!initResult) {
       state = AsyncError(
         kDebugMode
             ? pesanFirebaseBelumSiap
