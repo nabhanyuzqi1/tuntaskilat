@@ -4,7 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tk_core/tk_core.dart';
 
 import '../providers/auth_controller.dart';
-import 'p3_beranda_screen.dart';
+import 'p2a_izin_screen.dart';
+import 'p2b_lengkapi_profil_screen.dart';
 
 class P2AuthScreenArgs {
   const P2AuthScreenArgs({this.tabDaftar = false});
@@ -36,8 +37,14 @@ class _P2AuthScreenState extends ConsumerState<P2AuthScreen> {
     if (args is P2AuthScreenArgs) _tabDaftar = args.tabDaftar;
   }
 
-  void _keBeranda() =>
-      Navigator.of(context).pushReplacementNamed(P3BerandaScreen.route);
+  void _keBeranda() {
+    final profil = ref.read(authControllerProvider).valueOrNull;
+    if (profil != null && (profil.noTelepon.isEmpty || profil.alamat.isEmpty)) {
+      Navigator.of(context).pushReplacementNamed(P2bLengkapiProfilScreen.route);
+    } else {
+      Navigator.of(context).pushReplacementNamed(P2aIzinScreen.route);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

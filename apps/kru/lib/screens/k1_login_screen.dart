@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tk_core/tk_core.dart';
 
 import '../providers/auth_kru_controller.dart';
-import 'kru_shell.dart';
+import 'k2a_izin_screen.dart';
 
 /// K1 — Masuk (peran kru). Gambar TA 3.14. Tanpa registrasi mandiri —
 /// akun kru dibuat admin via A5 (kaidah Konsistensi: satu titik masuk).
@@ -37,7 +37,7 @@ class _K1LoginScreenState extends ConsumerState<K1LoginScreen> {
           password: _sandi.text,
         );
     if (sukses && mounted) {
-      Navigator.of(context).pushReplacementNamed(KruShell.route);
+      Navigator.of(context).pushReplacementNamed(K2aIzinScreen.route);
     }
   }
 

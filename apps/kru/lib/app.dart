@@ -5,6 +5,7 @@ import 'package:tk_core/tk_core.dart';
 
 import 'providers/app_providers.dart';
 import 'screens/k1_login_screen.dart';
+import 'screens/k2a_izin_screen.dart';
 import 'screens/k3_detail_penugasan_screen.dart';
 import 'screens/k4_laporan_kerja_screen.dart';
 import 'screens/k_bantuan_screen.dart';
@@ -31,6 +32,7 @@ class TkKruApp extends StatelessWidget {
       routes: {
         OnboardingKruScreen.route: (_) => const OnboardingKruScreen(),
         K1LoginScreen.route: (_) => const K1LoginScreen(),
+        K2aIzinScreen.route: (_) => const K2aIzinScreen(),
         KruShell.route: (_) => const KruShell(),
         K3DetailPenugasanScreen.route: (_) => const K3DetailPenugasanScreen(),
         K4LaporanKerjaScreen.route: (_) => const K4LaporanKerjaScreen(),
@@ -60,7 +62,7 @@ class _GerbangAwal extends ConsumerWidget {
         if (!selesai) return const OnboardingKruScreen();
         final sudahLogin = ref.watch(firebaseSiapProvider) &&
             ref.watch(authServiceProvider).currentUser != null;
-        return sudahLogin ? const KruShell() : const K1LoginScreen();
+        return sudahLogin ? const K2aIzinScreen() : const K1LoginScreen();
       },
     );
   }
