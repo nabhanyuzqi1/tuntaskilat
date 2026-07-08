@@ -1,10 +1,12 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "tuntaskilat-homeservices"
+  },
   "targets": {
     "tuntaskilat-homeservices": {
       "hosting": {
         "admin": [
-          "tuntaskilat-admin"
+          "tuntaskilat-admin-ta"
         ],
         "prototype": [
           "tuntaskilat-prototype"
