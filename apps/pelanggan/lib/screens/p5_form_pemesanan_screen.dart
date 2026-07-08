@@ -208,7 +208,7 @@ class _P5FormPemesananScreenState
                     _GridSlot(
                       hari: _tanggalPilih!,
                       terpilih: _jamPilih,
-                      serviceId: widget.layanan.serviceId,
+                      serviceId: layanan.serviceId,
                       onPilih: (jam) => setState(() => _jamPilih = jam),
                     ),
                     const SizedBox(height: 22),

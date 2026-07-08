@@ -176,7 +176,6 @@ class K2DaftarPenugasanScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 

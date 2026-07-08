@@ -146,7 +146,8 @@ class PembayaranController extends AutoDisposeAsyncNotifier<OrderModel?> {
       if (buktiBytes != null) {
         buktiUrl = await ref.read(storageServiceProvider).uploadBuktiBayar(
               userId: profil.userId,
-              orderId: FirestoreService.slotOrderId(draft.jadwal!),
+              orderId: FirestoreService.slotOrderId(
+                  draft.layanan.serviceId, draft.jadwal!),
               bytes: buktiBytes,
             );
       }

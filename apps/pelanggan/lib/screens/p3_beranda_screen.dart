@@ -66,7 +66,6 @@ class P3BerandaScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
