@@ -32,7 +32,7 @@ service cloud.firestore {
       allow list: if isSignedIn() && (
         resource.data.userId == request.auth.uid ||
         resource.data.cleanerId == request.auth.uid ||
-        (resource.data.kruIds is list && request.auth.uid in resource.data.kruIds) ||
+        request.auth.uid in resource.data.kruIds ||
         isAdmin()
       );
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
@@ -44,8 +44,7 @@ service cloud.firestore {
         isSignedIn() &&
         (resource.data.userId == request.auth.uid ||
          resource.data.cleanerId == request.auth.uid ||
-         (resource.data.kruIds is list &&
-          request.auth.uid in resource.data.kruIds)) &&
+         request.auth.uid in resource.data.kruIds) &&
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['status', 'fotoSebelum', 'fotoSesudah', 'penugasan'])
       );

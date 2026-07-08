@@ -43,8 +43,16 @@ class K2DaftarPenugasanScreen extends ConsumerWidget {
             .map((k) => k[0].toUpperCase())
             .join();
 
-    return Scaffold(
-      backgroundColor: _latarLembut,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: _latarLembut,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -176,6 +184,7 @@ class K2DaftarPenugasanScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
     );
   }
 
