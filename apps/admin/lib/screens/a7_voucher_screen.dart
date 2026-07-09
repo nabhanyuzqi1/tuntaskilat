@@ -23,12 +23,17 @@ class A7VoucherScreen extends ConsumerWidget {
         subjudul: '${vouchers.length} voucher · $aktif aktif',
         aksi: Row(mainAxisSize: MainAxisSize.min, children: [
           OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 44),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
             onPressed: () => _isiKatalog(context, ref),
             icon: const Icon(Icons.auto_awesome_motion_outlined, size: 18),
             label: const Text('Isi Katalog Pricelist'),
           ),
           const SizedBox(width: 10),
           ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(minimumSize: const Size(0, 44)),
             onPressed: () => _dialogVoucher(context, ref),
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Tambah Voucher'),
@@ -144,6 +149,7 @@ class A7VoucherScreen extends ConsumerWidget {
               onPressed: () => Navigator.pop(c, false),
               child: const Text('Batal')),
           ElevatedButton(
+              style: ElevatedButton.styleFrom(minimumSize: const Size(0, 44)),
               onPressed: () => Navigator.pop(c, true),
               child: const Text('Ya, Isi')),
         ],
@@ -177,7 +183,10 @@ class A7VoucherScreen extends ConsumerWidget {
               child: const Text('Batal')),
           ElevatedButton(
             onPressed: () => Navigator.pop(c, true),
-            style: ElevatedButton.styleFrom(backgroundColor: TkColors.error),
+            style: ElevatedButton.styleFrom(
+                minimumSize: const Size(0, 44),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor: TkColors.error),
             child: const Text('Hapus'),
           ),
         ],
@@ -357,6 +366,7 @@ class _DialogVoucherState extends ConsumerState<_DialogVoucher> {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Batal')),
         ElevatedButton(
+          style: ElevatedButton.styleFrom(minimumSize: const Size(0, 44)),
           onPressed: _simpan ? null : _simpanVoucher,
           child: _simpan
               ? const SizedBox(

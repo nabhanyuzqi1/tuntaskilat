@@ -36,28 +36,28 @@ class AdminUi {
         ]),
       );
 
-  static Widget chipStatus(String label, Color warna) => Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-          decoration: BoxDecoration(
-            color: warna.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-                width: 7,
-                height: 7,
-                decoration:
-                    BoxDecoration(shape: BoxShape.circle, color: warna)),
-            const SizedBox(width: 5),
-            Text(label,
-                style: GoogleFonts.montserrat(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: warna)),
-          ]),
+  static Widget chipStatus(String label, Color warna) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color: warna.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(6),
         ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 7,
+              height: 7,
+              decoration:
+                  BoxDecoration(shape: BoxShape.circle, color: warna)),
+          const SizedBox(width: 5),
+          Text(label,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.visible,
+              style: GoogleFonts.montserrat(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: warna)),
+        ]),
       );
 
   static Widget topbar({
@@ -79,12 +79,16 @@ class AdminUi {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(judul,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.montserrat(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: TkColors.inkSoft)),
                 const SizedBox(height: 2),
                 Text(subjudul,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.montserrat(
                         fontSize: 12, color: TkColors.textMuted)),
               ],

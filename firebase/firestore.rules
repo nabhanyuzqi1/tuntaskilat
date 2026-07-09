@@ -35,7 +35,10 @@ service cloud.firestore {
         request.auth.uid in resource.data.kruIds ||
         isAdmin()
       );
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.hargaSatuan == get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.harga
+        && request.resource.data.totalHarga == request.resource.data.hargaSatuan * request.resource.data.kuantitas;
       // Skenario Black-Box #6: field uang (totalHarga/hargaSatuan/kuantitas)
       // dan kepemilikan (userId/cleanerId/serviceId/jadwal) TIDAK BISA
       // diubah klien — pelanggan/kru hanya boleh menyentuh status & foto
@@ -49,12 +52,30 @@ service cloud.firestore {
           .hasOnly(['status', 'fotoSebelum', 'fotoSesudah', 'penugasan'])
       );
       allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid ||
+          get(/databases/$(database)/documents/orders/$(orderId)).data.cleanerId == request.auth.uid ||
+          isAdmin()
+        );
+        allow write: if isSignedIn() && (
+          get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid ||
+          get(/databases/$(database)/documents/orders/$(orderId)).data.cleanerId == request.auth.uid ||
+          isAdmin()
+        );
+      }
     }
 
     match /kru/{cleanerId} {
       allow read: if true;
       allow update: if isOwner(cleanerId) || isAdmin();
       allow create, delete: if isAdmin();
+    }
+
+    match /settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     match /payments/{paymentId} {

@@ -6,7 +6,7 @@ import 'app_providers.dart';
 /// Profil pengguna yang sedang login (dokumen `users/{uid}`).
 final profilSayaProvider = FutureProvider<UserModel?>((ref) async {
   if (!ref.watch(firebaseSiapProvider)) return null;
-  final uid = ref.watch(authServiceProvider).currentUser?.uid;
+  final uid = ref.watch(authStateProvider).valueOrNull?.uid;
   if (uid == null) return null;
   return ref.watch(authServiceProvider).fetchProfile(uid);
 });
@@ -38,7 +38,7 @@ final layananTersaringProvider = Provider<AsyncValue<List<ServiceModel>>>(
 /// terbaru dulu).
 final pesanUlangProvider = StreamProvider<List<OrderModel>>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
-  final uid = ref.watch(authServiceProvider).currentUser?.uid;
+  final uid = ref.watch(authStateProvider).valueOrNull?.uid;
   if (uid == null) return Stream.value(const []);
   return ref.watch(firestoreServiceProvider).watchOrdersByUser(uid).map(
     (orders) {

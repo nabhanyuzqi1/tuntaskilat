@@ -1,10 +1,19 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tk_core/tk_core.dart';
 
 import '../firebase_options.dart';
+
+/// Pengaturan Rekening & QRIS
+final pengaturanRekeningProvider = StreamProvider<Map<String, dynamic>>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value({});
+  return ref
+      .watch(firestoreServiceProvider)
+      .watchSettings('payments');
+});
 
 /// Inisialisasi Firebase non-blocking — dijalankan setelah frame pertama
 /// (P1 sudah tampil) sehingga tidak ada jeda layar putih saat cold start.
@@ -16,6 +25,11 @@ final firebaseInitProvider = FutureProvider<bool>((_) async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      try {
+        await NotificationService().initialize();
+      } catch (e) {
+        debugPrint('Gagal inisialisasi background service: $e');
+      }
     }
     return true;
   } on UnsupportedError {

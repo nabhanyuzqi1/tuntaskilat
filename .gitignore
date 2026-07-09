@@ -48,3 +48,6 @@ update_*.py
 inject_*.py
 remove_*.py
 revert_*.py
+
+# Node deps (cloud functions / tooling)
+node_modules/

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user_model.dart';
 
@@ -51,6 +52,8 @@ class AuthService {
       await _auth.signOut();
       throw RoleTidakSesuaiException(roleDiharapkan, user.role);
     }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('uid', uid);
     return user;
   }
 
@@ -76,6 +79,8 @@ class AuthService {
       role: UserRole.pelanggan,
     );
     await _db.collection('users').doc(uid).set(user.toMap());
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('uid', uid);
     return user;
   }
 
@@ -99,6 +104,8 @@ class AuthService {
         role: UserRole.pelanggan,
       );
       await ref.set(user.toMap());
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('uid', authUser.uid);
       return user;
     }
     final user = UserModel.fromMap(authUser.uid, snap.data()!);
@@ -106,6 +113,8 @@ class AuthService {
       await _auth.signOut();
       throw RoleTidakSesuaiException(UserRole.pelanggan, user.role);
     }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('uid', authUser.uid);
     return user;
   }
 
@@ -128,5 +137,9 @@ class AuthService {
     await user.updatePassword(passwordBaru);
   }
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('uid');
+    await _auth.signOut();
+  }
 }

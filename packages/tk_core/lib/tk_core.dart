@@ -16,12 +16,14 @@ export 'models/kru_model.dart';
 export 'models/payment_model.dart';
 export 'models/review_model.dart';
 export 'models/notification_model.dart';
+export 'models/message_model.dart';
 
 export 'seed/pricelist_seed.dart';
 
 export 'services/auth_service.dart';
 export 'services/firestore_service.dart';
 export 'services/storage_service.dart';
+export 'services/notification_service.dart';
 
 export 'theme/tk_colors.dart';
 export 'theme/tk_typography.dart';

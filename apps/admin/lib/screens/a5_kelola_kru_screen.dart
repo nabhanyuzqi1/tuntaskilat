@@ -143,6 +143,7 @@ class A5KelolaKruScreen extends ConsumerWidget {
                         k.cleanerId, !k.statusKetersediaan),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(0, 36),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   padding: const EdgeInsets.symmetric(horizontal: 13),
                   side: BorderSide(
                       color: k.statusKetersediaan

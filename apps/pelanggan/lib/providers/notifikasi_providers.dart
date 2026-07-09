@@ -6,7 +6,7 @@ import 'app_providers.dart';
 /// Notifikasi milik pengguna, terbaru dulu (P12).
 final notifikasiProvider = StreamProvider<List<NotificationModel>>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
-  final uid = ref.watch(authServiceProvider).currentUser?.uid;
+  final uid = ref.watch(authStateProvider).valueOrNull?.uid;
   if (uid == null) return Stream.value(const []);
   return ref.watch(firestoreServiceProvider).watchNotifications(uid).map(
         (list) => (list.toList()

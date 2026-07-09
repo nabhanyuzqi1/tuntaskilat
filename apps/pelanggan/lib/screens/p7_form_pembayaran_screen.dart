@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tk_core/tk_core.dart';
 
+import '../providers/app_providers.dart';
 import '../providers/pemesanan_providers.dart';
 import 'p3_beranda_screen.dart';
 import 'p5_form_pemesanan_screen.dart';
@@ -145,7 +146,7 @@ class _P7FormPembayaranScreenState
         child: Column(
           children: [
             _header(context),
-            Expanded(child: _form(draft, loading)),
+            Expanded(child: _form(draft, loading, ref)),
           ],
         ),
       ),
@@ -183,8 +184,10 @@ class _P7FormPembayaranScreenState
         ]),
       );
 
-  Widget _form(DraftPesanan draft, bool loading) {
+  Widget _form(DraftPesanan draft, bool loading, WidgetRef ref) {
     final butuhBukti = _metode != MetodeBayar.tunai;
+    final pengaturan = ref.watch(pengaturanRekeningProvider).valueOrNull ?? {};
+    
     return Column(
       children: [
         Expanded(
@@ -248,6 +251,9 @@ class _P7FormPembayaranScreenState
                 'Bayar langsung ke kru',
               ),
               if (butuhBukti) ...[
+                const SizedBox(height: 20),
+                _infoRekening(pengaturan),
+                const SizedBox(height: 20),
                 const SizedBox(height: 20),
                 Row(children: [
                   Text('Upload Bukti Transfer',
@@ -484,6 +490,121 @@ class _P7FormPembayaranScreenState
         ),
       ),
     );
+  }
+
+  Widget _infoRekening(Map<String, dynamic> pengaturan) {
+    if (_metode == MetodeBayar.transferBank) {
+      final namaBank = pengaturan['namaBank'] ?? 'BCA';
+      final noRek = pengaturan['noRekening'] ?? '1234567890';
+      final atasNama = pengaturan['atasNama'] ?? 'PT Tuntas Kilat';
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: TkColors.primary.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: TkColors.primary.withValues(alpha: 0.1)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Transfer ke Rekening Berikut:',
+                style: GoogleFonts.montserrat(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: TkColors.inkSoft)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0x140F281C)),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.account_balance, color: TkColors.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(namaBank,
+                          style: GoogleFonts.montserrat(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: TkColors.inkSoft)),
+                      const SizedBox(height: 2),
+                      Text('$noRek a.n $atasNama',
+                          style: GoogleFonts.montserrat(
+                              fontSize: 13, color: TkColors.textSecondary)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    } else if (_metode == MetodeBayar.qris) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: TkColors.accentAlt.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: TkColors.accentAlt.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          children: [
+            Text('Scan QRIS di bawah ini:',
+                style: GoogleFonts.montserrat(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: TkColors.inkSoft)),
+            const SizedBox(height: 16),
+            Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0x140F281C)),
+              ),
+              alignment: Alignment.center,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: (pengaturan['qrisUrl'] != null && pengaturan['qrisUrl'].toString().isNotEmpty)
+                    ? Image.network(
+                        pengaturan['qrisUrl'],
+                        width: 180,
+                        height: 180,
+                        fit: BoxFit.contain,
+                        errorBuilder: (ctx, err, stack) => const Icon(
+                          Icons.qr_code_2,
+                          size: 140,
+                          color: TkColors.inkSoft,
+                        ),
+                      )
+                    : Image.asset(
+                        'assets/brand/qris.jpg',
+                        width: 180,
+                        height: 180,
+                        fit: BoxFit.contain,
+                        errorBuilder: (ctx, err, stack) => const Icon(
+                          Icons.qr_code_2,
+                          size: 140,
+                          color: TkColors.inkSoft,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return const SizedBox();
   }
 }
 

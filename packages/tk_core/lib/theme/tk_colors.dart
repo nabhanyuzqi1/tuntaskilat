@@ -28,6 +28,10 @@ class TkColors {
   // --- Neutral turunan Hi-Fi build ---
   /// Teks judul/utama pada Hi-Fi (hitam kehijauan).
   static const inkSoft = Color(0xFF10251A);
+  
+  static const surfaceVariant = Color(0xFFF1F5F2);
+  static const textPrimary = Color(0xFF111C15);
+  static const outline = Color(0xFFD6DFDB);
   static const textSecondary = Color(0xFF5B665F);
   static const textMuted = Color(0xFF8A948E);
   static const textPlaceholder = Color(0xFF9AA49D);
