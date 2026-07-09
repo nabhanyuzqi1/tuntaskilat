@@ -51,3 +51,8 @@ revert_*.py
 
 # Node deps (cloud functions / tooling)
 node_modules/
+
+# Cloud Functions build/deps
+firebase/functions/node_modules/
+firebase/functions/.npm/
+firebase/functions/lib/
