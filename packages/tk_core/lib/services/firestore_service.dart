@@ -13,6 +13,7 @@ import '../models/wage.dart';
 import '../models/review_model.dart';
 import '../models/service_model.dart';
 import '../models/user_model.dart';
+import '../models/message_model.dart';
 import '../models/voucher_model.dart';
 import '../seed/pricelist_seed.dart';
 import '../utils/validators.dart';
@@ -852,4 +853,31 @@ class FirestoreService {
         'noTelepon': user.noTelepon,
         'alamat': user.alamat,
       });
+
+  // ------------------------------------------------------------------- chat
+
+  /// Kirim pesan chat ke subkoleksi `messages` pada dokumen `orders`.
+  Future<void> kirimPesanChat(String orderId, MessageModel message) async {
+    final ref = _orders.doc(orderId).collection('messages').doc(message.id);
+    await ref.set(message.toMap());
+  }
+
+  /// Pantau pesan chat pada pesanan tertentu secara real-time.
+  Stream<List<MessageModel>> watchChatMessages(String orderId) => _orders
+      .doc(orderId)
+      .collection('messages')
+      .orderBy('timestamp', descending: true)
+      .snapshots()
+      .map((s) => s.docs
+          .map((d) => MessageModel.fromFirestore(d))
+          .toList(growable: false));
+
+  // ------------------------------------------------------------------- settings
+  
+  Stream<Map<String, dynamic>> watchSettings(String docId) =>
+      _db.collection('settings').doc(docId).snapshots().map((s) => s.data() ?? {});
+
+  Future<void> updateSettings(String docId, Map<String, dynamic> data) async {
+    await _db.collection('settings').doc(docId).set(data, SetOptions(merge: true));
+  }
 }

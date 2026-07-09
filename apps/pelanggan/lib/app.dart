@@ -18,6 +18,7 @@ import 'screens/p5_form_pemesanan_screen.dart';
 import 'screens/p6_rincian_tagihan_screen.dart';
 import 'screens/p7_form_pembayaran_screen.dart';
 import 'screens/p8_tracking_screen.dart';
+import 'screens/p16_chat_screen.dart';
 
 /// Aplikasi Pelanggan — identitas warna hijau utama #0A874D
 /// (design-tokens.md § Identitas warna per aplikasi).
@@ -54,6 +55,7 @@ class TkPelangganApp extends StatelessWidget {
         P13UbahKataSandiScreen.route: (_) => const P13UbahKataSandiScreen(),
         P14BantuanScreen.route: (_) => const P14BantuanScreen(),
         P15EditProfilScreen.route: (_) => const P15EditProfilScreen(),
+        P16ChatScreen.route: (_) => const P16ChatScreen(),
       },
     );
   }

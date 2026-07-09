@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tk_core/tk_core.dart';
@@ -12,6 +13,11 @@ final firebaseInitProvider = FutureProvider<bool>((_) async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      try {
+        await NotificationService().initialize();
+      } catch (e) {
+        debugPrint('Gagal inisialisasi background service: $e');
+      }
     }
     return true;
   } on UnsupportedError {
@@ -51,7 +57,7 @@ Future<void> tandaiOnboardingKruSelesai() async {
 /// (statusKetersediaan, rataRating, jumlahUlasan, posisi).
 final kruSayaProvider = StreamProvider<KruModel>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return const Stream.empty();
-  final uid = ref.watch(authServiceProvider).currentUser?.uid;
+  final uid = ref.watch(authStateProvider).valueOrNull?.uid;
   if (uid == null) return const Stream.empty();
   return ref.watch(firestoreServiceProvider).watchKru(uid);
 });
@@ -59,7 +65,7 @@ final kruSayaProvider = StreamProvider<KruModel>((ref) {
 /// Dokumen `users/{uid}` (email untuk header K6).
 final profilSayaProvider = FutureProvider<UserModel?>((ref) async {
   if (!ref.watch(firebaseSiapProvider)) return null;
-  final uid = ref.watch(authServiceProvider).currentUser?.uid;
+  final uid = ref.watch(authStateProvider).valueOrNull?.uid;
   if (uid == null) return null;
   return ref.watch(authServiceProvider).fetchProfile(uid);
 });
@@ -67,7 +73,7 @@ final profilSayaProvider = FutureProvider<UserModel?>((ref) async {
 /// Seluruh penugasan kru (orders dengan cleanerId == uid), terdekat dulu.
 final tugasSayaProvider = StreamProvider<List<OrderModel>>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
-  final uid = ref.watch(authServiceProvider).currentUser?.uid;
+  final uid = ref.watch(authStateProvider).valueOrNull?.uid;
   if (uid == null) return Stream.value(const []);
   return ref.watch(firestoreServiceProvider).watchOrdersByKru(uid).map(
         (orders) => (orders.toList()
@@ -79,7 +85,7 @@ final tugasSayaProvider = StreamProvider<List<OrderModel>>((ref) {
 /// Ulasan untuk kru ini — dipakai K5 menampilkan rating per pekerjaan.
 final ulasanSayaProvider = StreamProvider<List<ReviewModel>>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
-  final uid = ref.watch(authServiceProvider).currentUser?.uid;
+  final uid = ref.watch(authStateProvider).valueOrNull?.uid;
   if (uid == null) return Stream.value(const []);
   return ref.watch(firestoreServiceProvider).watchReviewsByKru(uid);
 });

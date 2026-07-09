@@ -1,6 +1,6 @@
-import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tk_core/tk_core.dart';
 
@@ -179,12 +179,21 @@ class PembayaranController extends AutoDisposeAsyncNotifier<OrderModel?> {
             '(Out of Delivery Range).',
         jadwalPenuh: false
       );
-    } catch (_) {
+    } on FirebaseException catch (e, stack) {
+      debugPrint('FirebaseException saat konfirmasi: $e\n$stack');
+      state = const AsyncData(null);
+      return (
+        order: null,
+        error: 'Gagal diproses: ${e.message ?? e.toString()}',
+        jadwalPenuh: false
+      );
+    } catch (e, stack) {
+      debugPrint('Error tak terduga saat konfirmasi: $e\n$stack');
       state = const AsyncData(null);
       return (
         order: null,
         error: 'Pembayaran belum dapat diproses. Periksa koneksi Anda '
-            'lalu coba lagi.',
+            'lalu coba lagi. ($e)',
         jadwalPenuh: false
       );
     }

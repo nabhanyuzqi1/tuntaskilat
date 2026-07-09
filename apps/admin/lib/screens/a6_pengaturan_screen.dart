@@ -1,9 +1,13 @@
+import 'dart:typed_data';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tk_core/tk_core.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import '../providers/app_providers.dart';
 import '../widgets/admin_ui.dart';
@@ -15,6 +19,14 @@ final prefNotifAdminProvider =
   return {
     for (final k in _A6.kunciNotif) k: prefs.getBool('a6_$k') ?? true,
   };
+});
+
+/// Pengaturan Rekening & QRIS
+final pengaturanRekeningProvider = StreamProvider<Map<String, dynamic>>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value({});
+  return ref
+      .watch(firestoreServiceProvider)
+      .watchSettings('payments');
 });
 
 class _A6 {
@@ -64,6 +76,9 @@ class A6PengaturanScreen extends ConsumerWidget {
                     const SizedBox(height: 22),
                     _judul('PREFERENSI NOTIFIKASI'),
                     _kartuNotifikasi(ref),
+                    const SizedBox(height: 22),
+                    _judul('REKENING & QRIS'),
+                    _kartuRekening(context, ref),
                     const SizedBox(height: 22),
                     _judul('BIAYA & KOMISI'),
                     _kartuDitunda(
@@ -153,6 +168,10 @@ class A6PengaturanScreen extends ConsumerWidget {
         SizedBox(
           height: 42,
           child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 40),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
             onPressed: profil == null
                 ? null
                 : () => _dialogUbahNama(context, ref, profil),
@@ -435,4 +454,249 @@ class A6PengaturanScreen extends ConsumerWidget {
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF8A6A00))),
       );
+
+  Widget _kartuRekening(BuildContext context, WidgetRef ref) {
+    return Consumer(builder: (context, ref, _) {
+      final snap = ref.watch(pengaturanRekeningProvider);
+      final data = snap.valueOrNull ?? {};
+      final String namaBank = data['namaBank'] ?? 'Belum diatur';
+      final String noRekening = data['noRekening'] ?? '-';
+      final String atasNama = data['atasNama'] ?? '-';
+      final String qrisUrl = data['qrisUrl'] ?? '';
+      
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: AdminUi.kartu(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Info Rekening Bank & QRIS',
+                          style: GoogleFonts.montserrat(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: TkColors.inkSoft)),
+                      const SizedBox(height: 4),
+                      Text('Ditampilkan kepada pelanggan saat checkout non-tunai.',
+                          style: GoogleFonts.montserrat(
+                              fontSize: 12, color: TkColors.textMuted)),
+                    ],
+                  ),
+                ),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 40),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: snap.isLoading ? null : () => _dialogUbahRekening(context, ref, data),
+                  child: Text('Edit',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: TkColors.primary)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _infoItem('Bank', namaBank),
+                ),
+                Expanded(
+                  child: _infoItem('No. Rekening', noRekening),
+                ),
+                Expanded(
+                  child: _infoItem('Atas Nama', atasNama),
+                ),
+                Expanded(
+                  child: _infoItem('QRIS', qrisUrl.isNotEmpty ? 'Tersedia' : 'Belum diatur'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _infoItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: GoogleFonts.montserrat(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: TkColors.textMuted)),
+        const SizedBox(height: 4),
+        Text(value,
+            style: GoogleFonts.montserrat(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: TkColors.inkSoft)),
+      ],
+    );
+  }
+
+  Future<void> _dialogUbahRekening(
+      BuildContext context, WidgetRef ref, Map<String, dynamic> data) async {
+    final tBank = TextEditingController(text: data['namaBank'] ?? '');
+    final tRek = TextEditingController(text: data['noRekening'] ?? '');
+    final tNama = TextEditingController(text: data['atasNama'] ?? '');
+    
+    Uint8List? fileBaru;
+    String? namaFileBaru;
+    bool memproses = false;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('Edit Rekening & QRIS',
+              style: GoogleFonts.montserrat(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: TkColors.inkSoft)),
+          content: SizedBox(
+            width: 380,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TkTextField(label: 'Nama Bank (contoh: BCA)', controller: tBank),
+                  const SizedBox(height: 16),
+                  TkTextField(label: 'Nomor Rekening', controller: tRek, keyboardType: TextInputType.number),
+                  const SizedBox(height: 16),
+                  TkTextField(label: 'Atas Nama', controller: tNama),
+                  const SizedBox(height: 20),
+                  Text('QRIS',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: TkColors.inkSoft)),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () async {
+                      final p = await ImagePicker().pickImage(
+                        source: ImageSource.gallery,
+                        maxWidth: 1000,
+                        imageQuality: 85,
+                      );
+                      if (p != null) {
+                        final b = await p.readAsBytes();
+                        if (b.lengthInBytes >= 5 * 1024 * 1024) {
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(content: Text('Maksimal 5MB.')));
+                          }
+                          return;
+                        }
+                        setState(() {
+                          fileBaru = b;
+                          namaFileBaru = p.name;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: TkColors.primary.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: TkColors.primary),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.upload_file, color: TkColors.primary, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              namaFileBaru ?? (data['qrisUrl'] != null && data['qrisUrl'].toString().isNotEmpty ? 'QRIS sudah diunggah. Ketuk untuk ubah.' : 'Pilih File QRIS (opsional)'),
+                              style: GoogleFonts.montserrat(fontSize: 13, color: TkColors.primaryDark),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (memproses)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: memproses ? null : () => Navigator.of(ctx).pop(false),
+                child: const Text('Batal')),
+            ElevatedButton(
+              onPressed: memproses
+                  ? null
+                  : () async {
+                      setState(() => memproses = true);
+                      try {
+                        String? urlBaru = data['qrisUrl'];
+                        if (fileBaru != null) {
+                          final st = FirebaseStorage.instance
+                              .ref()
+                              .child('admin/qris_${DateTime.now().millisecondsSinceEpoch}.jpg');
+                          await st.putData(
+                            fileBaru!,
+                            SettableMetadata(contentType: 'image/jpeg'),
+                          );
+                          urlBaru = await st.getDownloadURL();
+                        }
+                        
+                        await ref.read(firestoreServiceProvider).updateSettings('payments', {
+                          'namaBank': tBank.text.trim(),
+                          'noRekening': tRek.text.trim(),
+                          'atasNama': tNama.text.trim(),
+                          'qrisUrl': urlBaru ?? '',
+                        });
+                        
+                        if (ctx.mounted) Navigator.of(ctx).pop(true);
+                      } catch (e) {
+                        setState(() => memproses = false);
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(content: Text('Gagal menyimpan pengaturan.')),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(minimumSize: const Size(120, 48)),
+              child: const Text('Simpan'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true) {
+      // already saved in dialog
+    }
+  }
 }

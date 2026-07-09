@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -375,11 +376,18 @@ class _KartuRiwayat extends ConsumerWidget {
             content: Text('Bukti baru terkirim. Menunggu verifikasi '
                 'admin kembali.')));
       }
-    } catch (_) {
+    } on FirebaseException catch (e, stack) {
+      debugPrint('FirebaseException unggah ulang: $e\n$stack');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Gagal mengunggah: ${e.message}')));
+      }
+    } catch (e, stack) {
+      debugPrint('Error tak terduga unggah ulang: $e\n$stack');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content:
-                Text('Gagal mengunggah. Periksa koneksi lalu coba lagi.')));
+                Text('Gagal mengunggah. Periksa koneksi lalu coba lagi. ($e)')));
       }
     }
   }

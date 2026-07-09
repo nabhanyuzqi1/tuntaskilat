@@ -12,6 +12,7 @@ import 'screens/k_bantuan_screen.dart';
 import 'screens/k_ubah_kata_sandi_screen.dart';
 import 'screens/kru_shell.dart';
 import 'screens/onboarding_kru_screen.dart';
+import 'screens/k7_chat_screen.dart';
 
 /// Portal Kru — identitas warna hijau tua #006542
 /// (design-tokens.md § Identitas warna per aplikasi).
@@ -38,6 +39,7 @@ class TkKruApp extends StatelessWidget {
         K4LaporanKerjaScreen.route: (_) => const K4LaporanKerjaScreen(),
         KUbahKataSandiScreen.route: (_) => const KUbahKataSandiScreen(),
         KBantuanScreen.route: (_) => const KBantuanScreen(),
+        K7ChatScreen.route: (_) => const K7ChatScreen(),
       },
     );
   }

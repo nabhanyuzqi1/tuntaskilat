@@ -9,6 +9,7 @@ import 'package:tk_core/tk_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/app_providers.dart';
+import '../providers/osrm_provider.dart';
 
 /// Order yang sedang dilacak.
 final orderDilacakProvider =
@@ -93,15 +94,49 @@ class _P8TrackingScreenState extends ConsumerState<P8TrackingScreen> {
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.tuntaskilat.pelanggan',
             ),
-            if (titikKru != null)
-              PolylineLayer(polylines: [
-                Polyline(
-                  points: [titikKru, tujuan],
-                  color: TkColors.primary,
-                  strokeWidth: 4,
-                  pattern: StrokePattern.dotted(spacingFactor: 3),
-                ),
-              ]),
+            if (titikKru != null) ...[
+              Consumer(
+                builder: (context, ref, child) {
+                  final ruteAsync = ref.watch(osrmRouteProvider(
+                      (start: titikKru, end: tujuan)));
+                  return ruteAsync.when(
+                    data: (points) {
+                      return PolylineLayer(polylines: [
+                        if (points.isNotEmpty)
+                          Polyline(
+                            points: points,
+                            color: TkColors.primary,
+                            strokeWidth: 4,
+                          )
+                        else
+                          Polyline(
+                            points: [titikKru, tujuan],
+                            color: TkColors.primary,
+                            strokeWidth: 4,
+                            pattern: const StrokePattern.dotted(spacingFactor: 3),
+                          ),
+                      ]);
+                    },
+                    loading: () => PolylineLayer(polylines: [
+                      Polyline(
+                        points: [titikKru, tujuan],
+                        color: TkColors.primary.withValues(alpha: 0.5),
+                        strokeWidth: 4,
+                        pattern: const StrokePattern.dotted(spacingFactor: 3),
+                      ),
+                    ]),
+                    error: (err, stack) => PolylineLayer(polylines: [
+                      Polyline(
+                        points: [titikKru, tujuan],
+                        color: TkColors.primary,
+                        strokeWidth: 4,
+                        pattern: const StrokePattern.dotted(spacingFactor: 3),
+                      ),
+                    ]),
+                  );
+                },
+              ),
+            ],
             MarkerLayer(markers: [
               Marker(
                 point: tujuan,
@@ -482,8 +517,13 @@ class _KartuStatus extends StatelessWidget {
               ),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () => _luncurkan(
-                    context, Uri(scheme: 'sms', path: kru!.noTelepon)),
+                onTap: () {
+                  Navigator.of(context).pushNamed('/p16', arguments: {
+                    'orderId': order.orderId,
+                    'namaKru': kru!.nama,
+                    'noTelpKru': kru!.noTelepon,
+                  });
+                },
                 child: Container(
                   width: 44,
                   height: 44,
@@ -500,8 +540,19 @@ class _KartuStatus extends StatelessWidget {
               ),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () => _luncurkan(
-                    context, Uri(scheme: 'tel', path: kru!.noTelepon)),
+                onTap: () async {
+                  final phone = kru!.noTelepon.startsWith('0') 
+                      ? kru!.noTelepon.substring(1) 
+                      : kru!.noTelepon;
+                  final url = Uri.parse('https://wa.me/62$phone');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  } else {
+                    if (context.mounted) {
+                      _luncurkan(context, Uri(scheme: 'tel', path: kru!.noTelepon));
+                    }
+                  }
+                },
                 child: Container(
                   width: 44,
                   height: 44,

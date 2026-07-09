@@ -194,9 +194,10 @@ class A2DashboardScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        FractionallySizedBox(
-                          widthFactor: 1,
+                        Align(
+                          alignment: Alignment.bottomCenter,
                           child: Container(
+                            width: double.infinity,
                             height: maks == 0
                                 ? 4
                                 : math.max(

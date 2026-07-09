@@ -416,14 +416,28 @@ class _K3DetailPenugasanScreenState
                   _tombolKontak(
                       Icons.call_rounded,
                       true,
-                      () => launchUrl(Uri(
-                          scheme: 'tel', path: order.teleponPelanggan))),
+                      () async {
+                        final phone = order.teleponPelanggan.startsWith('0') 
+                            ? order.teleponPelanggan.substring(1) 
+                            : order.teleponPelanggan;
+                        final url = Uri.parse('https://wa.me/62$phone');
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url);
+                        } else {
+                          launchUrl(Uri(scheme: 'tel', path: order.teleponPelanggan));
+                        }
+                      }),
                   const SizedBox(width: 8),
                   _tombolKontak(
                       Icons.chat_bubble_outline_rounded,
                       false,
-                      () => launchUrl(Uri(
-                          scheme: 'sms', path: order.teleponPelanggan))),
+                      () {
+                        Navigator.of(context).pushNamed('/k7', arguments: {
+                          'orderId': order.orderId,
+                          'namaPelanggan': order.namaPelanggan,
+                          'noTelpPelanggan': order.teleponPelanggan,
+                        });
+                      }),
                 ]),
                 if (order.catatan.isNotEmpty) ...[
                   const SizedBox(height: 16),

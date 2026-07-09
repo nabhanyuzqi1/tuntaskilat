@@ -198,6 +198,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
               onPressed: () => _konfirmasiVerifikasi(context, ref, o),
               style: ElevatedButton.styleFrom(
                   minimumSize: const Size(0, 36),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   padding: const EdgeInsets.symmetric(horizontal: 13),
                   textStyle: GoogleFonts.montserrat(
                       fontSize: 12, fontWeight: FontWeight.w600)),
@@ -212,6 +213,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
               onPressed: () => _dialogTolak(context, ref, o),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(0, 36),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 padding: const EdgeInsets.symmetric(horizontal: 13),
                 side: BorderSide(
                     color: TkColors.error.withValues(alpha: 0.4),
@@ -236,6 +238,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
               onPressed: () => _dialogTugaskan(context, ref, o),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(0, 36),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 padding: const EdgeInsets.symmetric(horizontal: 13),
                 side: const BorderSide(
                     color: Color(0xFFB7C9BF), width: 1.5),
@@ -542,15 +545,23 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                                 title: Row(children: [
                                   Expanded(
                                     child: Text(k.nama,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: GoogleFonts.montserrat(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
                                             color: TkColors.inkSoft)),
                                   ),
                                   if (worker.contains(k))
-                                    AdminUi.chipStatus('Worker', TkColors.primary)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8),
+                                      child: AdminUi.chipStatus('Worker', TkColors.primary),
+                                    )
                                   else if (helper.contains(k))
-                                    AdminUi.chipStatus('Helper', TkColors.accent)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8),
+                                      child: AdminUi.chipStatus('Helper', TkColors.accent),
+                                    )
                                 ]),
                                 subtitle: Text(
                                     '★ ${k.rataRating.toStringAsFixed(1).replaceAll('.', ',')} · '
@@ -606,7 +617,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
     try {
       await ref
           .read(firestoreServiceProvider)
-          .tugaskanKruMulti(order: o, penugasan: penugasan, minPetugas: minPetugas);
+          .tugaskanKruMulti(order: o, penugasan: penugasan, minPetugas: 1);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('${penugasan.length} kru ditugaskan ke pesanan '

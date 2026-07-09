@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../lib/screens/a7_voucher_screen.dart';
+import 'package:tk_admin/screens/a7_voucher_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
