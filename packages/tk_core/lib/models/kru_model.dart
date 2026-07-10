@@ -11,6 +11,7 @@ class KruModel {
     this.posisi,
     required this.jumlahUlasan,
     this.fotoUrl = '',
+    this.fcmTokens = const [],
   });
 
   /// PK — sama dengan UID Firebase Auth.
@@ -30,6 +31,9 @@ class KruModel {
   /// URL foto profil kru ('' bila belum diunggah) — wajib bagi kru aktif.
   final String fotoUrl;
 
+  /// Token FCM perangkat kru (multi-device) — target push notifikasi tugas.
+  final List<String> fcmTokens;
+
   factory KruModel.fromMap(String id, Map<String, dynamic> map) => KruModel(
         cleanerId: id,
         nama: map['nama'] as String? ?? '',
@@ -39,6 +43,7 @@ class KruModel {
         posisi: map['posisi'] as GeoPoint?,
         jumlahUlasan: map['jumlahUlasan'] as num? ?? 0,
         fotoUrl: map['fotoUrl'] as String? ?? '',
+        fcmTokens: (map['fcmTokens'] as List?)?.cast<String>() ?? const [],
       );
 
   Map<String, dynamic> toMap() => {
@@ -50,5 +55,6 @@ class KruModel {
         'posisi': posisi,
         'jumlahUlasan': jumlahUlasan,
         'fotoUrl': fotoUrl,
+        'fcmTokens': fcmTokens,
       };
 }
