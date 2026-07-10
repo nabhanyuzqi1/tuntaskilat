@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:tk_core/tk_core.dart';
 
 import '../providers/app_providers.dart';
@@ -123,20 +124,7 @@ class K6ProfilKruScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 30),
                 child: Row(children: [
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(inisial,
-                        style: GoogleFonts.montserrat(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            color: TkColors.primaryDark)),
-                  ),
+                  _AvatarKru(kru: kru, inisial: inisial),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -325,6 +313,107 @@ class K6ProfilKruScreen extends ConsumerWidget {
               size: 20, color: Color(0xFFC4CBC6)),
         ]),
       ),
+    );
+  }
+}
+
+/// Avatar kru dengan unggah foto (wajib bagi kru aktif). Ketuk → pilih foto
+/// → upload `profil/{uid}.jpg` → simpan `kru.fotoUrl`.
+class _AvatarKru extends ConsumerStatefulWidget {
+  const _AvatarKru({required this.kru, required this.inisial});
+  final KruModel? kru;
+  final String inisial;
+
+  @override
+  ConsumerState<_AvatarKru> createState() => _AvatarKruState();
+}
+
+class _AvatarKruState extends ConsumerState<_AvatarKru> {
+  bool _unggah = false;
+
+  Future<void> _ganti() async {
+    final kru = widget.kru;
+    if (kru == null) return;
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      imageQuality: 82,
+    );
+    if (file == null || !mounted) return;
+    setState(() => _unggah = true);
+    try {
+      final bytes = await file.readAsBytes();
+      final url = await ref
+          .read(storageServiceProvider)
+          .uploadFotoProfil(uid: kru.cleanerId, bytes: bytes);
+      await ref
+          .read(firestoreServiceProvider)
+          .updateFotoKru(kru.cleanerId, url);
+      ref.invalidate(kruSayaProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto profil diperbarui.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal mengunggah foto: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _unggah = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fotoUrl = widget.kru?.fotoUrl ?? '';
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _unggah ? null : _ganti,
+      child: Stack(children: [
+        Container(
+          width: 72,
+          height: 72,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          alignment: Alignment.center,
+          child: _unggah
+              ? const CircularProgressIndicator(color: TkColors.primary)
+              : fotoUrl.isNotEmpty
+                  ? Image.network(fotoUrl,
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Text(widget.inisial,
+                          style: GoogleFonts.montserrat(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w700,
+                              color: TkColors.primaryDark)))
+                  : Text(widget.inisial,
+                      style: GoogleFonts.montserrat(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          color: TkColors.primaryDark)),
+        ),
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: TkColors.accent,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: const Icon(Icons.photo_camera_rounded,
+                size: 13, color: TkColors.onAccent),
+          ),
+        ),
+      ]),
     );
   }
 }

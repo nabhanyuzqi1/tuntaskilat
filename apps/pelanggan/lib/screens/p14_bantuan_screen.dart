@@ -56,16 +56,20 @@ class P14BantuanScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F5),
-      body: SafeArea(
-        child: Column(
+      // Header putih membungkus SafeArea — warna naik sampai belakang
+      // status bar (sinkron system bar ↔ header).
+      body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
               decoration: const BoxDecoration(
                 color: TkColors.surface,
                 border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
               ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
               child: Row(children: [
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -88,7 +92,9 @@ class P14BantuanScreen extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: TkColors.inkSoft)),
               ]),
+              ),
             ),
+          ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
@@ -223,7 +229,6 @@ class P14BantuanScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

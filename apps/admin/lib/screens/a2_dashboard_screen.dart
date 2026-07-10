@@ -241,10 +241,19 @@ class A2DashboardScreen extends ConsumerWidget {
   }
 
   Widget _sebaranStatus(List<OrderModel> orders) {
+    // Empat kelompok berwarna BEDA — sebelumnya hampir semua status jatuh ke
+    // satu ember "lainnya" sehingga donut tampak kuning semua.
+    const biru = Color(0xFF2D9CDB);
     final selesai = orders.where((o) => _selesai(o.status)).length;
+    final berjalan = orders
+        .where((o) =>
+            o.status == OrderStatus.ditugaskan ||
+            o.status == OrderStatus.dalamPerjalanan ||
+            o.status == OrderStatus.diproses)
+        .length;
     final ditolak =
         orders.where((o) => o.status == OrderStatus.ditolak).length;
-    final lainnya = orders.length - selesai - ditolak;
+    final menunggu = orders.length - selesai - berjalan - ditolak;
     final total = orders.length;
 
     Widget legenda(Color warna, String label, int jumlah) => Padding(
@@ -283,7 +292,8 @@ class A2DashboardScreen extends ConsumerWidget {
               ? const [(1, Color(0xFFE3E8E4))]
               : [
                   (selesai / total, TkColors.primary),
-                  (lainnya / total, TkColors.accent),
+                  (berjalan / total, biru),
+                  (menunggu / total, TkColors.accent),
                   (ditolak / total, TkColors.error),
                 ],
         ),
@@ -309,7 +319,8 @@ class A2DashboardScreen extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         legenda(TkColors.primary, 'Selesai', selesai),
-        legenda(TkColors.accent, 'Menunggu/Aktif', lainnya),
+        legenda(biru, 'Berjalan', berjalan),
+        legenda(TkColors.accent, 'Menunggu', menunggu),
         legenda(TkColors.error, 'Dibatalkan', ditolak),
       ],
     );

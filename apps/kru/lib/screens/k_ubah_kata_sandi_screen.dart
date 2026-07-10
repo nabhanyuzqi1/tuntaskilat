@@ -73,16 +73,20 @@ class _KUbahKataSandiScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F5),
-      body: SafeArea(
-        child: Column(
+      // Header putih membungkus SafeArea — warna naik sampai belakang
+      // status bar (sinkron system bar ↔ header).
+      body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
               decoration: const BoxDecoration(
                 color: TkColors.surface,
                 border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
               ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
               child: Row(children: [
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -105,7 +109,9 @@ class _KUbahKataSandiScreenState
                         fontWeight: FontWeight.w700,
                         color: TkColors.inkSoft)),
               ]),
+              ),
             ),
+          ),
             Expanded(
               child: Form(
                 key: _formKey,
@@ -153,7 +159,6 @@ class _KUbahKataSandiScreenState
             ),
           ],
         ),
-      ),
     );
   }
 }

@@ -10,6 +10,7 @@ class KruModel {
     required this.rataRating,
     this.posisi,
     required this.jumlahUlasan,
+    this.fotoUrl = '',
   });
 
   /// PK — sama dengan UID Firebase Auth.
@@ -26,6 +27,9 @@ class KruModel {
   final GeoPoint? posisi;
   final num jumlahUlasan;
 
+  /// URL foto profil kru ('' bila belum diunggah) — wajib bagi kru aktif.
+  final String fotoUrl;
+
   factory KruModel.fromMap(String id, Map<String, dynamic> map) => KruModel(
         cleanerId: id,
         nama: map['nama'] as String? ?? '',
@@ -34,6 +38,7 @@ class KruModel {
         rataRating: map['rataRating'] as num? ?? 0,
         posisi: map['posisi'] as GeoPoint?,
         jumlahUlasan: map['jumlahUlasan'] as num? ?? 0,
+        fotoUrl: map['fotoUrl'] as String? ?? '',
       );
 
   Map<String, dynamic> toMap() => {
@@ -44,5 +49,6 @@ class KruModel {
         'rataRating': rataRating,
         'posisi': posisi,
         'jumlahUlasan': jumlahUlasan,
+        'fotoUrl': fotoUrl,
       };
 }

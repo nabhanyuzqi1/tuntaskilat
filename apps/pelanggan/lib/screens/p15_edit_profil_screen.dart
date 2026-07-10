@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:tk_core/tk_core.dart';
 
 import '../providers/app_providers.dart';
 import '../providers/beranda_providers.dart';
 
-/// P15 — Edit Profil. Ubah nama/telepon/alamat → `users` (updateUserProfile).
-/// Catatan skema: foto profil TIDAK diimplementasikan — koleksi `users`
-/// pada Kamus Data TA tidak memiliki field foto (butuh konfirmasi scope
-/// sebelum menambah field baru).
+/// P15 — Edit Profil. Ubah nama/telepon/alamat + foto profil → `users`.
 class P15EditProfilScreen extends ConsumerStatefulWidget {
   const P15EditProfilScreen({super.key});
 
@@ -27,6 +25,7 @@ class _P15EditProfilScreenState extends ConsumerState<P15EditProfilScreen> {
   final _alamat = TextEditingController();
   var _terisi = false;
   var _menyimpan = false;
+  var _unggahFoto = false;
 
   @override
   void dispose() {
@@ -42,6 +41,37 @@ class _P15EditProfilScreenState extends ConsumerState<P15EditProfilScreen> {
     _nama.text = profil.nama;
     _telepon.text = profil.noTelepon;
     _alamat.text = profil.alamat;
+  }
+
+  Future<void> _gantiFoto(UserModel profil) async {
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      imageQuality: 82,
+    );
+    if (file == null || !mounted) return;
+    setState(() => _unggahFoto = true);
+    try {
+      final bytes = await file.readAsBytes();
+      final url = await ref
+          .read(storageServiceProvider)
+          .uploadFotoProfil(uid: profil.userId, bytes: bytes);
+      await ref
+          .read(firestoreServiceProvider)
+          .updateUserProfile(profil.copyWith(fotoUrl: url));
+      ref.invalidate(profilSayaProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto profil diperbarui.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal mengunggah foto: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _unggahFoto = false);
+    }
   }
 
   Future<void> _simpan(UserModel profil) async {
@@ -88,16 +118,20 @@ class _P15EditProfilScreenState extends ConsumerState<P15EditProfilScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F5),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
+      // Header putih membungkus SafeArea agar warnanya naik sampai belakang
+      // status bar (sinkron system bar ↔ header).
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              color: TkColors.surface,
+              border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
-              decoration: const BoxDecoration(
-                color: TkColors.surface,
-                border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
-              ),
               child: Row(children: [
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -120,7 +154,9 @@ class _P15EditProfilScreenState extends ConsumerState<P15EditProfilScreen> {
                         fontWeight: FontWeight.w700,
                         color: TkColors.inkSoft)),
               ]),
+              ),
             ),
+          ),
             Expanded(
               child: profil == null
                   ? const Center(
@@ -132,20 +168,73 @@ class _P15EditProfilScreenState extends ConsumerState<P15EditProfilScreen> {
                         padding: const EdgeInsets.fromLTRB(24, 26, 24, 28),
                         children: [
                           Center(
-                            child: Container(
-                              width: 76,
-                              height: 76,
-                              decoration: BoxDecoration(
-                                color: TkColors.surfaceMuted,
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(inisial,
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w700,
-                                      color: TkColors.primaryDark)),
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _unggahFoto
+                                  ? null
+                                  : () => _gantiFoto(profil),
+                              child: Stack(children: [
+                                Container(
+                                  width: 88,
+                                  height: 88,
+                                  clipBehavior: Clip.antiAlias,
+                                  decoration: BoxDecoration(
+                                    color: TkColors.surfaceMuted,
+                                    borderRadius: BorderRadius.circular(26),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: _unggahFoto
+                                      ? const CircularProgressIndicator(
+                                          color: TkColors.primary)
+                                      : profil.fotoUrl.isNotEmpty
+                                          ? Image.network(profil.fotoUrl,
+                                              width: 88,
+                                              height: 88,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  Text(inisial,
+                                                      style: GoogleFonts
+                                                          .montserrat(
+                                                              fontSize: 26,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: TkColors
+                                                                  .primaryDark)))
+                                          : Text(inisial,
+                                              style: GoogleFonts.montserrat(
+                                                  fontSize: 26,
+                                                  fontWeight: FontWeight.w700,
+                                                  color:
+                                                      TkColors.primaryDark)),
+                                ),
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    width: 30,
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      color: TkColors.primary,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: Colors.white, width: 2),
+                                    ),
+                                    child: const Icon(
+                                        Icons.photo_camera_rounded,
+                                        size: 15,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                              ]),
                             ),
+                          ),
+                          const SizedBox(height: 8),
+                          Center(
+                            child: Text('Ketuk untuk mengganti foto',
+                                style: GoogleFonts.montserrat(
+                                    fontSize: 12,
+                                    color: TkColors.textMuted)),
                           ),
                           const SizedBox(height: 24),
                           TkTextField(
@@ -200,7 +289,6 @@ class _P15EditProfilScreenState extends ConsumerState<P15EditProfilScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 }

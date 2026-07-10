@@ -28,15 +28,19 @@ class _P1SplashScreenState extends ConsumerState<P1SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _anim;
   var _sudahNavigasi = false;
-  final _minTampil = Future<void>.delayed(const Duration(milliseconds: 1100));
+  // Singkat: native splash sudah menampilkan logo — layar ini hanya jembatan
+  // menunggu Firebase/prefs, bukan "splash kedua" (fix: splash terasa dobel).
+  final _minTampil = Future<void>.delayed(const Duration(milliseconds: 250));
 
   @override
   void initState() {
     super.initState();
     _anim = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..forward();
+      duration: const Duration(milliseconds: 300),
+      // Mulai dari tampil penuh — tanpa reveal ulang logo (anti splash dobel).
+      value: 1,
+    );
     // Mulai proses siap → navigasi begitu Firebase + prefs selesai.
     WidgetsBinding.instance.addPostFrameCallback((_) => _coba());
   }

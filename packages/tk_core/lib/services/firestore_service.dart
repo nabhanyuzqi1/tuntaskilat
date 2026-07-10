@@ -390,13 +390,42 @@ class FirestoreService {
           .toList(growable: false));
 
   /// Order yang menugaskan kru ini (worker ATAU helper) — pakai `kruIds`
-  /// array-contains agar helper juga melihat pekerjaannya.
-  Stream<List<OrderModel>> watchOrdersByKru(String cleanerId) => _orders
-      .where('kruIds', arrayContains: cleanerId)
-      .snapshots()
-      .map((s) => s.docs
-          .map((d) => OrderModel.fromMap(d.id, d.data()))
-          .toList(growable: false));
+  /// array-contains agar helper juga melihat pekerjaannya. Digabung dengan
+  /// query `cleanerId` untuk order LAMA yang belum punya field `kruIds`.
+  Stream<List<OrderModel>> watchOrdersByKru(String cleanerId) {
+    final byKruIds = _orders.where('kruIds', arrayContains: cleanerId);
+    final byCleaner = _orders.where('cleanerId', isEqualTo: cleanerId);
+
+    final controller = StreamController<List<OrderModel>>();
+    final terkini = <int, Map<String, OrderModel>>{0: {}, 1: {}};
+    final sudahEmit = [false, false];
+
+    void emit() {
+      // Emisi pertama menunggu kedua query supaya daftar tak "kedip".
+      if (!sudahEmit.every((e) => e)) return;
+      final gabung = <String, OrderModel>{}
+        ..addAll(terkini[0]!)
+        ..addAll(terkini[1]!);
+      controller.add(gabung.values.toList(growable: false));
+    }
+
+    final subs = <StreamSubscription>[];
+    for (final (i, q) in [byKruIds, byCleaner].indexed) {
+      subs.add(q.snapshots().listen((s) {
+        terkini[i] = {
+          for (final d in s.docs) d.id: OrderModel.fromMap(d.id, d.data())
+        };
+        sudahEmit[i] = true;
+        emit();
+      }, onError: controller.addError));
+    }
+    controller.onCancel = () {
+      for (final s in subs) {
+        s.cancel();
+      }
+    };
+    return controller.stream;
+  }
 
   Future<void> updateOrderStatus(String orderId, OrderStatus status) =>
       _orders.doc(orderId).update({'status': status.wire});
@@ -422,6 +451,10 @@ class FirestoreService {
   /// Posisi live kru saat `dalam_perjalanan` — sumber marker P8 Tracking.
   Future<void> updatePosisiKru(String cleanerId, GeoPoint posisi) =>
       _kru.doc(cleanerId).update({'posisi': posisi});
+
+  /// Foto profil kru (K6) — wajib bagi kru aktif.
+  Future<void> updateFotoKru(String cleanerId, String fotoUrl) =>
+      _kru.doc(cleanerId).update({'fotoUrl': fotoUrl});
 
   /// K4 — laporan kerja: simpan URL foto sebelum/sesudah dan tandai order
   /// `selesai` (State Diagram 3.11: diproses → selesai).
@@ -548,32 +581,17 @@ class FirestoreService {
     await batch.commit();
   }
 
-  /// A3 — penugasan kru manual: isi `cleanerId` + denormalisasi `namaKru`,
-  /// status → `ditugaskan`, kabari pelanggan.
+  /// A3 — penugasan kru tunggal. Delegasi ke [tugaskanKruMulti] agar SEMUA
+  /// jalur penugasan mengisi `penugasan` + `kruIds` (payout & visibilitas
+  /// portal Kru bergantung pada keduanya).
   Future<void> tugaskanKru({
     required OrderModel order,
     required KruModel kru,
-  }) async {
-    final batch = _db.batch();
-    batch.update(_orders.doc(order.orderId), {
-      'cleanerId': kru.cleanerId,
-      'namaKru': kru.nama,
-      'kruIds': [kru.cleanerId], // Diperlukan agar kru bisa baca lewat aturan 'in kruIds'
-      'status': OrderStatus.ditugaskan.wire,
-    });
-    final notifRef = _notifications.doc();
-    batch.set(notifRef, {
-      'notificationId': notifRef.id,
-      'userId': order.userId,
-      'judul': 'Kru ditugaskan untuk pesanan Anda',
-      'pesan': '${kru.nama} akan datang sesuai jadwal Anda. Pantau '
-          'posisinya di halaman Status Pesanan.',
-      'waktu': Timestamp.now(),
-      'dibaca': false,
-      'orderId': order.orderId,
-    });
-    await batch.commit();
-  }
+  }) =>
+      tugaskanKruMulti(order: order, penugasan: [
+        Penugasan(
+            cleanerId: kru.cleanerId, nama: kru.nama, peran: PeranKru.worker),
+      ]);
 
   // ------------------------------------------------- penugasan multi-kru
 
