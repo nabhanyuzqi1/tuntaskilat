@@ -26,6 +26,9 @@ final authServiceProvider = Provider<AuthService>((_) => AuthService());
 final firestoreServiceProvider =
     Provider<FirestoreService>((_) => FirestoreService());
 
+final storageServiceProvider =
+    Provider<StorageService>((_) => StorageService());
+
 final authStateProvider = StreamProvider<User?>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return const Stream.empty();
   return ref.watch(authServiceProvider).authStateChanges;

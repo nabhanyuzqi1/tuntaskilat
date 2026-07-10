@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 /// Validator input bersama — penerapan kaidah Pencegahan Kesalahan dan
 /// skenario Black-Box #2 (karakter ilegal) & #8 (batas wilayah Sampit).
 /// Semua pesan error mengikuti tone of voice brand: profesional, ramah,
@@ -74,4 +76,29 @@ class Validators {
       latitude <= sampitLatMax &&
       longitude >= sampitLngMin &&
       longitude <= sampitLngMax;
+
+  /// Jarak dua koordinat (km) — rumus haversine. Untuk modul cakupan wilayah
+  /// berbasis radius (siap ekspansi multi-cabang).
+  static double jarakKm(double lat1, double lng1, double lat2, double lng2) {
+    const r = 6371.0; // radius bumi km
+    double rad(double d) => d * math.pi / 180.0;
+    final dLat = rad(lat2 - lat1);
+    final dLng = rad(lng2 - lng1);
+    final h = math.pow(math.sin(dLat / 2), 2) +
+        math.cos(rad(lat1)) *
+            math.cos(rad(lat2)) *
+            math.pow(math.sin(dLng / 2), 2);
+    return 2 * r * math.asin(math.min(1.0, math.sqrt(h)));
+  }
+
+  /// True bila (lat,lng) dalam salah satu wilayah aktif (radius km). Bila
+  /// daftar kosong → fallback ke bounding box Sampit (perilaku default).
+  static bool dalamWilayah(double lat, double lng,
+      List<({double lat, double lng, double radiusKm})> wilayah) {
+    if (wilayah.isEmpty) return isDalamWilayahSampit(lat, lng);
+    for (final w in wilayah) {
+      if (jarakKm(lat, lng, w.lat, w.lng) <= w.radiusKm) return true;
+    }
+    return false;
+  }
 }

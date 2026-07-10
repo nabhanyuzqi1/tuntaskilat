@@ -456,16 +456,25 @@ class _KartuLayanan extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration:
-                    BoxDecoration(gradient: serviceGradient(layanan.kategori)),
-                child: Icon(
-                  serviceIcon(layanan.ikon),
-                  size: 34,
-                  color: Colors.white,
-                ),
-              ),
+              child: layanan.gambarUrl.isNotEmpty
+                  ? Image.network(layanan.gambarUrl,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                                gradient:
+                                    serviceGradient(layanan.kategori)),
+                            child: Icon(serviceIcon(layanan.ikon),
+                                size: 34, color: Colors.white),
+                          ))
+                  : Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                          gradient: serviceGradient(layanan.kategori)),
+                      child: Icon(serviceIcon(layanan.ikon),
+                          size: 34, color: Colors.white),
+                    ),
             ),
             Padding(
               padding: const EdgeInsets.all(12),

@@ -18,6 +18,7 @@ class ServiceModel {
     this.tipeHarga = TipeHarga.mulaiDari,
     this.kategori = 'umum',
     this.gambar = '',
+    this.gambarUrl = '',
     this.tiers = const [],
     this.paketOpsi = const [],
     this.addOns = const [],
@@ -45,6 +46,9 @@ class ServiceModel {
 
   /// Kunci ilustrasi brand untuk kartu layanan (mis. `rumput`, `cleaning`).
   final String gambar;
+
+  /// URL foto layanan yang diunggah admin (A4). '' → pakai ilustrasi brand.
+  final String gambarUrl;
 
   /// Tingkat kondisi untuk [TipeHarga.perLuas].
   final List<TarifTier> tiers;
@@ -138,6 +142,7 @@ class ServiceModel {
         tipeHarga: TipeHarga.fromWire(map['tipeHarga'] as String?),
         kategori: map['kategori'] as String? ?? 'umum',
         gambar: map['gambar'] as String? ?? '',
+        gambarUrl: map['gambarUrl'] as String? ?? '',
         tiers: ((map['tiers'] as List?) ?? [])
             .map((e) => TarifTier.fromMap(Map<String, dynamic>.from(e as Map)))
             .toList(),
@@ -160,6 +165,7 @@ class ServiceModel {
         'tipeHarga': tipeHarga.wire,
         'kategori': kategori,
         'gambar': gambar,
+        'gambarUrl': gambarUrl,
         'tiers': tiers.map((e) => e.toMap()).toList(),
         'paketOpsi': paketOpsi.map((e) => e.toMap()).toList(),
         'addOns': addOns.map((e) => e.toMap()).toList(),

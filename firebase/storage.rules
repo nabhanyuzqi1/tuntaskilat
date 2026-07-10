@@ -35,6 +35,15 @@ service firebase.storage {
           && isImageMax5MB();
     }
 
+    // Gambar layanan (A4) — dibaca publik (katalog), ditulis admin saja.
+    // Cek admin via dokumen users.role di Firestore.
+    match /layanan/{file} {
+      allow read: if true;
+      allow write: if isSignedIn()
+          && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin'
+          && isImageMax5MB();
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

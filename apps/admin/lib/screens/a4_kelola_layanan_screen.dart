@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:tk_core/tk_core.dart';
 
 import '../providers/app_providers.dart';
@@ -187,6 +190,10 @@ class A4KelolaLayananScreen extends ConsumerWidget {
     var satuan = awal?.satuan ?? _pilihanSatuan.first;
     var ikon = awal?.ikon ?? _pilihanIkon.first.$1;
     var aktif = awal?.aktif ?? true;
+    var tipeHarga = awal?.tipeHarga ?? TipeHarga.mulaiDari;
+    var kategori = awal?.kategori ?? 'umum';
+    var gambarUrl = awal?.gambarUrl ?? '';
+    Uint8List? gambarBaru; // dipilih admin, diunggah saat simpan
 
     final simpan = await showDialog<bool>(
       context: context,
@@ -221,6 +228,107 @@ class A4KelolaLayananScreen extends ConsumerWidget {
                       hint: 'Ringkasan 1 baris layanan',
                       validator: Validators.teksBebas,
                     ),
+                    const SizedBox(height: 14),
+                    // Gambar layanan (upload) — hot-load di katalog pelanggan.
+                    Text('Gambar Layanan',
+                        style: GoogleFonts.montserrat(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: TkColors.label)),
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: TkColors.surfaceMuted,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: gambarBaru != null
+                            ? Image.memory(gambarBaru!, fit: BoxFit.cover)
+                            : gambarUrl.isNotEmpty
+                                ? Image.network(gambarUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => const Icon(
+                                        Icons.image_outlined,
+                                        color: TkColors.textMuted))
+                                : const Icon(Icons.image_outlined,
+                                    color: TkColors.textMuted),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final f = await ImagePicker().pickImage(
+                              source: ImageSource.gallery,
+                              maxWidth: 900,
+                              imageQuality: 80);
+                          if (f == null) return;
+                          final b = await f.readAsBytes();
+                          setState(() => gambarBaru = b);
+                        },
+                        icon: const Icon(Icons.upload_outlined, size: 18),
+                        label: Text(gambarUrl.isEmpty && gambarBaru == null
+                            ? 'Pilih Gambar'
+                            : 'Ganti Gambar'),
+                      ),
+                    ]),
+                    const SizedBox(height: 14),
+                    Row(children: [
+                      Expanded(
+                        child: DropdownButtonFormField<TipeHarga>(
+                          initialValue: tipeHarga,
+                          decoration:
+                              const InputDecoration(labelText: 'Tipe Harga'),
+                          items: const [
+                            DropdownMenuItem(
+                                value: TipeHarga.mulaiDari,
+                                child: Text('Mulai dari (× qty)')),
+                            DropdownMenuItem(
+                                value: TipeHarga.perLuas,
+                                child: Text('Per m² (tier)')),
+                            DropdownMenuItem(
+                                value: TipeHarga.paket,
+                                child: Text('Paket + durasi')),
+                          ],
+                          onChanged: (v) => setState(
+                              () => tipeHarga = v ?? TipeHarga.mulaiDari),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: const [
+                            'umum',
+                            'rumput',
+                            'home_cleaning'
+                          ].contains(kategori)
+                              ? kategori
+                              : 'umum',
+                          decoration:
+                              const InputDecoration(labelText: 'Kategori'),
+                          items: const [
+                            DropdownMenuItem(
+                                value: 'umum', child: Text('Umum')),
+                            DropdownMenuItem(
+                                value: 'rumput', child: Text('Jasa Rumput')),
+                            DropdownMenuItem(
+                                value: 'home_cleaning',
+                                child: Text('Home Cleaning')),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => kategori = v ?? 'umum'),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 6),
+                    if (tipeHarga != TipeHarga.mulaiDari)
+                      Text(
+                          'Tier/paket/add-on untuk tipe ini dikelola lewat '
+                          '"Isi Katalog Pricelist" atau data awal — tarif di '
+                          'bawah dipakai sebagai harga dasar.',
+                          style: GoogleFonts.montserrat(
+                              fontSize: 11, color: TkColors.textMuted)),
                     const SizedBox(height: 14),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,14 +467,59 @@ class A4KelolaLayananScreen extends ConsumerWidget {
       ),
     );
     if (simpan != true) return;
-    await ref.read(firestoreServiceProvider).simpanLayanan(ServiceModel(
-          serviceId: awal?.serviceId ?? '',
-          namaLayanan: nama.text.trim(),
-          deskripsi: deskripsi.text.trim(),
-          harga: num.parse(harga.text.trim()),
-          satuan: satuan,
-          aktif: aktif,
-          ikon: ikon,
-        ));
+    final svc = ref.read(firestoreServiceProvider);
+    // Pertahankan field lanjutan (tipeHarga/tiers/paketOpsi/addOns/gambar)
+    // dari data awal agar tak terhapus saat mengedit — hanya field yang
+    // benar-benar diubah admin yang ditimpa.
+    var model = ServiceModel(
+      serviceId: awal?.serviceId ?? '',
+      namaLayanan: nama.text.trim(),
+      deskripsi: deskripsi.text.trim(),
+      harga: num.parse(harga.text.trim()),
+      satuan: satuan,
+      aktif: aktif,
+      ikon: ikon,
+      tipeHarga: tipeHarga,
+      kategori: kategori,
+      gambar: awal?.gambar ?? '',
+      gambarUrl: gambarUrl,
+      tiers: awal?.tiers ?? const [],
+      paketOpsi: awal?.paketOpsi ?? const [],
+      addOns: awal?.addOns ?? const [],
+    );
+    // Simpan dulu untuk memastikan ada serviceId (path gambar butuh id).
+    model = await svc.simpanLayanan(model);
+    if (gambarBaru != null) {
+      try {
+        final url = await ref
+            .read(storageServiceProvider)
+            .uploadGambarLayanan(
+                serviceId: model.serviceId, bytes: gambarBaru!);
+        await svc.simpanLayanan(_gantiGambar(model, url));
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Gambar gagal diunggah: $e')));
+        }
+      }
+    }
   }
+
+  /// Salin ServiceModel dengan gambarUrl baru (ServiceModel tanpa copyWith).
+  static ServiceModel _gantiGambar(ServiceModel s, String url) => ServiceModel(
+        serviceId: s.serviceId,
+        namaLayanan: s.namaLayanan,
+        deskripsi: s.deskripsi,
+        harga: s.harga,
+        satuan: s.satuan,
+        aktif: s.aktif,
+        ikon: s.ikon,
+        tipeHarga: s.tipeHarga,
+        kategori: s.kategori,
+        gambar: s.gambar,
+        gambarUrl: url,
+        tiers: s.tiers,
+        paketOpsi: s.paketOpsi,
+        addOns: s.addOns,
+      );
 }

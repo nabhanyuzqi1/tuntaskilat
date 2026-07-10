@@ -171,8 +171,11 @@ class _Hero extends StatelessWidget {
             child: Container(
               width: 108,
               height: 108,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                gradient: serviceGradient(layanan.kategori),
+                gradient: layanan.gambarUrl.isEmpty
+                    ? serviceGradient(layanan.kategori)
+                    : null,
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
@@ -182,8 +185,17 @@ class _Hero extends StatelessWidget {
                       spreadRadius: -6),
                 ],
               ),
-              child: Icon(serviceIcon(layanan.ikon),
-                  size: 52, color: Colors.white),
+              child: layanan.gambarUrl.isNotEmpty
+                  ? Image.network(layanan.gambarUrl,
+                      width: 108,
+                      height: 108,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Icon(
+                          serviceIcon(layanan.ikon),
+                          size: 52,
+                          color: TkColors.primary))
+                  : Icon(serviceIcon(layanan.ikon),
+                      size: 52, color: Colors.white),
             ),
           ),
         ],
