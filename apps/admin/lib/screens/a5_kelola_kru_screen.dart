@@ -85,27 +85,52 @@ class A5KelolaKruScreen extends ConsumerWidget {
       child: Row(children: [
         Expanded(
           flex: 20,
-          child: Row(children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: const Color(0xFFDCE7E0),
-              child: Text(inisial,
-                  style: GoogleFonts.montserrat(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: TkColors.primaryDark)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(k.nama,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.montserrat(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: TkColors.inkSoft)),
-            ),
-          ]),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _dialogKelolaKru(context, ref, k),
+            child: Row(children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: k.status.bisaDitugaskan
+                    ? const Color(0xFFDCE7E0)
+                    : const Color(0xFFEDEFEC),
+                backgroundImage:
+                    k.fotoUrl.isNotEmpty ? NetworkImage(k.fotoUrl) : null,
+                child: k.fotoUrl.isNotEmpty
+                    ? null
+                    : Text(inisial,
+                        style: GoogleFonts.montserrat(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: TkColors.primaryDark)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(k.nama,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.montserrat(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: TkColors.inkSoft)),
+                    Text(
+                        '${k.tipe.label}'
+                        '${k.status.bisaDitugaskan ? '' : ' · ${k.status.label}'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.montserrat(
+                            fontSize: 11,
+                            color: k.status.bisaDitugaskan
+                                ? TkColors.textMuted
+                                : TkColors.error)),
+                  ],
+                ),
+              ),
+            ]),
+          ),
         ),
         Expanded(flex: 12, child: AdminUi.teksSel(k.noTelepon)),
         Expanded(
@@ -284,6 +309,134 @@ class A5KelolaKruScreen extends ConsumerWidget {
                       child: CircularProgressIndicator(
                           strokeWidth: 2.4, color: TkColors.surface))
                   : const Text('Buat Akun'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Kelola siklus hidup kru: keahlian (layanan yang bisa dikerjakan), jenis
+  /// (kru/mitra/vendor), dan status (aktif/nonaktif/diberhentikan).
+  Future<void> _dialogKelolaKru(
+      BuildContext context, WidgetRef ref, KruModel k) async {
+    final layanan = ref.read(semuaLayananProvider).valueOrNull ?? const [];
+    final keahlian = {...k.keahlian};
+    var tipe = k.tipe;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18)),
+          title: Text('Kelola ${k.nama}',
+              style: GoogleFonts.montserrat(
+                  fontSize: 18, fontWeight: FontWeight.w700)),
+          content: SizedBox(
+            width: 460,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Jenis Kru',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, children: [
+                    for (final t in KruTipe.values)
+                      ChoiceChip(
+                        label: Text(t.label),
+                        selected: tipe == t,
+                        onSelected: (_) => setLocal(() => tipe = t),
+                      ),
+                  ]),
+                  const SizedBox(height: 16),
+                  Text('Keahlian (layanan yang bisa dikerjakan)',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text('Kosong = generalis (bisa semua layanan).',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 11, color: TkColors.textMuted)),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    for (final s in layanan)
+                      FilterChip(
+                        label: Text(s.namaLayanan),
+                        selected: keahlian.contains(s.serviceId),
+                        onSelected: (v) => setLocal(() => v
+                            ? keahlian.add(s.serviceId)
+                            : keahlian.remove(s.serviceId)),
+                      ),
+                  ]),
+                  const SizedBox(height: 8),
+                  const Divider(),
+                  const SizedBox(height: 4),
+                  Text('Status Kepegawaian',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, children: [
+                    for (final st in StatusKru.values)
+                      OutlinedButton(
+                        onPressed: () async {
+                          if (st == StatusKru.diberhentikan) {
+                            final ya = await showDialog<bool>(
+                              context: ctx,
+                              builder: (c) => AlertDialog(
+                                title: const Text('Berhentikan kru?'),
+                                content: Text(
+                                    '${k.nama} tak bisa lagi menerima tugas.'),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () => Navigator.pop(c, false),
+                                      child: const Text('Batal')),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(c, true),
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: TkColors.error),
+                                    child: const Text('Berhentikan'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (ya != true) return;
+                          }
+                          await ref
+                              .read(firestoreServiceProvider)
+                              .setStatusKru(k.cleanerId, st);
+                          if (ctx.mounted) Navigator.pop(ctx);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: st == StatusKru.diberhentikan
+                              ? TkColors.error
+                              : k.status == st
+                                  ? TkColors.primary
+                                  : TkColors.inkSoft,
+                        ),
+                        child: Text(st.label),
+                      ),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Tutup')),
+            ElevatedButton(
+              onPressed: () async {
+                await ref.read(firestoreServiceProvider).updateProfilKru(
+                      k.cleanerId,
+                      keahlian: keahlian.toList(),
+                      tipe: tipe,
+                    );
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('Simpan'),
             ),
           ],
         ),

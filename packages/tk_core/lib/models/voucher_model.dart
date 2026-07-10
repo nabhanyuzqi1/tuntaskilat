@@ -13,7 +13,15 @@ enum TipeVoucher {
 }
 
 /// Alasan sebuah voucher ditolak (untuk pesan UI & test).
-enum VoucherTolak { tidakAda, nonaktif, kadaluarsa, kuotaHabis, minimalBelanja }
+enum VoucherTolak {
+  tidakAda,
+  nonaktif,
+  kadaluarsa,
+  kuotaHabis,
+  minimalBelanja,
+  hanyaPenggunaBaru,
+  sudahDipakaiNomor,
+}
 
 class VoucherModel {
   const VoucherModel({
@@ -28,6 +36,8 @@ class VoucherModel {
     this.terpakai = 0,
     this.berlakuHingga,
     this.aktif = true,
+    this.khususPenggunaBaru = false,
+    this.sekaliPerNomor = true,
   });
 
   final String voucherId;
@@ -51,6 +61,13 @@ class VoucherModel {
   final int terpakai;
   final DateTime? berlakuHingga;
   final bool aktif;
+
+  /// Hanya untuk pelanggan yang BELUM pernah menyelesaikan/membuat pesanan.
+  final bool khususPenggunaBaru;
+
+  /// Klaim dikunci per nomor telepon terverifikasi (mematikan trik buat akun
+  /// baru terus untuk klaim ulang). Divalidasi backend via `voucherUsages`.
+  final bool sekaliPerNomor;
 
   int get sisaKuota => kuota <= 0 ? 1 << 30 : (kuota - terpakai);
 
@@ -90,6 +107,8 @@ class VoucherModel {
             ? DateTime.tryParse(map['berlakuHingga'].toString())
             : null,
         aktif: map['aktif'] as bool? ?? true,
+        khususPenggunaBaru: map['khususPenggunaBaru'] as bool? ?? false,
+        sekaliPerNomor: map['sekaliPerNomor'] as bool? ?? true,
       );
 
   Map<String, dynamic> toMap() => {
@@ -104,6 +123,8 @@ class VoucherModel {
         if (berlakuHingga != null)
           'berlakuHingga': berlakuHingga!.toIso8601String(),
         'aktif': aktif,
+        'khususPenggunaBaru': khususPenggunaBaru,
+        'sekaliPerNomor': sekaliPerNomor,
       };
 
   VoucherModel copyWith({int? terpakai}) => VoucherModel(
@@ -118,5 +139,7 @@ class VoucherModel {
         terpakai: terpakai ?? this.terpakai,
         berlakuHingga: berlakuHingga,
         aktif: aktif,
+        khususPenggunaBaru: khususPenggunaBaru,
+        sekaliPerNomor: sekaliPerNomor,
       );
 }

@@ -114,6 +114,16 @@ service cloud.firestore {
       );
     }
 
+    // Catatan pemakaian voucher per-nomor (anti-abuse). Dibuat pengguna saat
+    // memakai voucher; tak boleh diubah/dihapus (mengunci klaim). Admin bisa.
+    match /voucherUsages/{id} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
     // Ledger upah kru (produk nyata). Kru hanya BACA payout miliknya; ia tak
     // pernah menulis nominal. Payout dibuat/diubah lewat transaksi
     // penyelesaian & keputusan admin (uang tak dipercaya klien).

@@ -1,5 +1,34 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Jenis kru — membedakan pegawai internal vs mitra/vendor eksternal.
+enum KruTipe {
+  kru('kru', 'Kru Internal'),
+  mitra('mitra', 'Mitra Resmi'),
+  vendor('vendor', 'Vendor');
+
+  const KruTipe(this.wire, this.label);
+  final String wire;
+  final String label;
+  static KruTipe fromWire(String? w) =>
+      KruTipe.values.firstWhere((e) => e.wire == w, orElse: () => KruTipe.kru);
+}
+
+/// Status kepegawaian kru (siklus hidup) — beda dari online/offline.
+enum StatusKru {
+  aktif('aktif', 'Aktif'),
+  nonaktif('nonaktif', 'Nonaktif'),
+  diberhentikan('diberhentikan', 'Diberhentikan');
+
+  const StatusKru(this.wire, this.label);
+  final String wire;
+  final String label;
+  static StatusKru fromWire(String? w) => StatusKru.values
+      .firstWhere((e) => e.wire == w, orElse: () => StatusKru.aktif);
+
+  /// Hanya kru berstatus aktif yang boleh ditugaskan.
+  bool get bisaDitugaskan => this == StatusKru.aktif;
+}
+
 /// Koleksi `kru` — lihat firestore-schema.md.
 class KruModel {
   const KruModel({
@@ -12,6 +41,9 @@ class KruModel {
     required this.jumlahUlasan,
     this.fotoUrl = '',
     this.fcmTokens = const [],
+    this.keahlian = const [],
+    this.tipe = KruTipe.kru,
+    this.status = StatusKru.aktif,
   });
 
   /// PK — sama dengan UID Firebase Auth.
@@ -34,6 +66,17 @@ class KruModel {
   /// Token FCM perangkat kru (multi-device) — target push notifikasi tugas.
   final List<String> fcmTokens;
 
+  /// Keahlian kru (serviceId atau kategori yang bisa dikerjakan) — dipakai
+  /// A3 untuk mencocokkan kru dengan jenis layanan (mis. cuci AC ≠ rumput).
+  final List<String> keahlian;
+
+  /// Jenis kru: internal / mitra / vendor.
+  final KruTipe tipe;
+
+  /// Status kepegawaian (aktif/nonaktif/diberhentikan). Nonaktif &
+  /// diberhentikan tidak muncul di daftar penugasan.
+  final StatusKru status;
+
   factory KruModel.fromMap(String id, Map<String, dynamic> map) => KruModel(
         cleanerId: id,
         nama: map['nama'] as String? ?? '',
@@ -44,6 +87,9 @@ class KruModel {
         jumlahUlasan: map['jumlahUlasan'] as num? ?? 0,
         fotoUrl: map['fotoUrl'] as String? ?? '',
         fcmTokens: (map['fcmTokens'] as List?)?.cast<String>() ?? const [],
+        keahlian: (map['keahlian'] as List?)?.cast<String>() ?? const [],
+        tipe: KruTipe.fromWire(map['tipe'] as String?),
+        status: StatusKru.fromWire(map['status'] as String?),
       );
 
   Map<String, dynamic> toMap() => {
@@ -56,5 +102,8 @@ class KruModel {
         'jumlahUlasan': jumlahUlasan,
         'fotoUrl': fotoUrl,
         'fcmTokens': fcmTokens,
+        'keahlian': keahlian,
+        'tipe': tipe.wire,
+        'status': status.wire,
       };
 }
