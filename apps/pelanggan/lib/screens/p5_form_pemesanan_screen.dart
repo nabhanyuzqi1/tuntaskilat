@@ -7,7 +7,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:tk_core/tk_core.dart';
 
+import '../providers/beranda_providers.dart';
 import '../providers/pemesanan_providers.dart';
+import 'p5a_peta_screen.dart';
 import 'p6_rincian_tagihan_screen.dart';
 
 /// P5 — Form Pemesanan (Gambar TA 3.15 & 4.2). Input kuantitas, jadwal
@@ -82,6 +84,35 @@ class _P5FormPemesananScreenState
       return;
     }
     setState(() => _lokasi = GeoPoint(titik.latitude, titik.longitude));
+  }
+
+  /// Buka peta fullscreen (pin geser + alamat otomatis). Isi lokasi + alamat.
+  Future<void> _bukaPeta() async {
+    final hasil = await Navigator.of(context).push<HasilPeta>(
+      MaterialPageRoute(
+        builder: (_) => P5aPetaScreen(
+          awal: _lokasi != null
+              ? LatLng(_lokasi!.latitude, _lokasi!.longitude)
+              : null,
+        ),
+      ),
+    );
+    if (hasil == null || !mounted) return;
+    setState(() {
+      _lokasi = hasil.lokasi;
+      if (hasil.alamat.isNotEmpty) _alamat.text = hasil.alamat;
+    });
+    _mapCtrl.move(
+        LatLng(hasil.lokasi.latitude, hasil.lokasi.longitude), 16);
+  }
+
+  /// Pakai alamat tersimpan pelanggan.
+  void _pakaiAlamat(AlamatModel a) {
+    setState(() {
+      _lokasi = a.lokasi;
+      _alamat.text = a.alamat;
+    });
+    _mapCtrl.move(LatLng(a.lokasi.latitude, a.lokasi.longitude), 16);
   }
 
   Future<void> _ambilLokasi() async {
@@ -222,10 +253,61 @@ class _P5FormPemesananScreenState
                             color: TkColors.error)),
                   ]),
                   const SizedBox(height: 6),
-                  Text('Ketuk peta untuk menandai titik, atau gunakan '
-                      '"Lokasi Saya".',
+                  Text('Pilih alamat tersimpan, buka peta, atau ketuk peta '
+                      'kecil di bawah.',
                       style: GoogleFonts.montserrat(
                           fontSize: 12, color: TkColors.textMuted)),
+                  const SizedBox(height: 12),
+                  // Alamat tersimpan (chip) — tak perlu ketik ulang.
+                  Consumer(builder: (context, ref, _) {
+                    final uid = ref
+                        .watch(profilSayaProvider)
+                        .valueOrNull
+                        ?.userId;
+                    if (uid == null) return const SizedBox.shrink();
+                    final alamat = ref
+                            .watch(alamatTersimpanProvider(uid))
+                            .valueOrNull ??
+                        const [];
+                    if (alamat.isEmpty) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final a in alamat)
+                            ActionChip(
+                              avatar: const Icon(Icons.bookmark_border_rounded,
+                                  size: 16, color: TkColors.primary),
+                              label: Text(a.label),
+                              labelStyle: GoogleFonts.montserrat(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: TkColors.primaryDark),
+                              backgroundColor:
+                                  TkColors.primary.withValues(alpha: 0.07),
+                              side: BorderSide(
+                                  color: TkColors.primary
+                                      .withValues(alpha: 0.18)),
+                              onPressed: () => _pakaiAlamat(a),
+                            ),
+                        ],
+                      ),
+                    );
+                  }),
+                  // Buka peta fullscreen (pin geser + alamat otomatis).
+                  OutlinedButton.icon(
+                    onPressed: _bukaPeta,
+                    icon: const Icon(Icons.map_outlined, size: 18),
+                    label: const Text('Buka Peta & Cari Alamat'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                      foregroundColor: TkColors.primary,
+                      side: BorderSide(
+                          color: TkColors.primary.withValues(alpha: 0.4)),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   _KartuAlamatPeta(
                     mapCtrl: _mapCtrl,
@@ -391,48 +473,39 @@ class _PemilihHargaState extends State<_PemilihHarga> {
               : const PaketOpsi(
                   id: '', nama: '-', jumlahPetugas: 1, durasi: [], hargaTambahJam: 0),
         );
+        final durasiTerpilih = p.durasiJam ??
+            (paket.durasi.isNotEmpty ? paket.durasi.first.jam : 0);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _JudulBagian('Pilih Paket'),
+            _StepJudul(1, 'Pilih Paket'),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final pk in widget.layanan.paketOpsi)
-                  _Chip(
-                    label: '${pk.nama} · ${pk.jumlahPetugas} petugas',
-                    aktif: paket.id == pk.id,
-                    onTap: () => widget.onUbah(p.copyWith(
-                      paketId: pk.id,
-                      durasiJam:
-                          pk.durasi.isNotEmpty ? pk.durasi.first.jam : null,
-                    )),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _JudulBagian('Durasi'),
+            // Kartu paket besar: nama + jumlah petugas + spesifikasi + harga.
+            for (final pk in widget.layanan.paketOpsi) ...[
+              _KartuPaket(
+                paket: pk,
+                aktif: paket.id == pk.id,
+                onTap: () => widget.onUbah(p.copyWith(
+                  paketId: pk.id,
+                  durasiJam: pk.durasi.isNotEmpty ? pk.durasi.first.jam : null,
+                )),
+              ),
+              const SizedBox(height: 10),
+            ],
+            const SizedBox(height: 8),
+            _StepJudul(2, 'Durasi Pengerjaan'),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final d in paket.durasi)
-                  _Chip(
-                    label: '${d.jam} jam · ${PriceBadge.formatRupiah(d.harga)}',
-                    aktif: (p.durasiJam ??
-                            (paket.durasi.isNotEmpty
-                                ? paket.durasi.first.jam
-                                : 0)) ==
-                        d.jam,
-                    onTap: () => widget.onUbah(p.copyWith(durasiJam: d.jam)),
-                  ),
-              ],
-            ),
+            for (final d in paket.durasi) ...[
+              _BarisPilih(
+                judul: '${d.jam} jam',
+                nilai: PriceBadge.formatRupiah(d.harga),
+                aktif: durasiTerpilih == d.jam,
+                onTap: () => widget.onUbah(p.copyWith(durasiJam: d.jam)),
+              ),
+              const SizedBox(height: 8),
+            ],
             if (paket.hargaTambahJam > 0) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               _Stepper(
                 label: 'Tambah Jam',
                 sub: '${PriceBadge.formatRupiah(paket.hargaTambahJam)} / jam',
@@ -442,28 +515,25 @@ class _PemilihHargaState extends State<_PemilihHarga> {
               ),
             ],
             if (widget.layanan.addOns.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _JudulBagian('Layanan Tambahan'),
+              const SizedBox(height: 18),
+              _StepJudul(3, 'Layanan Tambahan (opsional)'),
               const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final a in widget.layanan.addOns)
-                    _Chip(
-                      label:
-                          '${a.nama}  +${PriceBadge.formatRupiah(a.harga)}',
-                      aktif: p.addOnIds.contains(a.id),
-                      onTap: () {
-                        final baru = List<String>.from(p.addOnIds);
-                        baru.contains(a.id)
-                            ? baru.remove(a.id)
-                            : baru.add(a.id);
-                        widget.onUbah(p.copyWith(addOnIds: baru));
-                      },
-                    ),
-                ],
-              ),
+              for (final a in widget.layanan.addOns) ...[
+                _BarisPilih(
+                  judul: a.nama,
+                  nilai: '+${PriceBadge.formatRupiah(a.harga)}',
+                  aktif: p.addOnIds.contains(a.id),
+                  centang: true,
+                  onTap: () {
+                    final baru = List<String>.from(p.addOnIds);
+                    baru.contains(a.id)
+                        ? baru.remove(a.id)
+                        : baru.add(a.id);
+                    widget.onUbah(p.copyWith(addOnIds: baru));
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
             ],
           ],
         );
@@ -500,6 +570,193 @@ class _Chip extends StatelessWidget {
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: aktif ? TkColors.surface : TkColors.primaryDark)),
+        ),
+      );
+}
+
+/// Judul langkah bernomor (1/2/3) — memandu pengisian form bertahap.
+class _StepJudul extends StatelessWidget {
+  const _StepJudul(this.nomor, this.teks);
+  final int nomor;
+  final String teks;
+
+  @override
+  Widget build(BuildContext context) => Row(children: [
+        Container(
+          width: 22,
+          height: 22,
+          decoration: const BoxDecoration(
+              color: TkColors.primary, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: Text('$nomor',
+              style: GoogleFonts.montserrat(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white)),
+        ),
+        const SizedBox(width: 10),
+        Text(teks,
+            style: GoogleFonts.montserrat(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: TkColors.inkSoft)),
+      ]);
+}
+
+/// Kartu paket besar (nama, jumlah petugas, spesifikasi, harga mulai).
+class _KartuPaket extends StatelessWidget {
+  const _KartuPaket(
+      {required this.paket, required this.aktif, required this.onTap});
+  final PaketOpsi paket;
+  final bool aktif;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final mulai = paket.durasi.isEmpty
+        ? 0
+        : paket.durasi.map((d) => d.harga).reduce((a, b) => a < b ? a : b);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: aktif
+              ? TkColors.primary.withValues(alpha: 0.06)
+              : TkColors.surface,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(
+              color: aktif
+                  ? TkColors.primary
+                  : const Color(0x14000000),
+              width: aktif ? 1.6 : 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(aktif
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_unchecked_rounded,
+                  size: 20, color: aktif ? TkColors.primary : TkColors.border),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(paket.nama,
+                    style: GoogleFonts.montserrat(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        color: TkColors.inkSoft)),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                    color: TkColors.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(6)),
+                child: Text('${paket.jumlahPetugas} petugas',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: TkColors.primaryDark)),
+              ),
+            ]),
+            if (paket.spesifikasi.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              for (final s in paket.spesifikasi)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4, left: 30),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.check_rounded,
+                          size: 14, color: TkColors.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(s,
+                            style: GoogleFonts.montserrat(
+                                fontSize: 12.5,
+                                color: TkColors.textSecondary,
+                                height: 1.35)),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 30),
+              child: Text('Mulai ${PriceBadge.formatRupiah(mulai)}',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: TkColors.primary)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Baris pilihan jelas: judul kiri, harga kanan, indikator terpilih.
+/// [centang] true → checkbox (multi-pilih add-on); false → radio (durasi).
+class _BarisPilih extends StatelessWidget {
+  const _BarisPilih({
+    required this.judul,
+    required this.nilai,
+    required this.aktif,
+    required this.onTap,
+    this.centang = false,
+  });
+  final String judul;
+  final String nilai;
+  final bool aktif;
+  final bool centang;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          decoration: BoxDecoration(
+            color: aktif
+                ? TkColors.primary.withValues(alpha: 0.06)
+                : TkColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: aktif ? TkColors.primary : const Color(0x14000000),
+                width: aktif ? 1.5 : 1),
+          ),
+          child: Row(children: [
+            Icon(
+                centang
+                    ? (aktif
+                        ? Icons.check_box_rounded
+                        : Icons.check_box_outline_blank_rounded)
+                    : (aktif
+                        ? Icons.radio_button_checked_rounded
+                        : Icons.radio_button_unchecked_rounded),
+                size: 20,
+                color: aktif ? TkColors.primary : TkColors.border),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(judul,
+                  style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: TkColors.inkSoft)),
+            ),
+            Text(nilai,
+                style: GoogleFonts.montserrat(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: TkColors.primary)),
+          ]),
         ),
       );
 }

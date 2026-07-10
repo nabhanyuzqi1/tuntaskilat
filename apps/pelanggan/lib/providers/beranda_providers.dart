@@ -17,6 +17,13 @@ final layananAktifProvider = StreamProvider<List<ServiceModel>>((ref) {
   return ref.watch(firestoreServiceProvider).watchActiveServices();
 });
 
+/// Order aktif terbaru pelanggan — kartu "pesanan berjalan" di Beranda.
+final orderAktifProvider =
+    StreamProvider.autoDispose.family<OrderModel?, String>((ref, uid) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value(null);
+  return ref.watch(firestoreServiceProvider).watchOrderAktif(uid);
+});
+
 /// Kata kunci pencarian P3 (filter opsional, page-inventory P3).
 final pencarianLayananProvider = StateProvider<String>((_) => '');
 

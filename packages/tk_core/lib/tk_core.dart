@@ -5,6 +5,7 @@
 library;
 
 export 'models/user_model.dart';
+export 'models/alamat_model.dart';
 export 'models/pricing.dart';
 export 'models/service_model.dart';
 export 'models/voucher_model.dart';

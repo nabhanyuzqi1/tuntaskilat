@@ -10,6 +10,7 @@ import '../providers/notifikasi_providers.dart';
 import '../widgets/service_icon.dart';
 import '../widgets/tk_bottom_nav.dart';
 import 'home_shell.dart';
+import 'p3a_katalog_screen.dart';
 
 /// P3 — Beranda (Gambar TA 3.14 & 4.1). Katalog layanan real-time dari
 /// koleksi `services` + lencana tarif tetap (kaidah Transparansi harga),
@@ -18,11 +19,6 @@ class P3BerandaScreen extends ConsumerWidget {
   const P3BerandaScreen({super.key});
 
   static const route = '/p3';
-
-  void _menyusul(BuildContext context) =>
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Halaman ini segera hadir.')),
-      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -50,7 +46,8 @@ class P3BerandaScreen extends ConsumerWidget {
                   _JudulSection(
                     'Layanan',
                     aksi: 'Lihat Semua',
-                    onAksi: () => _menyusul(context),
+                    onAksi: () => Navigator.of(context)
+                        .pushNamed(P3aKatalogScreen.route),
                   ),
                   _GridLayanan(layanan: layanan),
                   pesanUlang.maybeWhen(

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/alamat_model.dart';
 import '../models/kru_model.dart';
 import '../models/notification_model.dart';
 import '../models/dispute_model.dart';
@@ -388,6 +389,55 @@ class FirestoreService {
       .map((s) => s.docs
           .map((d) => OrderModel.fromMap(d.id, d.data()))
           .toList(growable: false));
+
+  /// Order aktif terbaru milik pelanggan (untuk kartu "order berjalan" di
+  /// Beranda, pola Gojek). null bila tak ada yang aktif.
+  Stream<OrderModel?> watchOrderAktif(String userId) => _orders
+          .where('userId', isEqualTo: userId)
+          .snapshots()
+          .map((s) {
+        final aktif = s.docs
+            .map((d) => OrderModel.fromMap(d.id, d.data()))
+            .where((o) => const {
+                  OrderStatus.menungguVerifikasi,
+                  OrderStatus.terverifikasi,
+                  OrderStatus.menungguPenugasan,
+                  OrderStatus.ditugaskan,
+                  OrderStatus.dalamPerjalanan,
+                  OrderStatus.diproses,
+                }.contains(o.status))
+            .toList()
+          ..sort((a, b) => b.tanggalPesan.compareTo(a.tanggalPesan));
+        return aktif.isEmpty ? null : aktif.first;
+      });
+
+  /// Pelanggan membatalkan pesanan (hanya sebelum kru bekerja). Rules
+  /// mengizinkan pemilik mengubah `status`.
+  Future<void> batalkanPesanan(OrderModel order) {
+    if (!order.status.bisaDibatalkanPelanggan) {
+      throw StateError('Pesanan tidak dapat dibatalkan pada tahap ini.');
+    }
+    return _orders
+        .doc(order.orderId)
+        .update({'status': OrderStatus.dibatalkan.wire});
+  }
+
+  // ------------------------------------------------------- alamat tersimpan
+
+  CollectionReference<Map<String, dynamic>> _alamatCol(String uid) =>
+      _users.doc(uid).collection('alamat');
+
+  Stream<List<AlamatModel>> watchAlamat(String uid) =>
+      _alamatCol(uid).snapshots().map((s) => s.docs
+          .map((d) => AlamatModel.fromMap(d.id, d.data()))
+          .toList(growable: false));
+
+  Future<void> simpanAlamat(String uid, AlamatModel a) => a.id.isEmpty
+      ? _alamatCol(uid).add(a.toMap())
+      : _alamatCol(uid).doc(a.id).set(a.toMap());
+
+  Future<void> hapusAlamat(String uid, String id) =>
+      _alamatCol(uid).doc(id).delete();
 
   /// Order yang menugaskan kru ini (worker ATAU helper) — pakai `kruIds`
   /// array-contains agar helper juga melihat pekerjaannya. Digabung dengan
