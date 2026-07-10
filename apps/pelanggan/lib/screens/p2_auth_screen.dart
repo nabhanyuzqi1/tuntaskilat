@@ -346,6 +346,7 @@ class _FormDaftarState extends ConsumerState<_FormDaftar> {
   final _email = TextEditingController();
   final _sandi = TextEditingController();
   final _konfirmasi = TextEditingController();
+  final _referal = TextEditingController();
   var _sandiTersembunyi = true;
   var _setuju = false;
 
@@ -356,16 +357,19 @@ class _FormDaftarState extends ConsumerState<_FormDaftar> {
     _email.dispose();
     _sandi.dispose();
     _konfirmasi.dispose();
+    _referal.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final ref0 = _referal.text.trim();
     final sukses = await ref.read(authControllerProvider.notifier).daftar(
           nama: _nama.text.trim(),
           email: _email.text.trim(),
           noTelepon: _telepon.text.trim(),
           password: _sandi.text,
+          kodeReferal: ref0.isEmpty ? null : ref0,
         );
     if (sukses && mounted) widget.onSukses();
   }
@@ -424,6 +428,14 @@ class _FormDaftarState extends ConsumerState<_FormDaftar> {
             hint: 'Ulangi kata sandi',
             obscureText: true,
             validator: (v) => Validators.konfirmasiKataSandi(v, _sandi.text),
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: 14),
+          TkTextField(
+            label: 'Kode Referal (opsional)',
+            controller: _referal,
+            hint: 'Punya kode teman? Masukkan di sini',
+            textCapitalization: TextCapitalization.characters,
             textInputAction: TextInputAction.done,
           ),
           const SizedBox(height: 14),

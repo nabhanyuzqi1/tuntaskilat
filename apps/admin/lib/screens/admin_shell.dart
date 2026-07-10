@@ -12,8 +12,9 @@ import 'a4_kelola_layanan_screen.dart';
 import 'a5_kelola_kru_screen.dart';
 import 'a6_pengaturan_screen.dart';
 import 'a7_voucher_screen.dart';
+import 'a8_setoran_screen.dart';
 
-enum MenuAdmin { dashboard, pesanan, layanan, kru, voucher, pengaturan }
+enum MenuAdmin { dashboard, pesanan, layanan, kru, voucher, setoran, pengaturan }
 
 final menuAdminProvider =
     StateProvider<MenuAdmin>((_) => MenuAdmin.dashboard);
@@ -41,6 +42,7 @@ class AdminShell extends ConsumerWidget {
               A4KelolaLayananScreen(),
               A5KelolaKruScreen(),
               A7VoucherScreen(),
+              A8SetoranScreen(),
               A6PengaturanScreen(),
             ],
           ),
@@ -112,6 +114,8 @@ class _Sidebar extends ConsumerWidget {
         _item(ref, MenuAdmin.layanan, Icons.grid_view_rounded, 'Layanan'),
         _item(ref, MenuAdmin.kru, Icons.groups_outlined, 'Kru'),
         _item(ref, MenuAdmin.voucher, Icons.local_offer_outlined, 'Voucher'),
+        _item(ref, MenuAdmin.setoran, Icons.account_balance_wallet_outlined,
+            'Setoran'),
         const Spacer(),
         _item(ref, MenuAdmin.pengaturan, Icons.settings_outlined,
             'Pengaturan'),

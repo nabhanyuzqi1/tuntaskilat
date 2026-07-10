@@ -19,6 +19,25 @@ const db = admin.firestore();
 // ─────────────────────────────────────────────────────────── region Asia SE2
 const REGION = "asia-southeast2";
 
+/**
+ * Persen komisi platform untuk sebuah layanan. Baca settings/komisi:
+ * override `perLayanan[serviceId]` bila ada, jika tidak `komisiPersen` global,
+ * default 20. Diklem 0–100. Sinkron dgn KonfigKomisi (Dart).
+ */
+async function komisiPersenUntuk(serviceId: string): Promise<number> {
+  try {
+    const snap = await db.collection("settings").doc("komisi").get();
+    const d = snap.data() ?? {};
+    const per = (d.perLayanan ?? {}) as Record<string, number>;
+    const raw = serviceId in per ? per[serviceId] : (d.komisiPersen ?? 20);
+    const n = Number(raw);
+    if (!isFinite(n)) return 20;
+    return Math.min(100, Math.max(0, n));
+  } catch {
+    return 20;
+  }
+}
+
 // ─────────────────────────────────────── helpers
 interface ServiceDoc {
   harga: number;
@@ -253,9 +272,10 @@ export const onOrderFinalize = functions.firestore.onDocumentUpdated(
       peran: string;
     }> = after.penugasan ?? [];
     const cleanerId: string = after.cleanerId ?? "";
+    const serviceId: string = after.serviceId ?? "";
 
-    // Konfigurasi upah default (sinkron dengan KonfigUpah di Dart)
-    const KOMISI_PERSEN = 20;
+    // Konfigurasi komisi dari settings/komisi (global + override per layanan).
+    const KOMISI_PERSEN = await komisiPersenUntuk(serviceId);
     const RASIO_HELPER = 0.6; // helper dapat 60% dari bagian worker
 
     if (penugasan.length > 0) {
@@ -322,6 +342,53 @@ export const onOrderFinalize = functions.firestore.onDocumentUpdated(
           status: "pending",
           waktu: admin.firestore.FieldValue.serverTimestamp(),
         });
+      }
+    }
+
+    // Pembukuan kas tunai: bila order dibayar TUNAI, komisi platform dipegang
+    // kru (lead) dan wajib disetor → kasKru.saldoTunai += komisi. Idempoten:
+    // hanya saat transisi masuk 'selesai' (fungsi ini fire sekali per transisi)
+    // dan diproteksi flag `kasTunaiDibukukan` pada order.
+    if (
+      after.metodePembayaran === "tunai" &&
+      after.kasTunaiDibukukan !== true
+    ) {
+      const penugasanArr = penugasan;
+      const leadId =
+        penugasanArr.length > 0 ? penugasanArr[0].cleanerId : cleanerId;
+      const leadNama =
+        penugasanArr.length > 0
+          ? penugasanArr[0].nama
+          : after.namaKru ?? "Kru";
+      if (leadId) {
+        const komisiTunai = Math.round((totalHarga * KOMISI_PERSEN) / 100);
+        const kasRef = db.collection("kasKru").doc(leadId);
+        const orderRef = db.collection("orders").doc(orderId);
+        await db.runTransaction(async (tx) => {
+          const kasSnap = await tx.get(kasRef);
+          const ordSnap = await tx.get(orderRef);
+          if (ordSnap.data()?.kasTunaiDibukukan === true) return; // guard ganda
+          const d = kasSnap.data() ?? {};
+          const saldo = Number(d.saldoTunai ?? 0);
+          const masuk = Number(d.totalMasuk ?? 0);
+          tx.set(
+            kasRef,
+            {
+              cleanerId: leadId,
+              namaKru: d.namaKru || leadNama,
+              saldoTunai: saldo + komisiTunai,
+              batasNunggak: Number(d.batasNunggak ?? 200000),
+              totalMasuk: masuk + komisiTunai,
+              totalSetor: Number(d.totalSetor ?? 0),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            {merge: true},
+          );
+          tx.update(orderRef, {kasTunaiDibukukan: true});
+        });
+        functions.logger.info(
+          `[onOrderFinalize] Kas tunai ${leadId} +Rp${komisiTunai}`,
+        );
       }
     }
 
@@ -510,5 +577,248 @@ export const setNonaktifAdmin = functions.https.onCall(
     await admin.auth().updateUser(target, {disabled: nonaktif});
     await db.collection("users").doc(target).update({nonaktif});
     return {ok: true};
+  },
+);
+
+// ═════════════════════════════════════════════════════ Referal (A#4)
+
+/** Normalisasi nomor telepon: 0xxxx → 62xxxx, buang non-digit. */
+function normalTelp(t: string): string {
+  const d = (t ?? "").replace(/[^0-9]/g, "");
+  if (d.startsWith("0")) return "62" + d.slice(1);
+  return d;
+}
+
+/** Kode voucher acak REF + 6 char base32 (tanpa 0/1/O/I). */
+function kodeVoucherReferal(): string {
+  const abjad = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s = "REF";
+  for (let i = 0; i < 6; i++) {
+    s += abjad[Math.floor(Math.random() * abjad.length)];
+  }
+  return s;
+}
+
+/**
+ * Reward referal: saat order pertama pelanggan SELESAI dan ia mendaftar dengan
+ * `referredBy`, terbitkan voucher hadiah untuk PENGUNDANG (pemilik kodeReferal).
+ * Anti-abuse: dikunci per NOMOR TELEPON pelanggan (`referralClaims/{telp}`) —
+ * daftar ulang dengan nomor sama tak bisa klaim lagi. Idempoten via klaim.
+ */
+export const rewardReferral = functions.firestore.onDocumentUpdated(
+  {document: "orders/{orderId}", region: REGION},
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
+    if (before.status === "selesai" || after.status !== "selesai") return;
+
+    const buyerId: string = after.userId ?? "";
+    if (!buyerId) return;
+
+    const buyerSnap = await db.collection("users").doc(buyerId).get();
+    const buyer = buyerSnap.data();
+    const referredBy = String(buyer?.referredBy ?? "").toUpperCase();
+    if (!buyer || !referredBy) return;
+
+    const telp = normalTelp(String(buyer.noTelepon ?? ""));
+    if (!telp) return;
+
+    // Konfigurasi reward (settings/referral) — default Rp20.000.
+    const cfgSnap = await db.collection("settings").doc("referral").get();
+    const cfg = cfgSnap.data() ?? {};
+    const nominal = Number(cfg.nominal ?? 20000);
+    const minBelanja = Number(cfg.minBelanja ?? 0);
+    const masaHari = Number(cfg.masaBerlakuHari ?? 90);
+
+    const claimRef = db.collection("referralClaims").doc(telp);
+    const voucherKode = kodeVoucherReferal();
+    const voucherRef = db.collection("vouchers").doc(voucherKode);
+
+    // Cari pengundang by kodeReferal.
+    const refQ = await db
+      .collection("users")
+      .where("kodeReferal", "==", referredBy)
+      .limit(1)
+      .get();
+    if (refQ.empty) return;
+    const referrer = refQ.docs[0];
+    if (referrer.id === buyerId) return; // tak bisa mereferal diri sendiri
+
+    const berlaku = new Date();
+    berlaku.setDate(berlaku.getDate() + masaHari);
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const claim = await tx.get(claimRef);
+        if (claim.exists) return; // sudah pernah klaim untuk nomor ini
+        tx.set(claimRef, {
+          telepon: telp,
+          buyerId,
+          referrerId: referrer.id,
+          kodeReferal: referredBy,
+          voucherKode,
+          waktu: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        tx.set(voucherRef, {
+          kode: voucherKode,
+          tipe: "nominal",
+          nilai: nominal,
+          deskripsi: `Hadiah referal dari ${buyer.nama ?? "teman"}`,
+          minBelanja,
+          maxPotongan: 0,
+          kuota: 1,
+          terpakai: 0,
+          berlakuHingga: berlaku.toISOString(),
+          aktif: true,
+          khususPenggunaBaru: false,
+          sekaliPerNomor: true,
+        });
+        const notifRef = db.collection("notifications").doc();
+        tx.set(notifRef, {
+          notificationId: notifRef.id,
+          userId: referrer.id,
+          judul: "Hadiah referal untuk Anda! 🎉",
+          pesan:
+            `Teman yang Anda undang menyelesaikan pesanan pertamanya. ` +
+            `Pakai kode ${voucherKode} untuk potongan Rp${nominal}.`,
+          waktu: admin.firestore.Timestamp.now(),
+          dibaca: false,
+        });
+      });
+      functions.logger.info(
+        `[rewardReferral] voucher ${voucherKode} → ${referrer.id} ` +
+          `(referred ${buyerId})`,
+      );
+    } catch (e) {
+      functions.logger.error(`[rewardReferral] gagal: ${e}`);
+    }
+  },
+);
+
+// ═══════════════════════════════════════════════ WA Fonnte (A#8)
+
+/**
+ * Abstraksi pengirim WhatsApp. Implementasi aktif memakai Fonnte; ganti kelas
+ * ini bila pindah vendor (Twilio, dsb.) tanpa menyentuh pemanggil.
+ */
+interface WaSender {
+  kirim(target: string, pesan: string): Promise<boolean>;
+}
+
+/** Pengirim WA via Fonnte. Token dari env FONNTE_TOKEN (functions/.env). */
+class FonnteSender implements WaSender {
+  async kirim(target: string, pesan: string): Promise<boolean> {
+    const token = process.env.FONNTE_TOKEN ?? "";
+    if (!token) {
+      functions.logger.warn("[wa] FONNTE_TOKEN belum diset — WA dilewati.");
+      return false;
+    }
+    const t = normalTelp(target);
+    if (!t) return false;
+    try {
+      const body = new URLSearchParams({target: t, message: pesan});
+      const res = await fetch("https://api.fonnte.com/send", {
+        method: "POST",
+        headers: {Authorization: token},
+        body,
+      });
+      if (!res.ok) {
+        functions.logger.error(`[wa] Fonnte ${res.status} → ${t}`);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      functions.logger.error(`[wa] gagal kirim: ${e}`);
+      return false;
+    }
+  }
+}
+
+const waSender: WaSender = new FonnteSender();
+
+/**
+ * Notifikasi WhatsApp ke pelanggan pada transisi status penting. No-op bila
+ * FONNTE_TOKEN belum diset (aman untuk lingkungan tanpa kredensial WA).
+ */
+export const waNotifOrder = functions.firestore.onDocumentUpdated(
+  {document: "orders/{orderId}", region: REGION},
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
+    if (before.status === after.status) return;
+
+    const telp = after.teleponPelanggan ?? "";
+    if (!telp) return;
+    const nama = after.namaPelanggan ?? "Pelanggan";
+    const layanan = after.namaLayanan ?? "layanan";
+
+    let pesan: string | null = null;
+    switch (after.status) {
+      case "terverifikasi":
+        pesan =
+          `Halo ${nama}, pembayaran untuk *${layanan}* sudah kami verifikasi. ` +
+          `Kru akan segera ditugaskan. Terima kasih — Tuntaskilat.`;
+        break;
+      case "ditugaskan":
+        pesan =
+          `Halo ${nama}, kru untuk *${layanan}* sudah ditugaskan dan akan ` +
+          `datang sesuai jadwal. Pantau di aplikasi Tuntaskilat.`;
+        break;
+      case "selesai":
+        pesan =
+          `Halo ${nama}, pesanan *${layanan}* telah selesai. Terima kasih ` +
+          `telah memakai Tuntaskilat! Beri ulasan Anda di aplikasi ya.`;
+        break;
+      default:
+        return;
+    }
+    if (pesan) await waSender.kirim(telp, pesan);
+  },
+);
+
+// ═══════════════════════════════════════════════ Xendit webhook (A#7, stub)
+
+/**
+ * Webhook Xendit (VA/QRIS dinamis) — STUB defensif. Aktif hanya bila
+ * XENDIT_CALLBACK_TOKEN diset; jika belum, balas 501 (belum diaktifkan).
+ * Saat aktif: verifikasi header x-callback-token, tandai payment & order
+ * terverifikasi berdasarkan external_id = orderId.
+ */
+export const xenditWebhook = functions.https.onRequest(
+  {region: REGION},
+  async (req, res) => {
+    const expected = process.env.XENDIT_CALLBACK_TOKEN ?? "";
+    if (!expected) {
+      res.status(501).send("Xendit belum diaktifkan.");
+      return;
+    }
+    if (req.get("x-callback-token") !== expected) {
+      res.status(401).send("Token callback tidak valid.");
+      return;
+    }
+    const body = req.body ?? {};
+    const orderId: string = body.external_id ?? "";
+    const status: string = body.status ?? "";
+    if (!orderId) {
+      res.status(400).send("external_id kosong.");
+      return;
+    }
+    if (status === "PAID" || status === "SETTLED") {
+      const payQ = await db
+        .collection("payments")
+        .where("orderId", "==", orderId)
+        .limit(1)
+        .get();
+      if (!payQ.empty) {
+        await payQ.docs[0].ref.update({statusBayar: "terverifikasi"});
+      }
+      await db.collection("orders").doc(orderId).update({
+        status: "terverifikasi",
+      });
+      functions.logger.info(`[xenditWebhook] order ${orderId} PAID`);
+    }
+    res.status(200).send("OK");
   },
 );

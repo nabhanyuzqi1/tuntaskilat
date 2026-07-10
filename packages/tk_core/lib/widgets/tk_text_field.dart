@@ -16,6 +16,7 @@ class TkTextField extends StatelessWidget {
     this.obscureText = false,
     this.suffixIcon,
     this.textInputAction,
+    this.textCapitalization = TextCapitalization.none,
     this.autovalidateMode = AutovalidateMode.onUserInteraction,
   });
 
@@ -27,6 +28,7 @@ class TkTextField extends StatelessWidget {
   final bool obscureText;
   final Widget? suffixIcon;
   final TextInputAction? textInputAction;
+  final TextCapitalization textCapitalization;
   final AutovalidateMode autovalidateMode;
 
   @override
@@ -49,6 +51,7 @@ class TkTextField extends StatelessWidget {
           keyboardType: keyboardType,
           obscureText: obscureText,
           textInputAction: textInputAction,
+          textCapitalization: textCapitalization,
           autovalidateMode: autovalidateMode,
           style: GoogleFonts.montserrat(
             fontSize: 15,

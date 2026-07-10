@@ -142,6 +142,31 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Buku kas setoran tunai per kru (produk nyata). Kru BACA miliknya; ia tak
+    // pernah menulis saldonya sendiri — kas dibukukan Cloud Function (admin SDK,
+    // melewati rules) saat order tunai selesai, dan dikurangi admin saat
+    // menerima setoran. Doc id = cleanerId.
+    match /kasKru/{cleanerId} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && request.auth.uid == cleanerId);
+      allow write: if isAdmin();
+    }
+
+    // Riwayat setoran tunai (audit). Kru BACA miliknya; hanya admin mencatat.
+    match /setoran/{setoranId} {
+      allow read: if isAdmin() ||
+        (isSignedIn() && resource.data.cleanerId == request.auth.uid);
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // Klaim referal per-nomor (anti-abuse). Dibuat/diubah Cloud Function
+    // (admin SDK). Klien hanya baca miliknya.
+    match /referralClaims/{telepon} {
+      allow read: if isAdmin() || isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // Banding upah/hasil. Kru atau pelanggan membuat; hanya admin memutus.
     match /disputes/{disputeId} {
       allow read: if isAdmin() ||

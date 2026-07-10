@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'payment_model.dart';
 import 'pricing.dart';
 import 'wage.dart';
 
@@ -81,6 +82,7 @@ class OrderModel {
     this.rincian = const [],
     this.penugasan = const [],
     this.kruIds = const [],
+    this.metodePembayaran = MetodeBayar.transferBank,
   });
 
   final String orderId;
@@ -133,6 +135,13 @@ class OrderModel {
   /// ID semua kru tertugas — untuk query `array-contains` di portal Kru.
   final List<String> kruIds;
 
+  /// Metode bayar (denormalisasi dari `payments`) — dibutuhkan saat order
+  /// selesai untuk menentukan pembukuan kas tunai. Default transfer.
+  final MetodeBayar metodePembayaran;
+
+  /// True bila order dibayar tunai (memicu pembukuan kasKru saat selesai).
+  bool get tunai => metodePembayaran == MetodeBayar.tunai;
+
   /// True bila semua kru tertugas sudah konfirmasi "selesai bagian saya".
   bool get semuaKruKonfirmasi =>
       penugasan.isNotEmpty && penugasan.every((p) => p.sudahKonfirmasi);
@@ -172,6 +181,9 @@ class OrderModel {
                 Penugasan.fromMap(Map<String, dynamic>.from(e as Map)))
             .toList(),
         kruIds: (map['kruIds'] as List?)?.cast<String>() ?? const [],
+        metodePembayaran: map['metodePembayaran'] == null
+            ? MetodeBayar.transferBank
+            : MetodeBayar.fromWire(map['metodePembayaran'] as String),
       );
 
   Map<String, dynamic> toMap() => {
@@ -201,5 +213,6 @@ class OrderModel {
         'rincian': rincian.map((e) => e.toMap()).toList(),
         'penugasan': penugasan.map((e) => e.toMap()).toList(),
         'kruIds': kruIds,
+        'metodePembayaran': metodePembayaran.wire,
       };
 }

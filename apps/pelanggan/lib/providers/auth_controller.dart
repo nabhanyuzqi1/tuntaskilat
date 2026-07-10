@@ -25,12 +25,14 @@ class AuthController extends AutoDisposeAsyncNotifier<UserModel?> {
     required String email,
     required String noTelepon,
     required String password,
+    String? kodeReferal,
   }) =>
       _jalankan(() => ref.read(authServiceProvider).registerPelanggan(
             nama: nama,
             email: email,
             noTelepon: noTelepon,
             password: password,
+            kodeReferal: kodeReferal,
           ));
 
   static var _googleSiap = false;
