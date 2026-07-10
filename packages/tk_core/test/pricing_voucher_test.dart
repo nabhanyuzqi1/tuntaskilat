@@ -200,5 +200,85 @@ void main() {
         throwsA(isA<VoucherException>()),
       );
     });
+
+    // ---- Skenario Black-Box anti-abuse voucher (Fase 4 A#3) ----
+
+    test('sekaliPerNomor: nomor sama tak bisa klaim ulang (VoucherException)',
+        () async {
+      await db.collection('vouchers').doc('SEKALI').set(const VoucherModel(
+            voucherId: 'SEKALI',
+            kode: 'SEKALI',
+            tipe: TipeVoucher.nominal,
+            nilai: 10000,
+            kuota: 0, // tak terbatas kuota — pengujian kunci per-nomor
+          ).toMap());
+      await service.buatPesananLengkap(
+        pelanggan: pelanggan,
+        serviceId: 'cleaning',
+        jadwal: DateTime(2026, 7, 12, 9, 0),
+        pilihan: const PilihanHarga(paketId: 'reguler', durasiJam: 2),
+        alamatLayanan: 'Jl. A, Sampit',
+        lokasi: lokasiSampit,
+        metode: MetodeBayar.tunai,
+        voucherKode: 'SEKALI',
+      );
+      // Akun berbeda tapi NOMOR SAMA — trik akun baru harus gagal.
+      const pelangganLain = UserModel(
+        userId: 'u2',
+        nama: 'Budi Kedua',
+        email: 'b2@e.com',
+        noTelepon: '0812', // nomor sama
+        alamat: 'Jl. A, Sampit',
+        role: UserRole.pelanggan,
+      );
+      await expectLater(
+        service.buatPesananLengkap(
+          pelanggan: pelangganLain,
+          serviceId: 'cleaning',
+          jadwal: DateTime(2026, 7, 13, 9, 0),
+          pilihan: const PilihanHarga(paketId: 'reguler', durasiJam: 2),
+          alamatLayanan: 'Jl. A, Sampit',
+          lokasi: lokasiSampit,
+          metode: MetodeBayar.tunai,
+          voucherKode: 'SEKALI',
+        ),
+        throwsA(isA<VoucherException>()),
+      );
+    });
+
+    test('khususPenggunaBaru: pelanggan yang sudah pernah memesan ditolak',
+        () async {
+      await db.collection('vouchers').doc('BARU').set(const VoucherModel(
+            voucherId: 'BARU',
+            kode: 'BARU',
+            tipe: TipeVoucher.nominal,
+            nilai: 15000,
+            kuota: 0,
+            khususPenggunaBaru: true,
+          ).toMap());
+      // Order pertama TANPA voucher → pelanggan kini punya riwayat.
+      await service.buatPesananLengkap(
+        pelanggan: pelanggan,
+        serviceId: 'cleaning',
+        jadwal: DateTime(2026, 7, 12, 15, 0),
+        pilihan: const PilihanHarga(paketId: 'reguler', durasiJam: 2),
+        alamatLayanan: 'Jl. A, Sampit',
+        lokasi: lokasiSampit,
+        metode: MetodeBayar.tunai,
+      );
+      await expectLater(
+        service.buatPesananLengkap(
+          pelanggan: pelanggan,
+          serviceId: 'cleaning',
+          jadwal: DateTime(2026, 7, 13, 15, 0),
+          pilihan: const PilihanHarga(paketId: 'reguler', durasiJam: 2),
+          alamatLayanan: 'Jl. A, Sampit',
+          lokasi: lokasiSampit,
+          metode: MetodeBayar.tunai,
+          voucherKode: 'BARU',
+        ),
+        throwsA(isA<VoucherException>()),
+      );
+    });
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tk_core/tk_core.dart';
 
+import 'providers/app_providers.dart';
 import 'screens/home_shell.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/p1_splash_screen.dart';
@@ -23,6 +24,9 @@ import 'screens/p8_tracking_screen.dart';
 import 'screens/p16_chat_screen.dart';
 import 'screens/syarat_ketentuan_screen.dart';
 
+/// Versi aplikasi Pelanggan (untuk pengecekan update paksa settings/app).
+const kVersiPelanggan = '1.0.0';
+
 /// Aplikasi Pelanggan — identitas warna hijau utama #0A874D
 /// (design-tokens.md § Identitas warna per aplikasi).
 class TkPelangganApp extends StatelessWidget {
@@ -38,7 +42,11 @@ class TkPelangganApp extends StatelessWidget {
       // tema dilakukan di root — bukan per layar.
       builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
         value: TkTheme.systemOverlayStyle,
-        child: child!,
+        child: MaintenanceGate(
+          konfigProvider: konfigAppProvider,
+          versi: kVersiPelanggan,
+          child: child!,
+        ),
       ),
       initialRoute: P1SplashScreen.route,
       routes: {

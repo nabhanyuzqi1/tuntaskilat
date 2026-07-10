@@ -36,6 +36,14 @@ final firestoreServiceProvider =
 final storageServiceProvider =
     Provider<StorageService>((_) => StorageService());
 
+/// Konfigurasi runtime app (settings/app) — maintenance / update paksa.
+final konfigAppProvider = StreamProvider<KonfigApp>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) {
+    return Stream.value(const KonfigApp());
+  }
+  return ref.watch(firestoreServiceProvider).watchKonfigApp();
+});
+
 final authStateProvider = StreamProvider<User?>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return const Stream.empty();
   return ref.watch(authServiceProvider).authStateChanges;

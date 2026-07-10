@@ -79,7 +79,9 @@ service cloud.firestore {
     }
 
     match /settings/{docId} {
-      allow read: if isSignedIn();
+      // `app` (mode maintenance/update) dibaca SEBELUM login di semua app →
+      // publik. Dokumen settings lain tetap butuh login.
+      allow read: if isSignedIn() || docId == 'app';
       allow write: if isAdmin();
     }
 

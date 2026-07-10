@@ -89,6 +89,9 @@ class A6PengaturanScreen extends ConsumerWidget {
                     _judul('BIAYA & KOMISI'),
                     const _KartuKomisi(),
                     const SizedBox(height: 22),
+                    _judul('MODE APLIKASI'),
+                    const _KartuMaintenance(),
+                    const SizedBox(height: 22),
                     _judul('MANAJEMEN TIM ADMIN'),
                     const _KartuTim(),
                   ],
@@ -968,6 +971,167 @@ class _KartuKomisiState extends ConsumerState<_KartuKomisi> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
+}
+
+/// Kartu Mode Aplikasi (F6 Maintenance). Admin dapat mengaktifkan mode
+/// pemeliharaan atau update paksa — semua app cek settings/app saat boot.
+class _KartuMaintenance extends ConsumerStatefulWidget {
+  const _KartuMaintenance();
+
+  @override
+  ConsumerState<_KartuMaintenance> createState() => _KartuMaintenanceState();
+}
+
+class _KartuMaintenanceState extends ConsumerState<_KartuMaintenance> {
+  final _pesan = TextEditingController();
+  final _versiMin = TextEditingController();
+  AppMode? _mode;
+  bool _seeded = false;
+  bool _menyimpan = false;
+
+  @override
+  void dispose() {
+    _pesan.dispose();
+    _versiMin.dispose();
+    super.dispose();
+  }
+
+  void _seed(KonfigApp k) {
+    if (_seeded) return;
+    _mode = k.mode;
+    _pesan.text = k.pesan;
+    _versiMin.text = k.versiMin;
+    _seeded = true;
+  }
+
+  Future<void> _simpan() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _menyimpan = true);
+    try {
+      await ref.read(firestoreServiceProvider).updateSettings(
+            'app',
+            KonfigApp(
+              mode: _mode ?? AppMode.normal,
+              pesan: _pesan.text.trim(),
+              versiMin: _versiMin.text.trim(),
+            ).toMap(),
+          );
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Mode aplikasi diperbarui.')));
+    } catch (_) {
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Gagal menyimpan mode aplikasi.')));
+    } finally {
+      if (mounted) setState(() => _menyimpan = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final konfig = ref.watch(konfigAppProvider).valueOrNull;
+    if (konfig == null) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: AdminUi.kartu(),
+        child: const Center(
+            child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2))),
+      );
+    }
+    _seed(konfig);
+    final mode = _mode ?? AppMode.normal;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: AdminUi.kartu(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (mode != AppMode.normal)
+          Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: TkColors.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(children: [
+              const Icon(Icons.warning_amber_rounded,
+                  size: 18, color: TkColors.error),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                    mode == AppMode.maintenance
+                        ? 'Aplikasi SEDANG DALAM MAINTENANCE untuk semua '
+                            'pengguna.'
+                        : 'UPDATE PAKSA aktif untuk versi di bawah '
+                            '${_versiMin.text.trim().isEmpty ? '-' : _versiMin.text.trim()}.',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: TkColors.error)),
+              ),
+            ]),
+          ),
+        Text('Mode',
+            style: GoogleFonts.montserrat(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: TkColors.inkSoft)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final m in AppMode.values)
+              ChoiceChip(
+                label: Text(switch (m) {
+                  AppMode.normal => 'Normal',
+                  AppMode.maintenance => 'Maintenance',
+                  AppMode.updateWajib => 'Update Wajib',
+                }),
+                selected: mode == m,
+                onSelected: (_) => setState(() => _mode = m),
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _pesan,
+          maxLines: 2,
+          decoration: InputDecoration(
+            labelText: 'Pesan (opsional)',
+            hintText: 'Pesan yang ditampilkan ke pengguna',
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _versiMin,
+          decoration: InputDecoration(
+            labelText: 'Versi Minimum (untuk Update Wajib, mis. 1.1.0)',
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Align(
+          alignment: Alignment.centerRight,
+          child: ElevatedButton(
+            onPressed: _menyimpan ? null : _simpan,
+            style: ElevatedButton.styleFrom(minimumSize: const Size(140, 46)),
+            child: _menyimpan
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.4, color: TkColors.surface))
+                : const Text('Simpan Mode'),
+          ),
+        ),
+      ]),
+    );
+  }
 }
 
 /// Kartu Manajemen Tim Admin (A#2). Daftar akun admin + undang admin baru +

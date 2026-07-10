@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/alamat_model.dart';
+import '../models/app_config_model.dart';
 import '../models/kas_kru_model.dart';
 import '../models/komisi_model.dart';
 import '../models/kru_model.dart';
@@ -1129,6 +1130,15 @@ class FirestoreService {
   Future<void> updateSettings(String docId, Map<String, dynamic> data) async {
     await _db.collection('settings').doc(docId).set(data, SetOptions(merge: true));
   }
+
+  // --------------------------------------------------------------- app config
+
+  /// Konfigurasi runtime app (settings/app) untuk maintenance/update paksa.
+  Stream<KonfigApp> watchKonfigApp() => _db
+      .collection('settings')
+      .doc('app')
+      .snapshots()
+      .map((s) => KonfigApp.fromMap(s.data() ?? const {}));
 
   // -------------------------------------------------------------------- komisi
 
