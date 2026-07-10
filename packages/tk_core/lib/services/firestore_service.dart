@@ -690,8 +690,34 @@ class FirestoreService {
       'dibaca': false,
       'orderId': order.orderId,
     });
+    // Notifikasi untuk SETIAP kru tertugas (in-app list + fallback bila FCM
+    // gagal; Cloud Function mengirim push FCM ke token mereka).
+    for (final p in penugasan) {
+      final kn = _notifications.doc();
+      batch.set(kn, {
+        'notificationId': kn.id,
+        'userId': p.cleanerId,
+        'judul': 'Tugas baru untuk Anda',
+        'pesan': '${order.namaLayanan} — ${order.alamatLayanan}. '
+            'Buka aplikasi untuk detail & navigasi.',
+        'waktu': Timestamp.now(),
+        'dibaca': false,
+        'orderId': order.orderId,
+      });
+    }
     await batch.commit();
   }
+
+  /// Simpan/hapus token FCM perangkat kru (dipanggil saat login/logout).
+  Future<void> simpanFcmTokenKru(String cleanerId, String token) =>
+      _kru.doc(cleanerId).update({
+        'fcmTokens': FieldValue.arrayUnion([token])
+      });
+
+  Future<void> hapusFcmTokenKru(String cleanerId, String token) =>
+      _kru.doc(cleanerId).update({
+        'fcmTokens': FieldValue.arrayRemove([token])
+      });
 
 
 

@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../models/notification_model.dart';
 
 /// NotificationService: Menangani background service dan local notifications.
 class NotificationService {
@@ -46,6 +43,9 @@ class NotificationService {
         'Tuntaskilat Notifications',
         description: 'Notifikasi penting pesanan',
         importance: Importance.max,
+        // Suara khusus (file di res/raw/tuntaskilat_ring.*). Channel sound
+        // hanya berlaku sejak channel dibuat; hapus data app bila ganti suara.
+        sound: RawResourceAndroidNotificationSound('tuntaskilat_ring'),
       ),
     );
 
@@ -75,7 +75,7 @@ class NotificationService {
 
   void showLocalNotification(String title, String body) {
     _localNotif.show(
-      id: DateTime.now().millisecond,
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       title: title,
       body: body,
       notificationDetails: const NotificationDetails(
@@ -85,6 +85,9 @@ class NotificationService {
           channelDescription: 'Notifikasi penting pesanan',
           importance: Importance.max,
           priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          sound: RawResourceAndroidNotificationSound('tuntaskilat_ring'),
+          playSound: true,
         ),
       ),
     );
@@ -109,6 +112,7 @@ void onStart(ServiceInstance service) async {
     'Tuntaskilat Notifications',
     description: 'Notifikasi penting pesanan',
     importance: Importance.max,
+    sound: RawResourceAndroidNotificationSound('tuntaskilat_ring'),
   );
 
   const AndroidNotificationChannel bgChannel = AndroidNotificationChannel(
@@ -137,46 +141,18 @@ void onStart(ServiceInstance service) async {
     });
   }
 
-  String? lastNotifId;
-
-  // Dengarkan notifikasi dari Firestore secara terus-menerus
-  Timer.periodic(const Duration(seconds: 10), (timer) async {
-    // Kita harus ambil UID yang aktif dari shared preferences karena di isolate berbeda
-    // auth state mungkin tidak sinkron atau butuh re-init. SharedPreferences aman lintas isolate.
+  // Pengiriman tugas kini via FCM push (andal walau app ditutup, hemat
+  // baterai) — polling Firestore 10 detik DIHAPUS (boros + butuh composite
+  // index). Background service ini hanya menjaga notifikasi foreground
+  // "Online" agar kru tahu ia siap menerima tugas & proses tak dibunuh OS.
+  Timer.periodic(const Duration(minutes: 15), (_) async {
     await prefs.reload();
     final uid = prefs.getString('uid');
-    if (uid == null || uid.isEmpty) return;
-
-    final snapshot = await FirebaseFirestore.instance
-        .collection('notifications')
-        .where('userId', isEqualTo: uid)
-        .where('dibaca', isEqualTo: false)
-        .orderBy('waktu', descending: true)
-        .limit(1)
-        .get();
-
-    if (snapshot.docs.isNotEmpty) {
-      final doc = snapshot.docs.first;
-      if (doc.id != lastNotifId) {
-        lastNotifId = doc.id;
-        final notif = NotificationModel.fromMap(doc.id, doc.data());
-        
-        localNotif.show(
-          id: notif.notificationId.hashCode,
-          title: notif.judul,
-          body: notif.pesan,
-          notificationDetails: NotificationDetails(
-            android: AndroidNotificationDetails(
-              channel.id,
-              channel.name,
-              channelDescription: channel.description,
-              icon: '@mipmap/ic_launcher',
-              importance: Importance.max,
-              priority: Priority.high,
-            ),
-          ),
-        );
-      }
+    if (service is AndroidServiceInstance && uid != null && uid.isNotEmpty) {
+      service.setForegroundNotificationInfo(
+        title: 'Tuntaskilat',
+        content: 'Anda online — siap menerima tugas.',
+      );
     }
   });
 }

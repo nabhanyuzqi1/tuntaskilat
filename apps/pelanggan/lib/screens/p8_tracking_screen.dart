@@ -590,8 +590,8 @@ class _KartuStatus extends StatelessWidget {
   }
 }
 
-/// Nomor Customer Service Tuntaskilat (WhatsApp). Ganti di satu tempat ini.
-const _noCS = '6281234567890';
+/// Nomor Customer Service Tuntaskilat (WhatsApp, format 62). Ganti di sini.
+const _noCS = '6281774900001';
 
 /// Tombol Hubungi CS (selalu) + Batalkan Pesanan (bila masih boleh).
 class _AksiOrder extends ConsumerWidget {

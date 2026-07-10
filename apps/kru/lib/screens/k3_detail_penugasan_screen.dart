@@ -11,6 +11,7 @@ import 'package:tk_core/tk_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/app_providers.dart';
+import '../providers/osrm_provider.dart';
 import 'k4_laporan_kerja_screen.dart';
 
 final _orderK3Provider =
@@ -169,14 +170,26 @@ class _K3DetailPenugasanScreenState
                 userAgentPackageName: 'com.tuntaskilat.kru',
               ),
               if (posKru != null)
-                PolylineLayer(polylines: [
-                  Polyline(
-                    points: [posKru, tujuan],
-                    color: TkColors.primary,
-                    strokeWidth: 4,
-                    pattern: StrokePattern.dotted(spacingFactor: 3),
-                  ),
-                ]),
+                Builder(builder: (context) {
+                  // Rute jalan nyata OSRM; garis lurus putus-putus sbagai
+                  // fallback saat memuat / offline.
+                  final rute = ref
+                          .watch(osrmRouteProvider(
+                              (start: posKru, end: tujuan)))
+                          .valueOrNull ??
+                      const <LatLng>[];
+                  final titik = rute.length >= 2 ? rute : [posKru, tujuan];
+                  return PolylineLayer(polylines: [
+                    Polyline(
+                      points: titik,
+                      color: TkColors.primary,
+                      strokeWidth: 4,
+                      pattern: rute.length >= 2
+                          ? const StrokePattern.solid()
+                          : StrokePattern.dotted(spacingFactor: 3),
+                    ),
+                  ]);
+                }),
               MarkerLayer(markers: [
                 Marker(
                   point: tujuan,

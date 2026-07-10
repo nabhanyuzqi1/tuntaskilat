@@ -45,7 +45,15 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-            
+
+        <!-- FCM: arahkan notifikasi push ke channel penting (bersuara custom). -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="tk_high_importance_channel" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
+
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:enabled="true"

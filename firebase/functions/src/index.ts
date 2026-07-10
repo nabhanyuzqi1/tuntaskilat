@@ -330,3 +330,107 @@ export const onOrderFinalize = functions.firestore.onDocumentUpdated(
     );
   },
 );
+
+/**
+ * Push FCM ke kru saat order ditugaskan (status → 'ditugaskan').
+ * Membaca fcmTokens tiap kru pada dokumen `kru/{id}` lalu mengirim notifikasi.
+ * Token yang tak valid dibersihkan otomatis.
+ */
+export const onOrderAssigned = functions.firestore.onDocumentUpdated(
+  {document: "orders/{orderId}", region: REGION},
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
+    if (before.status === "ditugaskan" || after.status !== "ditugaskan") return;
+
+    const kruIds: string[] = after.kruIds ?? [];
+    if (kruIds.length === 0) return;
+
+    const judul = "Tugas baru untuk Anda";
+    const isi = `${after.namaLayanan ?? "Pesanan"} — ${after.alamatLayanan ?? ""}`;
+
+    for (const id of kruIds) {
+      const kruSnap = await db.collection("kru").doc(id).get();
+      const tokens: string[] = kruSnap.data()?.fcmTokens ?? [];
+      if (tokens.length === 0) continue;
+
+      const res = await admin.messaging().sendEachForMulticast({
+        tokens,
+        notification: {title: judul, body: isi},
+        data: {orderId: event.params.orderId, tipe: "tugas_baru"},
+        android: {
+          priority: "high",
+          notification: {channelId: "tk_high_importance_channel"},
+        },
+      });
+
+      // Bersihkan token invalid.
+      const invalid: string[] = [];
+      res.responses.forEach((r, i) => {
+        if (!r.success) {
+          const code = r.error?.code ?? "";
+          if (
+            code.includes("registration-token-not-registered") ||
+            code.includes("invalid-argument")
+          ) {
+            invalid.push(tokens[i]);
+          }
+        }
+      });
+      if (invalid.length > 0) {
+        await db.collection("kru").doc(id).update({
+          fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalid),
+        });
+      }
+      functions.logger.info(
+        `[onOrderAssigned] Push ke kru ${id}: ${res.successCount}/${tokens.length}`,
+      );
+    }
+  },
+);
+
+/**
+ * Pengingat kru ~2 jam sebelum jadwal. Berjalan tiap 30 menit (cron),
+ * mencari order 'ditugaskan' yang jadwalnya 90-150 menit lagi lalu push.
+ */
+export const reminderKru = functions.scheduler.onSchedule(
+  {schedule: "every 30 minutes", region: REGION, timeZone: "Asia/Makassar"},
+  async () => {
+    const now = Date.now();
+    const dari = admin.firestore.Timestamp.fromMillis(now + 90 * 60 * 1000);
+    const sampai = admin.firestore.Timestamp.fromMillis(now + 150 * 60 * 1000);
+
+    const snap = await db
+      .collection("orders")
+      .where("status", "==", "ditugaskan")
+      .where("jadwal", ">=", dari)
+      .where("jadwal", "<=", sampai)
+      .get();
+
+    for (const doc of snap.docs) {
+      const o = doc.data();
+      const kruIds: string[] = o.kruIds ?? [];
+      for (const id of kruIds) {
+        const tokens: string[] =
+          (await db.collection("kru").doc(id).get()).data()?.fcmTokens ?? [];
+        if (tokens.length === 0) continue;
+        await admin.messaging().sendEachForMulticast({
+          tokens,
+          notification: {
+            title: "Pengingat tugas",
+            body: `Sebentar lagi: ${o.namaLayanan ?? "pesanan"} di ${
+              o.alamatLayanan ?? ""
+            }`,
+          },
+          data: {orderId: doc.id, tipe: "reminder"},
+          android: {
+            priority: "high",
+            notification: {channelId: "tk_high_importance_channel"},
+          },
+        });
+      }
+    }
+    functions.logger.info(`[reminderKru] ${snap.size} order diingatkan.`);
+  },
+);
