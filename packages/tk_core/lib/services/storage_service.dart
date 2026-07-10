@@ -45,6 +45,15 @@ class StorageService {
   }) =>
       _upload('profil/$uid.jpg', bytes, contentType);
 
+  /// Unggah gambar layanan (A4, admin). Path `layanan/{serviceId}.jpg` —
+  /// satu file per layanan. Kompres di sisi klien agar ringan (hot-load).
+  Future<String> uploadGambarLayanan({
+    required String serviceId,
+    required Uint8List bytes,
+    String contentType = 'image/jpeg',
+  }) =>
+      _upload('layanan/$serviceId.jpg', bytes, contentType);
+
   Future<String> _upload(
     String path,
     Uint8List bytes,

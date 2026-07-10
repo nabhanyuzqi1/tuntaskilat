@@ -152,12 +152,24 @@ class _KartuLayanan extends StatelessWidget {
             Container(
               width: 58,
               height: 58,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                gradient: serviceGradient(layanan.kategori),
+                gradient: layanan.gambarUrl.isEmpty
+                    ? serviceGradient(layanan.kategori)
+                    : null,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(serviceIcon(layanan.ikon),
-                  color: Colors.white, size: 28),
+              child: layanan.gambarUrl.isNotEmpty
+                  ? Image.network(layanan.gambarUrl,
+                      width: 58,
+                      height: 58,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Icon(
+                          serviceIcon(layanan.ikon),
+                          color: TkColors.primary,
+                          size: 28))
+                  : Icon(serviceIcon(layanan.ikon),
+                      color: Colors.white, size: 28),
             ),
             const SizedBox(width: 14),
             Expanded(
