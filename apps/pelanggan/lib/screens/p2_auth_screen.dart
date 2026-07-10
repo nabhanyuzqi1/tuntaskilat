@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +7,7 @@ import 'package:tk_core/tk_core.dart';
 import '../providers/auth_controller.dart';
 import 'p2a_izin_screen.dart';
 import 'p2b_lengkapi_profil_screen.dart';
+import 'syarat_ketentuan_screen.dart';
 
 class P2AuthScreenArgs {
   const P2AuthScreenArgs({this.tabDaftar = false});
@@ -345,6 +347,7 @@ class _FormDaftarState extends ConsumerState<_FormDaftar> {
   final _sandi = TextEditingController();
   final _konfirmasi = TextEditingController();
   var _sandiTersembunyi = true;
+  var _setuju = false;
 
   @override
   void dispose() {
@@ -423,19 +426,62 @@ class _FormDaftarState extends ConsumerState<_FormDaftar> {
             validator: (v) => Validators.konfirmasiKataSandi(v, _sandi.text),
             textInputAction: TextInputAction.done,
           ),
-          const SizedBox(height: 18),
-          TkButton(label: 'Daftar', loading: loading, onPressed: _submit),
-          const SizedBox(height: 12),
-          Center(
-            child: Text(
-              'Dengan mendaftar, Anda menyetujui Syarat & Ketentuan '
-              'Tuntaskilat.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.montserrat(
-                fontSize: 11,
-                color: TkColors.textMuted,
+          const SizedBox(height: 14),
+          // Persetujuan S&K WAJIB dicentang sebelum mendaftar.
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(
+              width: 26,
+              height: 26,
+              child: Checkbox(
+                value: _setuju,
+                onChanged: (v) => setState(() => _setuju = v ?? false),
+                activeColor: TkColors.primary,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Text.rich(
+                  TextSpan(
+                    text: 'Saya menyetujui ',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 12, color: TkColors.textSecondary),
+                    children: [
+                      TextSpan(
+                        text: 'Syarat & Ketentuan',
+                        style: GoogleFonts.montserrat(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: TkColors.primary),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => Navigator.of(context)
+                              .pushNamed(SyaratKetentuanScreen.route),
+                      ),
+                      const TextSpan(text: ' & '),
+                      TextSpan(
+                        text: 'Kebijakan Privasi',
+                        style: GoogleFonts.montserrat(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: TkColors.primary),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => Navigator.of(context)
+                              .pushNamed(SyaratKetentuanScreen.route),
+                      ),
+                      const TextSpan(text: ' Tuntaskilat.'),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 16),
+          TkButton(
+            label: 'Daftar',
+            loading: loading,
+            onPressed: _setuju ? _submit : null,
           ),
         ],
       ),
