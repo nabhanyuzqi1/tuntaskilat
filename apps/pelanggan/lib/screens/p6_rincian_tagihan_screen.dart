@@ -438,6 +438,10 @@ class _KartuVoucherState extends ConsumerState<_KartuVoucher> {
         VoucherTolak.kuotaHabis => 'Kuota voucher habis',
         VoucherTolak.minimalBelanja =>
           'Minimal belanja belum terpenuhi',
+        VoucherTolak.hanyaPenggunaBaru =>
+          'Khusus pelanggan baru (belum pernah memesan)',
+        VoucherTolak.sudahDipakaiNomor =>
+          'Sudah pernah dipakai pada nomor Anda',
       };
 
   Future<void> _terapkan() async {

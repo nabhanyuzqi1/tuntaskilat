@@ -229,6 +229,8 @@ class _DialogVoucherState extends ConsumerState<_DialogVoucher> {
       TextEditingController(text: (widget.awal?.kuota ?? 0).toString());
   late TipeVoucher _tipe = widget.awal?.tipe ?? TipeVoucher.persen;
   late bool _aktif = widget.awal?.aktif ?? true;
+  late bool _penggunaBaru = widget.awal?.khususPenggunaBaru ?? false;
+  late bool _sekaliPerNomor = widget.awal?.sekaliPerNomor ?? true;
   bool _simpan = false;
   String? _error;
 
@@ -274,6 +276,8 @@ class _DialogVoucherState extends ConsumerState<_DialogVoucher> {
       terpakai: widget.awal?.terpakai ?? 0,
       berlakuHingga: widget.awal?.berlakuHingga,
       aktif: _aktif,
+      khususPenggunaBaru: _penggunaBaru,
+      sekaliPerNomor: _sekaliPerNomor,
     );
     try {
       await ref.read(firestoreServiceProvider).simpanVoucher(v);
@@ -354,6 +358,28 @@ class _DialogVoucherState extends ConsumerState<_DialogVoucher> {
                 title: Text('Aktif',
                     style: GoogleFonts.montserrat(
                         fontSize: 14, fontWeight: FontWeight.w600)),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _penggunaBaru,
+                onChanged: (v) => setState(() => _penggunaBaru = v),
+                title: Text('Khusus pengguna baru',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 14, fontWeight: FontWeight.w600)),
+                subtitle: Text('Hanya untuk yang belum pernah memesan',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 11, color: TkColors.textMuted)),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _sekaliPerNomor,
+                onChanged: (v) => setState(() => _sekaliPerNomor = v),
+                title: Text('Sekali per nomor telepon',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 14, fontWeight: FontWeight.w600)),
+                subtitle: Text('Cegah klaim ulang lewat akun baru',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 11, color: TkColors.textMuted)),
               ),
               if (_error != null)
                 Text(_error!,

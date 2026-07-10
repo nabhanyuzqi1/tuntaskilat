@@ -50,6 +50,10 @@ class VoucherException implements Exception {
         VoucherTolak.kadaluarsa => 'Voucher sudah kedaluwarsa',
         VoucherTolak.kuotaHabis => 'Kuota voucher sudah habis',
         VoucherTolak.minimalBelanja => 'Belanja belum memenuhi minimal voucher',
+        VoucherTolak.hanyaPenggunaBaru =>
+          'Voucher ini khusus pelanggan baru (belum pernah memesan)',
+        VoucherTolak.sudahDipakaiNomor =>
+          'Voucher ini sudah pernah dipakai pada nomor Anda',
       };
 }
 
@@ -220,6 +224,32 @@ class FirestoreService {
     final tunai = metode == MetodeBayar.tunai;
     final sekarang = DateTime.now();
 
+    // Kunci klaim per NOMOR TELEPON (bukan uid) — mematikan trik buat akun
+    // baru terus. Doc id gabungan kode + nomor ternormalisasi.
+    final telepon = _normalTelp(pelanggan.noTelepon);
+    final usageRef = voucherRef == null
+        ? null
+        : _db.collection('voucherUsages').doc('${kode}__$telepon');
+
+    // Cek "khusus pengguna baru" DI LUAR transaction (query tak boleh di dalam
+    // transaction). Peek voucher dulu; bila new-user-only & user sudah pernah
+    // memesan → tolak.
+    if (voucherRef != null) {
+      final vPeek = await voucherRef.get();
+      if (vPeek.exists) {
+        final v = VoucherModel.fromMap(vPeek.id, vPeek.data()!);
+        if (v.khususPenggunaBaru) {
+          final adaOrder = await _orders
+              .where('userId', isEqualTo: pelanggan.userId)
+              .limit(1)
+              .get();
+          if (adaOrder.docs.isNotEmpty) {
+            throw const VoucherException(VoucherTolak.hanyaPenggunaBaru);
+          }
+        }
+      }
+    }
+
     return _db.runTransaction<OrderModel>((tx) async {
       // Baca SEMUA dokumen dulu (aturan transaction Firestore).
       final slotSnap = await tx.get(orderRef);
@@ -240,13 +270,20 @@ class FirestoreService {
         throw ArgumentError('Pilihan harga tidak valid (subtotal 0).');
       }
 
-      // Validasi voucher di dalam transaction (kuota/berlaku/min belanja).
+      // Validasi voucher di dalam transaction (kuota/berlaku/min belanja +
+      // kunci per-nomor).
       num potongan = 0;
       VoucherModel? voucher;
       if (voucherRef != null) {
         final vSnap = await tx.get(voucherRef);
         if (!vSnap.exists) throw const VoucherException(VoucherTolak.tidakAda);
         voucher = VoucherModel.fromMap(vSnap.id, vSnap.data()!);
+        if (voucher.sekaliPerNomor && usageRef != null) {
+          final uSnap = await tx.get(usageRef);
+          if (uSnap.exists) {
+            throw const VoucherException(VoucherTolak.sudahDipakaiNomor);
+          }
+        }
         final r = voucher.hitungPotongan(hasil.subtotal, sekarang);
         if (r.tolak != null) throw VoucherException(r.tolak!);
         potongan = r.potongan;
@@ -292,9 +329,25 @@ class FirestoreService {
       tx.set(paymentRef, payment.toMap());
       if (voucherRef != null && voucher != null) {
         tx.update(voucherRef, {'terpakai': voucher.terpakai + 1});
+        // Catat pemakaian per-nomor (kunci anti akun-baru-berulang).
+        if (voucher.sekaliPerNomor && usageRef != null) {
+          tx.set(usageRef, {
+            'kode': voucher.kode,
+            'telepon': telepon,
+            'userId': pelanggan.userId,
+            'waktu': Timestamp.fromDate(sekarang),
+          });
+        }
       }
       return order;
     });
+  }
+
+  /// Normalisasi nomor telepon jadi kunci konsisten (buang non-digit, 0→62).
+  static String _normalTelp(String no) {
+    var d = no.replaceAll(RegExp(r'[^0-9]'), '');
+    if (d.startsWith('0')) d = '62${d.substring(1)}';
+    return d;
   }
 
   // ---------------------------------------------------------------- vouchers
@@ -823,6 +876,30 @@ class FirestoreService {
   /// A5 — dokumen `kru` untuk akun kru baru (rules: `kru.create` admin).
   Future<void> buatDokumenKru(KruModel kru) =>
       _kru.doc(kru.cleanerId).set(kru.toMap());
+
+  /// A5 — ubah profil kru (keahlian, tipe, nama, telepon) tanpa menimpa
+  /// field runtime (posisi/token/rating). Merge sebagian.
+  Future<void> updateProfilKru(
+    String cleanerId, {
+    String? nama,
+    String? noTelepon,
+    List<String>? keahlian,
+    KruTipe? tipe,
+  }) =>
+      _kru.doc(cleanerId).update({
+        'nama': ?nama,
+        'noTelepon': ?noTelepon,
+        'keahlian': ?keahlian,
+        'tipe': ?tipe?.wire,
+      });
+
+  /// A5 — set status kepegawaian kru (aktif/nonaktif/diberhentikan). Kru
+  /// nonaktif/diberhentikan otomatis di-offline-kan agar hilang dari daftar.
+  Future<void> setStatusKru(String cleanerId, StatusKru status) =>
+      _kru.doc(cleanerId).update({
+        'status': status.wire,
+        if (!status.bisaDitugaskan) 'statusKetersediaan': false,
+      });
 
   // ---------------------------------------------------------------- payments
 

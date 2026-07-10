@@ -470,6 +470,14 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                     onTimeout: () => const []);
     if (!context.mounted) return;
 
+    // Matching keahlian: hanya kru AKTIF yang cocok (keahlian memuat serviceId
+    // ini, atau generalis tanpa keahlian). Cuci AC ≠ potong rumput.
+    final kruCocok = semuaKru
+        .where((k) =>
+            k.status.bisaDitugaskan &&
+            (k.keahlian.isEmpty || k.keahlian.contains(o.serviceId)))
+        .toList();
+
     // Admin bebas menugaskan berapapun, min 1 worker
     int minPetugas = 1;
 
@@ -493,8 +501,10 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                     color: TkColors.inkSoft)),
             content: SizedBox(
               width: 500,
-              child: semuaKru.isEmpty
-                  ? Text('Belum ada kru terdaftar. Tambahkan lewat menu Kru.',
+              child: kruCocok.isEmpty
+                  ? Text(
+                      'Tidak ada kru aktif dengan keahlian untuk layanan ini. '
+                      'Atur keahlian kru di menu Kru.',
                       style: GoogleFonts.montserrat(
                           fontSize: 13, color: TkColors.textMuted))
                   : Column(
@@ -508,7 +518,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                         ConstrainedBox(
                           constraints: const BoxConstraints(maxHeight: 340),
                           child: ListView(shrinkWrap: true, children: [
-                            for (final k in semuaKru)
+                            for (final k in kruCocok)
                               ListTile(
                                 enabled: k.statusKetersediaan,
                                 onTap: k.statusKetersediaan ? () {
