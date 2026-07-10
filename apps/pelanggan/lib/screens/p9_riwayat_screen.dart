@@ -100,9 +100,19 @@ class P9RiwayatScreen extends ConsumerWidget {
             ),
             Expanded(
               child: riwayat.when(
-                loading: () => const Center(
-                    child:
-                        CircularProgressIndicator(color: TkColors.primary)),
+                loading: () => ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 108),
+                  itemCount: 6,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (_, _) => Container(
+                    decoration: BoxDecoration(
+                      color: TkColors.surface,
+                      borderRadius: BorderRadius.circular(TkRadius.card),
+                      border: Border.all(color: const Color(0x0D0F281C)),
+                    ),
+                    child: const TkSkeletonListTile(),
+                  ),
+                ),
                 error: (_, _) => _kosong(
                     'Riwayat tidak dapat dimuat. Periksa koneksi Anda.'),
                 data: (orders) {

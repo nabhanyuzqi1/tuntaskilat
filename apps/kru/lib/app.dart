@@ -14,6 +14,9 @@ import 'screens/kru_shell.dart';
 import 'screens/onboarding_kru_screen.dart';
 import 'screens/k7_chat_screen.dart';
 
+/// Versi Portal Kru (untuk pengecekan update paksa settings/app).
+const kVersiKru = '1.0.0';
+
 /// Portal Kru — identitas warna hijau tua #006542
 /// (design-tokens.md § Identitas warna per aplikasi).
 class TkKruApp extends StatelessWidget {
@@ -27,7 +30,11 @@ class TkKruApp extends StatelessWidget {
       theme: TkTheme.light(identity: TkColors.identityKru),
       builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
         value: TkTheme.systemOverlayStyle,
-        child: child!,
+        child: MaintenanceGate(
+          konfigProvider: konfigAppProvider,
+          versi: kVersiKru,
+          child: child!,
+        ),
       ),
       home: const _GerbangAwal(),
       routes: {

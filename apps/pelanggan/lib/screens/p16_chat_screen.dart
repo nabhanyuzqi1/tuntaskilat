@@ -23,6 +23,12 @@ class P16ChatScreen extends ConsumerStatefulWidget {
 class _P16ChatScreenState extends ConsumerState<P16ChatScreen> {
   final _controller = TextEditingController();
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   Future<void> _kirimPesan(String orderId, String userId) async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;

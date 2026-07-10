@@ -23,6 +23,12 @@ class K7ChatScreen extends ConsumerStatefulWidget {
 class _K7ChatScreenState extends ConsumerState<K7ChatScreen> {
   final _controller = TextEditingController();
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   Future<void> _kirimPesan(String orderId, String userId) async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
