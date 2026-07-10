@@ -345,6 +345,14 @@ class FirestoreService {
 
   // -------------------------------------------------------- 2FA admin (TOTP)
 
+  /// Daftar akun admin (A6 Manajemen Tim). Rules: users.list admin-only.
+  Stream<List<UserModel>> watchAdmins() => _users
+      .where('role', isEqualTo: 'admin')
+      .snapshots()
+      .map((s) => s.docs
+          .map((d) => UserModel.fromMap(d.id, d.data()))
+          .toList(growable: false));
+
   /// Ambil konfigurasi 2FA admin: (secret, aktif). null bila belum diatur.
   Future<({String secret, bool aktif})?> get2fa(String uid) async {
     final snap = await _db.collection('admin2fa').doc(uid).get();
