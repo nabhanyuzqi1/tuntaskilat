@@ -124,6 +124,12 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Rahasia TOTP 2FA admin — hanya pemilik akun yang baca/tulis (verifikasi
+    // dilakukan klien saat login admin).
+    match /admin2fa/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
     // Ledger upah kru (produk nyata). Kru hanya BACA payout miliknya; ia tak
     // pernah menulis nominal. Payout dibuat/diubah lewat transaksi
     // penyelesaian & keputusan admin (uang tak dipercaya klien).

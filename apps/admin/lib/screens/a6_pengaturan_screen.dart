@@ -9,7 +9,10 @@ import 'package:tk_core/tk_core.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import 'package:qr_flutter/qr_flutter.dart';
+
 import '../providers/app_providers.dart';
+import '../util/totp.dart';
 import '../widgets/admin_ui.dart';
 
 /// Preferensi notifikasi admin (lokal, per perangkat).
@@ -73,6 +76,8 @@ class A6PengaturanScreen extends ConsumerWidget {
                     const SizedBox(height: 22),
                     _judul('KEAMANAN'),
                     _kartuKeamanan(context, ref),
+                    const SizedBox(height: 12),
+                    const _Kartu2fa(),
                     const SizedBox(height: 22),
                     _judul('PREFERENSI NOTIFIKASI'),
                     _kartuNotifikasi(ref),
@@ -698,5 +703,152 @@ class A6PengaturanScreen extends ConsumerWidget {
     if (result == true) {
       // already saved in dialog
     }
+  }
+}
+
+/// Kartu 2FA (TOTP) admin — opsional. Mengaktifkan mewajibkan verifikasi kode
+/// dulu agar admin tak terkunci. Rahasia disimpan di admin2fa/{uid}.
+class _Kartu2fa extends ConsumerStatefulWidget {
+  const _Kartu2fa();
+
+  @override
+  ConsumerState<_Kartu2fa> createState() => _Kartu2faState();
+}
+
+class _Kartu2faState extends ConsumerState<_Kartu2fa> {
+  bool _memuat = true;
+  bool _aktif = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _muat();
+  }
+
+  Future<void> _muat() async {
+    final uid = ref.read(authServiceProvider).currentUser?.uid;
+    if (uid == null) {
+      if (mounted) setState(() => _memuat = false);
+      return;
+    }
+    final cfg = await ref.read(firestoreServiceProvider).get2fa(uid);
+    if (mounted) {
+      setState(() {
+        _aktif = cfg?.aktif ?? false;
+        _memuat = false;
+      });
+    }
+  }
+
+  Future<void> _aktifkan() async {
+    final uid = ref.read(authServiceProvider).currentUser?.uid;
+    final email = ref.read(profilAdminProvider).valueOrNull?.email ?? 'admin';
+    if (uid == null) return;
+    final secret = Totp.secretBaru();
+    final kode = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Aktifkan 2FA'),
+        content: SizedBox(
+          width: 340,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Scan QR ini di Google Authenticator, lalu masukkan '
+                '6 digit untuk mengonfirmasi.'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              color: Colors.white,
+              child: QrImageView(
+                data: Totp.provisioningUri(secret, email),
+                size: 170,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SelectableText(secret,
+                style: GoogleFonts.robotoMono(
+                    fontSize: 12, color: TkColors.textMuted)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: kode,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: const InputDecoration(
+                  counterText: '', hintText: '6 digit'),
+            ),
+          ]),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () =>
+                Navigator.pop(ctx, Totp.verifikasi(secret, kode.text)),
+            child: const Text('Konfirmasi'),
+          ),
+        ],
+      ),
+    );
+    kode.dispose();
+    if (ok != true) {
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Kode salah — 2FA belum diaktifkan.')));
+      }
+      return;
+    }
+    await ref.read(firestoreServiceProvider).set2fa(uid, secret, true);
+    if (mounted) setState(() => _aktif = true);
+  }
+
+  Future<void> _nonaktifkan() async {
+    final uid = ref.read(authServiceProvider).currentUser?.uid;
+    if (uid == null) return;
+    await ref.read(firestoreServiceProvider).set2fa(uid, '', false);
+    if (mounted) setState(() => _aktif = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: AdminUi.kartu(),
+      child: Row(children: [
+        Icon(_aktif ? Icons.verified_user : Icons.security_outlined,
+            color: _aktif ? TkColors.primary : TkColors.textMuted),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Autentikasi Dua Faktor (2FA)',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: TkColors.inkSoft)),
+              Text(
+                  _aktif
+                      ? 'Aktif — kode authenticator diminta saat login.'
+                      : 'Tambah lapisan keamanan dengan Google Authenticator.',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 12, color: TkColors.textMuted)),
+            ],
+          ),
+        ),
+        if (_memuat)
+          const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2))
+        else if (_aktif)
+          OutlinedButton(
+              onPressed: _nonaktifkan,
+              style: OutlinedButton.styleFrom(foregroundColor: TkColors.error),
+              child: const Text('Nonaktifkan'))
+        else
+          ElevatedButton(onPressed: _aktifkan, child: const Text('Aktifkan')),
+      ]),
+    );
   }
 }
