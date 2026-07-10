@@ -7,7 +7,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:tk_core/tk_core.dart';
 
+import '../providers/beranda_providers.dart';
 import '../providers/pemesanan_providers.dart';
+import 'p5a_peta_screen.dart';
 import 'p6_rincian_tagihan_screen.dart';
 
 /// P5 — Form Pemesanan (Gambar TA 3.15 & 4.2). Input kuantitas, jadwal
@@ -82,6 +84,35 @@ class _P5FormPemesananScreenState
       return;
     }
     setState(() => _lokasi = GeoPoint(titik.latitude, titik.longitude));
+  }
+
+  /// Buka peta fullscreen (pin geser + alamat otomatis). Isi lokasi + alamat.
+  Future<void> _bukaPeta() async {
+    final hasil = await Navigator.of(context).push<HasilPeta>(
+      MaterialPageRoute(
+        builder: (_) => P5aPetaScreen(
+          awal: _lokasi != null
+              ? LatLng(_lokasi!.latitude, _lokasi!.longitude)
+              : null,
+        ),
+      ),
+    );
+    if (hasil == null || !mounted) return;
+    setState(() {
+      _lokasi = hasil.lokasi;
+      if (hasil.alamat.isNotEmpty) _alamat.text = hasil.alamat;
+    });
+    _mapCtrl.move(
+        LatLng(hasil.lokasi.latitude, hasil.lokasi.longitude), 16);
+  }
+
+  /// Pakai alamat tersimpan pelanggan.
+  void _pakaiAlamat(AlamatModel a) {
+    setState(() {
+      _lokasi = a.lokasi;
+      _alamat.text = a.alamat;
+    });
+    _mapCtrl.move(LatLng(a.lokasi.latitude, a.lokasi.longitude), 16);
   }
 
   Future<void> _ambilLokasi() async {
@@ -222,10 +253,61 @@ class _P5FormPemesananScreenState
                             color: TkColors.error)),
                   ]),
                   const SizedBox(height: 6),
-                  Text('Ketuk peta untuk menandai titik, atau gunakan '
-                      '"Lokasi Saya".',
+                  Text('Pilih alamat tersimpan, buka peta, atau ketuk peta '
+                      'kecil di bawah.',
                       style: GoogleFonts.montserrat(
                           fontSize: 12, color: TkColors.textMuted)),
+                  const SizedBox(height: 12),
+                  // Alamat tersimpan (chip) — tak perlu ketik ulang.
+                  Consumer(builder: (context, ref, _) {
+                    final uid = ref
+                        .watch(profilSayaProvider)
+                        .valueOrNull
+                        ?.userId;
+                    if (uid == null) return const SizedBox.shrink();
+                    final alamat = ref
+                            .watch(alamatTersimpanProvider(uid))
+                            .valueOrNull ??
+                        const [];
+                    if (alamat.isEmpty) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final a in alamat)
+                            ActionChip(
+                              avatar: const Icon(Icons.bookmark_border_rounded,
+                                  size: 16, color: TkColors.primary),
+                              label: Text(a.label),
+                              labelStyle: GoogleFonts.montserrat(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: TkColors.primaryDark),
+                              backgroundColor:
+                                  TkColors.primary.withValues(alpha: 0.07),
+                              side: BorderSide(
+                                  color: TkColors.primary
+                                      .withValues(alpha: 0.18)),
+                              onPressed: () => _pakaiAlamat(a),
+                            ),
+                        ],
+                      ),
+                    );
+                  }),
+                  // Buka peta fullscreen (pin geser + alamat otomatis).
+                  OutlinedButton.icon(
+                    onPressed: _bukaPeta,
+                    icon: const Icon(Icons.map_outlined, size: 18),
+                    label: const Text('Buka Peta & Cari Alamat'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                      foregroundColor: TkColors.primary,
+                      side: BorderSide(
+                          color: TkColors.primary.withValues(alpha: 0.4)),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   _KartuAlamatPeta(
                     mapCtrl: _mapCtrl,

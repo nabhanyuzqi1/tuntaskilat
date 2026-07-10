@@ -18,9 +18,23 @@ enum OrderStatus {
   dalamPerjalanan('dalam_perjalanan'),
   diproses('diproses'),
   selesai('selesai'),
-  dinilai('dinilai');
+  dinilai('dinilai'),
+
+  /// Dibatalkan pelanggan (produk nyata) — hanya sebelum kru mulai bekerja.
+  dibatalkan('dibatalkan');
 
   const OrderStatus(this.wire);
+
+  /// Boleh dibatalkan pelanggan? Hanya sebelum kru ditugaskan/bekerja.
+  bool get bisaDibatalkanPelanggan => switch (this) {
+        OrderStatus.dibuat ||
+        OrderStatus.menungguPembayaran ||
+        OrderStatus.menungguVerifikasi ||
+        OrderStatus.terverifikasi ||
+        OrderStatus.menungguPenugasan =>
+          true,
+        _ => false,
+      };
 
   /// Nilai string yang tersimpan di field `status`.
   final String wire;

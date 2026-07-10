@@ -18,7 +18,9 @@ class StatusBadge extends StatelessWidget {
         OrderStatus.menungguVerifikasi ||
         OrderStatus.menungguPenugasan =>
           TkColors.accentAlt,
-        OrderStatus.ditolak => TkColors.error,
+        OrderStatus.ditolak ||
+        OrderStatus.dibatalkan =>
+          TkColors.error,
         OrderStatus.terverifikasi ||
         OrderStatus.ditugaskan ||
         OrderStatus.dalamPerjalanan ||
@@ -39,6 +41,7 @@ class StatusBadge extends StatelessWidget {
         OrderStatus.diproses => 'Diproses',
         OrderStatus.selesai => 'Selesai',
         OrderStatus.dinilai => 'Dinilai',
+        OrderStatus.dibatalkan => 'Dibatalkan',
       };
 
   @override

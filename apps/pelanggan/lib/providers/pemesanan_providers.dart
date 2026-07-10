@@ -1,4 +1,6 @@
 
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -95,6 +97,13 @@ class DraftPesanan {
 /// bolak-balik P5↔P6↔P7, dan dibersihkan setelah pesanan sukses dibuat.
 final draftPesananProvider = StateProvider<DraftPesanan?>((_) => null);
 
+/// Alamat tersimpan pelanggan (subkoleksi) untuk picker cepat di P5.
+final alamatTersimpanProvider =
+    StreamProvider.autoDispose.family<List<AlamatModel>, String>((ref, uid) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
+  return ref.watch(firestoreServiceProvider).watchAlamat(uid);
+});
+
 /// Hasil upaya pembuatan pesanan+pembayaran (P7).
 typedef HasilPesan = ({OrderModel? order, String? error, bool jadwalPenuh});
 
@@ -164,6 +173,9 @@ class PembayaranController extends AutoDisposeAsyncNotifier<OrderModel?> {
             catatan: draft.catatan.trim(),
           );
       state = AsyncData(order);
+      // Simpan alamat terakhir agar bisa dipilih cepat lain kali (dedupe
+      // berdasar teks). Gagal simpan tidak menggagalkan pemesanan.
+      unawaited(_simpanAlamatTerakhir(profil.userId, draft));
       return (order: order, error: null, jadwalPenuh: false);
     } on JadwalPenuhException {
       state = const AsyncData(null);
@@ -196,6 +208,26 @@ class PembayaranController extends AutoDisposeAsyncNotifier<OrderModel?> {
             'lalu coba lagi. ($e)',
         jadwalPenuh: false
       );
+    }
+  }
+
+  /// Simpan/refresh alamat "Terakhir Dipakai" tanpa duplikat teks.
+  Future<void> _simpanAlamatTerakhir(String uid, DraftPesanan draft) async {
+    try {
+      final svc = ref.read(firestoreServiceProvider);
+      final ada = await svc.watchAlamat(uid).first;
+      if (ada.any((a) => a.alamat.trim() == draft.alamat.trim())) return;
+      await svc.simpanAlamat(
+        uid,
+        AlamatModel(
+          id: '',
+          label: 'Terakhir Dipakai',
+          alamat: draft.alamat.trim(),
+          lokasi: draft.lokasi!,
+        ),
+      );
+    } catch (_) {
+      // abaikan — fitur kenyamanan, bukan kritis
     }
   }
 }

@@ -580,8 +580,110 @@ class _KartuStatus extends StatelessWidget {
                   fontSize: 12, color: TkColors.textMuted),
             ),
           ],
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          _AksiOrder(order: order),
         ],
       ),
     );
+  }
+}
+
+/// Nomor Customer Service Tuntaskilat (WhatsApp). Ganti di satu tempat ini.
+const _noCS = '6281234567890';
+
+/// Tombol Hubungi CS (selalu) + Batalkan Pesanan (bila masih boleh).
+class _AksiOrder extends ConsumerWidget {
+  const _AksiOrder({required this.order});
+  final OrderModel order;
+
+  Future<void> _hubungiCS(BuildContext context) async {
+    final pesan = Uri.encodeComponent(
+        'Halo CS Tuntaskilat, saya butuh bantuan untuk pesanan '
+        '#${order.orderId}.');
+    final url = Uri.parse('https://wa.me/$_noCS?text=$pesan');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Tidak dapat membuka WhatsApp CS.')));
+    }
+  }
+
+  Future<void> _batalkan(BuildContext context, WidgetRef ref) async {
+    final ya = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(TkRadius.card)),
+        title: Text('Batalkan pesanan?',
+            style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.w700, color: TkColors.inkSoft)),
+        content: Text(
+            'Pesanan #${order.orderId} akan dibatalkan. Jika sudah bayar, '
+            'hubungi CS untuk pengembalian dana.',
+            style: GoogleFonts.montserrat(
+                fontSize: 14, color: TkColors.textSecondary)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Tidak')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(c, true),
+            style: ElevatedButton.styleFrom(backgroundColor: TkColors.error),
+            child: const Text('Ya, Batalkan'),
+          ),
+        ],
+      ),
+    );
+    if (ya != true) return;
+    try {
+      await ref.read(firestoreServiceProvider).batalkanPesanan(order);
+      if (context.mounted) {
+        Navigator.of(context).popUntil((r) => r.isFirst);
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Pesanan dibatalkan.')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal membatalkan: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bisaBatal = order.status.bisaDibatalkanPelanggan;
+    return Row(children: [
+      Expanded(
+        child: OutlinedButton.icon(
+          onPressed: () => _hubungiCS(context),
+          icon: const Icon(Icons.support_agent_rounded, size: 18),
+          label: const Text('Hubungi CS'),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(0, 46),
+            foregroundColor: TkColors.primary,
+            side: BorderSide(color: TkColors.primary.withValues(alpha: 0.4)),
+          ),
+        ),
+      ),
+      if (bisaBatal) ...[
+        const SizedBox(width: 10),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _batalkan(context, ref),
+            icon: const Icon(Icons.close_rounded, size: 18),
+            label: const Text('Batalkan'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 46),
+              foregroundColor: TkColors.error,
+              side: BorderSide(color: TkColors.error.withValues(alpha: 0.4)),
+            ),
+          ),
+        ),
+      ],
+    ]);
   }
 }

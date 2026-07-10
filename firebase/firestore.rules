@@ -16,6 +16,11 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
+
+      // Alamat tersimpan pelanggan (produk nyata) — hanya pemilik.
+      match /alamat/{alamatId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     match /services/{serviceId} {

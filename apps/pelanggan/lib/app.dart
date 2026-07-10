@@ -15,6 +15,7 @@ import 'screens/p2_auth_screen.dart';
 import 'screens/p3_beranda_screen.dart';
 import 'screens/p4_detail_layanan_screen.dart';
 import 'screens/p5_form_pemesanan_screen.dart';
+import 'screens/p5a_peta_screen.dart';
 import 'screens/p6_rincian_tagihan_screen.dart';
 import 'screens/p7_form_pembayaran_screen.dart';
 import 'screens/p8_tracking_screen.dart';
@@ -48,6 +49,7 @@ class TkPelangganApp extends StatelessWidget {
         P3BerandaScreen.route: (_) => const HomeShell(),
         P4DetailLayananScreen.route: (_) => const P4DetailLayananScreen(),
         P5FormPemesananScreen.route: (_) => const P5FormPemesananScreen(),
+        P5aPetaScreen.route: (_) => const P5aPetaScreen(),
         P6RincianTagihanScreen.route: (_) => const P6RincianTagihanScreen(),
         P7FormPembayaranScreen.route: (_) => const P7FormPembayaranScreen(),
         P8TrackingScreen.route: (_) => const P8TrackingScreen(),
