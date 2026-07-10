@@ -4,6 +4,7 @@ import 'package:tk_core/tk_core.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
+import '../services/tim_admin_service.dart';
 
 final firebaseInitProvider = FutureProvider<bool>((_) async {
   try {
@@ -28,6 +29,9 @@ final firestoreServiceProvider =
 
 final storageServiceProvider =
     Provider<StorageService>((_) => StorageService());
+
+final timAdminServiceProvider =
+    Provider<TimAdminService>((_) => TimAdminService());
 
 final authStateProvider = StreamProvider<User?>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return const Stream.empty();
@@ -63,6 +67,15 @@ final semuaLayananProvider = StreamProvider<List<ServiceModel>>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
   // watchActiveServices memfilter aktif; A4 butuh semuanya.
   return ref.watch(firestoreServiceProvider).watchSemuaLayanan();
+});
+
+/// Daftar admin (A6 Manajemen Tim) — users role==admin.
+final daftarAdminProvider = StreamProvider<List<UserModel>>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
+  return ref.watch(firestoreServiceProvider).watchAdmins().map(
+        (l) => (l.toList()..sort((a, b) => a.nama.compareTo(b.nama)))
+            .toList(growable: false),
+      );
 });
 
 /// Daftar voucher — A7 kelola promo (lapisan produk nyata, di luar TA).

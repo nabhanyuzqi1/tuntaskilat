@@ -9,7 +9,11 @@ import 'package:tk_core/tk_core.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+
 import '../providers/app_providers.dart';
+import '../util/totp.dart';
 import '../widgets/admin_ui.dart';
 
 /// Preferensi notifikasi admin (lokal, per perangkat).
@@ -73,6 +77,8 @@ class A6PengaturanScreen extends ConsumerWidget {
                     const SizedBox(height: 22),
                     _judul('KEAMANAN'),
                     _kartuKeamanan(context, ref),
+                    const SizedBox(height: 12),
+                    const _Kartu2fa(),
                     const SizedBox(height: 22),
                     _judul('PREFERENSI NOTIFIKASI'),
                     _kartuNotifikasi(ref),
@@ -88,11 +94,7 @@ class A6PengaturanScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 22),
                     _judul('MANAJEMEN TIM ADMIN'),
-                    _kartuDitunda(
-                      'Peran admin granular (Operasional/Keuangan/Super '
-                      'Admin) membutuhkan perluasan field role — ditunda '
-                      'sesuai keputusan scope.',
-                    ),
+                    const _KartuTim(),
                   ],
                 ),
               ),
@@ -698,5 +700,487 @@ class A6PengaturanScreen extends ConsumerWidget {
     if (result == true) {
       // already saved in dialog
     }
+  }
+}
+
+/// Kartu 2FA (TOTP) admin — opsional. Mengaktifkan mewajibkan verifikasi kode
+/// dulu agar admin tak terkunci. Rahasia disimpan di admin2fa/{uid}.
+class _Kartu2fa extends ConsumerStatefulWidget {
+  const _Kartu2fa();
+
+  @override
+  ConsumerState<_Kartu2fa> createState() => _Kartu2faState();
+}
+
+class _Kartu2faState extends ConsumerState<_Kartu2fa> {
+  bool _memuat = true;
+  bool _aktif = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _muat();
+  }
+
+  Future<void> _muat() async {
+    final uid = ref.read(authServiceProvider).currentUser?.uid;
+    if (uid == null) {
+      if (mounted) setState(() => _memuat = false);
+      return;
+    }
+    final cfg = await ref.read(firestoreServiceProvider).get2fa(uid);
+    if (mounted) {
+      setState(() {
+        _aktif = cfg?.aktif ?? false;
+        _memuat = false;
+      });
+    }
+  }
+
+  Future<void> _aktifkan() async {
+    final uid = ref.read(authServiceProvider).currentUser?.uid;
+    final email = ref.read(profilAdminProvider).valueOrNull?.email ?? 'admin';
+    if (uid == null) return;
+    final secret = Totp.secretBaru();
+    final kode = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Aktifkan 2FA'),
+        content: SizedBox(
+          width: 340,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Scan QR ini di Google Authenticator, lalu masukkan '
+                '6 digit untuk mengonfirmasi.'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              color: Colors.white,
+              child: QrImageView(
+                data: Totp.provisioningUri(secret, email),
+                size: 170,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SelectableText(secret,
+                style: GoogleFonts.robotoMono(
+                    fontSize: 12, color: TkColors.textMuted)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: kode,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: const InputDecoration(
+                  counterText: '', hintText: '6 digit'),
+            ),
+          ]),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () =>
+                Navigator.pop(ctx, Totp.verifikasi(secret, kode.text)),
+            child: const Text('Konfirmasi'),
+          ),
+        ],
+      ),
+    );
+    kode.dispose();
+    if (ok != true) {
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Kode salah — 2FA belum diaktifkan.')));
+      }
+      return;
+    }
+    await ref.read(firestoreServiceProvider).set2fa(uid, secret, true);
+    if (mounted) setState(() => _aktif = true);
+  }
+
+  Future<void> _nonaktifkan() async {
+    final uid = ref.read(authServiceProvider).currentUser?.uid;
+    if (uid == null) return;
+    await ref.read(firestoreServiceProvider).set2fa(uid, '', false);
+    if (mounted) setState(() => _aktif = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: AdminUi.kartu(),
+      child: Row(children: [
+        Icon(_aktif ? Icons.verified_user : Icons.security_outlined,
+            color: _aktif ? TkColors.primary : TkColors.textMuted),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Autentikasi Dua Faktor (2FA)',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: TkColors.inkSoft)),
+              Text(
+                  _aktif
+                      ? 'Aktif — kode authenticator diminta saat login.'
+                      : 'Tambah lapisan keamanan dengan Google Authenticator.',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 12, color: TkColors.textMuted)),
+            ],
+          ),
+        ),
+        if (_memuat)
+          const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2))
+        else if (_aktif)
+          OutlinedButton(
+              onPressed: _nonaktifkan,
+              style: OutlinedButton.styleFrom(foregroundColor: TkColors.error),
+              child: const Text('Nonaktifkan'))
+        else
+          ElevatedButton(onPressed: _aktifkan, child: const Text('Aktifkan')),
+      ]),
+    );
+  }
+}
+
+/// Kartu Manajemen Tim Admin (A#2). Daftar akun admin + undang admin baru +
+/// aktif/nonaktifkan. Operasi sensitif dijalankan lewat Cloud Function
+/// (buatAdmin/setNonaktifAdmin) yang memverifikasi peran admin di server.
+class _KartuTim extends ConsumerWidget {
+  const _KartuTim();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(daftarAdminProvider);
+    final uidSaya = ref.watch(authServiceProvider).currentUser?.uid;
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: AdminUi.kartu(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
+          child: Row(children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Akun Admin',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: TkColors.inkSoft)),
+                  const SizedBox(height: 4),
+                  Text('Undang admin baru atau nonaktifkan akses.',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 12, color: TkColors.textMuted)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: () => _dialogUndang(context, ref),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(0, 40),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: const Icon(Icons.person_add_alt_1, size: 18),
+              label: Text('Undang',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 13, fontWeight: FontWeight.w600)),
+            ),
+          ]),
+        ),
+        const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Divider(height: 1)),
+        async.when(
+          loading: () => const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(
+                  child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2)))),
+          error: (e, _) => Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text('Gagal memuat daftar admin: $e',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 13, color: TkColors.error))),
+          data: (list) {
+            if (list.isEmpty) {
+              return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text('Belum ada admin.',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 13, color: TkColors.textMuted)));
+            }
+            return Column(children: [
+              for (var i = 0; i < list.length; i++) ...[
+                if (i > 0)
+                  const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Divider(height: 1)),
+                _barisAdmin(context, ref, list[i], list[i].userId == uidSaya),
+              ],
+            ]);
+          },
+        ),
+      ]),
+    );
+  }
+
+  Widget _barisAdmin(
+      BuildContext context, WidgetRef ref, UserModel a, bool saya) {
+    final inisial = a.nama.trim().isEmpty
+        ? 'AD'
+        : a.nama
+            .trim()
+            .split(RegExp(r'\s+'))
+            .take(2)
+            .map((k) => k[0].toUpperCase())
+            .join();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: a.nonaktif
+                ? const Color(0xFFEDEFEC)
+                : TkColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Text(inisial,
+              style: GoogleFonts.montserrat(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: a.nonaktif ? TkColors.textMuted : TkColors.primary)),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(children: [
+                Flexible(
+                  child: Text(a.nama.isEmpty ? '(tanpa nama)' : a.nama,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.montserrat(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: TkColors.inkSoft)),
+                ),
+                if (saya) ...[
+                  const SizedBox(width: 8),
+                  _chip('Anda', TkColors.primary),
+                ],
+                if (a.nonaktif) ...[
+                  const SizedBox(width: 8),
+                  _chip('Nonaktif', TkColors.error),
+                ],
+              ]),
+              const SizedBox(height: 2),
+              Text(a.email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.montserrat(
+                      fontSize: 12, color: TkColors.textMuted)),
+            ],
+          ),
+        ),
+        if (!saya) ...[
+          const SizedBox(width: 8),
+          a.nonaktif
+              ? OutlinedButton(
+                  onPressed: () => _ubahStatus(context, ref, a, false),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 38),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text('Aktifkan',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: TkColors.primary)))
+              : OutlinedButton(
+                  onPressed: () => _ubahStatus(context, ref, a, true),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 38),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor: TkColors.error,
+                  ),
+                  child: Text('Nonaktifkan',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 12, fontWeight: FontWeight.w600))),
+        ],
+      ]),
+    );
+  }
+
+  Widget _chip(String teks, Color warna) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: warna.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(teks,
+            style: GoogleFonts.montserrat(
+                fontSize: 10, fontWeight: FontWeight.w700, color: warna)),
+      );
+
+  Future<void> _ubahStatus(
+      BuildContext context, WidgetRef ref, UserModel a, bool nonaktif) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(nonaktif ? 'Nonaktifkan Admin?' : 'Aktifkan Admin?',
+            style: GoogleFonts.montserrat(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: TkColors.inkSoft)),
+        content: Text(
+            nonaktif
+                ? '${a.nama} tidak akan bisa masuk ke panel admin sampai '
+                    'diaktifkan kembali.'
+                : '${a.nama} akan bisa masuk kembali ke panel admin.',
+            style: GoogleFonts.montserrat(fontSize: 13, height: 1.5)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: nonaktif ? TkColors.error : TkColors.primary),
+            child: Text(nonaktif ? 'Nonaktifkan' : 'Aktifkan'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref
+          .read(timAdminServiceProvider)
+          .setNonaktif(uid: a.userId, nonaktif: nonaktif);
+      messenger.showSnackBar(SnackBar(
+          content: Text(nonaktif
+              ? '${a.nama} dinonaktifkan.'
+              : '${a.nama} diaktifkan kembali.')));
+    } on FirebaseFunctionsException catch (e) {
+      messenger.showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Gagal mengubah status admin.')));
+    }
+  }
+
+  Future<void> _dialogUndang(BuildContext context, WidgetRef ref) async {
+    final formKey = GlobalKey<FormState>();
+    final nama = TextEditingController();
+    final email = TextEditingController();
+    final sandi = TextEditingController();
+    final messenger = ScaffoldMessenger.of(context);
+    var memproses = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('Undang Admin Baru',
+              style: GoogleFonts.montserrat(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: TkColors.inkSoft)),
+          content: SizedBox(
+            width: 400,
+            child: Form(
+              key: formKey,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                TkTextField(
+                    label: 'Nama Lengkap',
+                    controller: nama,
+                    validator: Validators.namaLengkap),
+                const SizedBox(height: 14),
+                TkTextField(
+                    label: 'Email',
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: Validators.email),
+                const SizedBox(height: 14),
+                TkTextField(
+                    label: 'Kata Sandi Awal',
+                    controller: sandi,
+                    hint: 'Minimal 8 karakter',
+                    obscureText: true,
+                    validator: Validators.kataSandi),
+                const SizedBox(height: 8),
+                Text('Admin baru dapat mengganti kata sandi setelah masuk.',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 11, color: TkColors.textMuted)),
+              ]),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: memproses ? null : () => Navigator.of(ctx).pop(),
+                child: const Text('Batal')),
+            ElevatedButton(
+              onPressed: memproses
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setState(() => memproses = true);
+                      try {
+                        await ref.read(timAdminServiceProvider).buatAdmin(
+                              email: email.text.trim(),
+                              password: sandi.text,
+                              nama: nama.text.trim(),
+                            );
+                        if (ctx.mounted) Navigator.of(ctx).pop();
+                        messenger.showSnackBar(SnackBar(
+                            content: Text(
+                                'Admin ${nama.text.trim()} berhasil dibuat.')));
+                      } on FirebaseFunctionsException catch (e) {
+                        setState(() => memproses = false);
+                        messenger.showSnackBar(SnackBar(
+                            content: Text(switch (e.code) {
+                          'already-exists' => 'Email sudah terdaftar.',
+                          'permission-denied' =>
+                            'Hanya admin yang dapat menambah admin.',
+                          _ => e.message ?? 'Gagal membuat admin.',
+                        })));
+                      }
+                    },
+              style:
+                  ElevatedButton.styleFrom(minimumSize: const Size(140, 48)),
+              child: memproses
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.4, color: TkColors.surface))
+                  : const Text('Buat Admin'),
+            ),
+          ],
+        ),
+      ),
+    );
+    nama.dispose();
+    email.dispose();
+    sandi.dispose();
   }
 }

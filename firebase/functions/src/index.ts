@@ -434,3 +434,81 @@ export const reminderKru = functions.scheduler.onSchedule(
     functions.logger.info(`[reminderKru] ${snap.size} order diingatkan.`);
   },
 );
+
+// ═══════════════════════════════════════════════ Manajemen Tim Admin (A#2)
+
+/** Pastikan pemanggil adalah admin (baca users.role). */
+async function pastikanAdmin(uid: string | undefined): Promise<void> {
+  if (!uid) throw new functions.https.HttpsError("unauthenticated", "Harus login.");
+  const snap = await db.collection("users").doc(uid).get();
+  if (snap.data()?.role !== "admin") {
+    throw new functions.https.HttpsError("permission-denied", "Hanya admin.");
+  }
+}
+
+/**
+ * Buat akun admin baru (callable, admin-only). Membuat user Auth + dokumen
+ * users role=admin — tanpa mengeluarkan admin yang sedang login (beda dgn
+ * createUserWithEmailAndPassword di klien).
+ */
+export const buatAdmin = functions.https.onCall(
+  {region: REGION},
+  async (req) => {
+    await pastikanAdmin(req.auth?.uid);
+    const email = String(req.data?.email ?? "").trim();
+    const password = String(req.data?.password ?? "");
+    const nama = String(req.data?.nama ?? "").trim();
+    if (!email || password.length < 8) {
+      throw new functions.https.HttpsError(
+        "invalid-argument", "Email valid & kata sandi min 8 karakter wajib.");
+    }
+    let user;
+    try {
+      user = await admin.auth().createUser({email, password, displayName: nama});
+    } catch (e) {
+      const code = (e as {code?: string}).code ?? "";
+      if (code === "auth/email-already-exists") {
+        throw new functions.https.HttpsError("already-exists", "Email sudah terdaftar.");
+      }
+      if (code === "auth/invalid-password" || code === "auth/invalid-email") {
+        throw new functions.https.HttpsError("invalid-argument", "Email atau kata sandi tidak valid.");
+      }
+      throw new functions.https.HttpsError("internal", "Gagal membuat akun.");
+    }
+    await db.collection("users").doc(user.uid).set({
+      userId: user.uid,
+      nama,
+      email,
+      noTelepon: "",
+      alamat: "",
+      role: "admin",
+      fotoUrl: "",
+      nonaktif: false,
+    });
+    functions.logger.info(`[buatAdmin] admin baru ${email} oleh ${req.auth?.uid}`);
+    return {uid: user.uid};
+  },
+);
+
+/**
+ * Aktif/nonaktifkan akun admin (callable, admin-only). Menonaktifkan =
+ * disable Auth + flag nonaktif. Tak bisa menonaktifkan diri sendiri.
+ */
+export const setNonaktifAdmin = functions.https.onCall(
+  {region: REGION},
+  async (req) => {
+    await pastikanAdmin(req.auth?.uid);
+    const target = String(req.data?.uid ?? "");
+    const nonaktif = req.data?.nonaktif === true;
+    if (!target) {
+      throw new functions.https.HttpsError("invalid-argument", "uid wajib.");
+    }
+    if (target === req.auth?.uid) {
+      throw new functions.https.HttpsError(
+        "failed-precondition", "Tidak bisa menonaktifkan akun sendiri.");
+    }
+    await admin.auth().updateUser(target, {disabled: nonaktif});
+    await db.collection("users").doc(target).update({nonaktif});
+    return {ok: true};
+  },
+);

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tk_core/tk_core.dart';
 
 import '../providers/app_providers.dart';
+import '../util/totp.dart';
 import 'admin_shell.dart';
 
 /// A1 — Masuk Admin (Gambar TA 3.18). Layout desktop: panel branding hijau
@@ -49,6 +50,20 @@ class _A1LoginScreenState extends ConsumerState<A1LoginScreen> {
             password: _sandi.text,
             roleDiharapkan: UserRole.admin,
           );
+      // Faktor kedua (2FA TOTP) bila diaktifkan admin ini.
+      final uid = ref.read(authServiceProvider).currentUser?.uid;
+      if (uid != null) {
+        final cfg = await ref.read(firestoreServiceProvider).get2fa(uid);
+        if (cfg != null && cfg.aktif && cfg.secret.isNotEmpty) {
+          if (!mounted) return;
+          final lolos = await _minta2fa(cfg.secret);
+          if (!lolos) {
+            await ref.read(authServiceProvider).signOut();
+            _snack('Kode 2FA salah. Login dibatalkan.');
+            return;
+          }
+        }
+      }
       if (mounted) {
         Navigator.of(context).pushReplacementNamed(AdminShell.route);
       }
@@ -74,6 +89,43 @@ class _A1LoginScreenState extends ConsumerState<A1LoginScreen> {
   void _snack(String pesan) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(pesan)));
+
+  /// Dialog input 6 digit kode authenticator; kembalikan true bila cocok.
+  Future<bool> _minta2fa(String secret) async {
+    final ctrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Verifikasi 2 Faktor'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('Masukkan 6 digit dari aplikasi Authenticator Anda.'),
+          const SizedBox(height: 12),
+          TextField(
+            controller: ctrl,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            decoration: const InputDecoration(counterText: '', hintText: '••••••'),
+            onSubmitted: (_) =>
+                Navigator.pop(ctx, Totp.verifikasi(secret, ctrl.text)),
+          ),
+        ]),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () =>
+                Navigator.pop(ctx, Totp.verifikasi(secret, ctrl.text)),
+            child: const Text('Verifikasi'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    return ok ?? false;
+  }
 
   @override
   Widget build(BuildContext context) {

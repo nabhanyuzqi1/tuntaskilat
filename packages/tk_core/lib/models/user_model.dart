@@ -22,6 +22,7 @@ class UserModel {
     required this.alamat,
     required this.role,
     this.fotoUrl = '',
+    this.nonaktif = false,
   });
 
   /// PK — ID dari Firebase Authentication.
@@ -35,6 +36,9 @@ class UserModel {
   /// URL foto profil di Cloud Storage ('' bila belum diunggah).
   final String fotoUrl;
 
+  /// Akun dinonaktifkan (khusus admin — tak bisa login). Default aktif.
+  final bool nonaktif;
+
   factory UserModel.fromMap(String id, Map<String, dynamic> map) => UserModel(
         userId: id,
         nama: map['nama'] as String? ?? '',
@@ -43,6 +47,7 @@ class UserModel {
         alamat: map['alamat'] as String? ?? '',
         role: UserRole.fromWire(map['role'] as String),
         fotoUrl: map['fotoUrl'] as String? ?? '',
+        nonaktif: map['nonaktif'] as bool? ?? false,
       );
 
   Map<String, dynamic> toMap() => {
@@ -53,6 +58,7 @@ class UserModel {
         'alamat': alamat,
         'role': role.wire,
         'fotoUrl': fotoUrl,
+        'nonaktif': nonaktif,
       };
 
   UserModel copyWith({
