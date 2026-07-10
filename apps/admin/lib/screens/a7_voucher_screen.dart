@@ -162,10 +162,11 @@ class A7VoucherScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Katalog & voucher pricelist berhasil diisi.')));
       }
-    } catch (_) {
+    } catch (e) {
+      // Tampilkan sebab asli (mis. permission-denied = rules belum deploy).
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Gagal mengisi katalog. Coba lagi.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Gagal mengisi katalog: $e')));
       }
     }
   }
@@ -277,10 +278,11 @@ class _DialogVoucherState extends ConsumerState<_DialogVoucher> {
     try {
       await ref.read(firestoreServiceProvider).simpanVoucher(v);
       if (mounted) Navigator.of(context).pop();
-    } catch (_) {
+    } catch (e) {
+      // Sebab asli penting: permission-denied berarti rules belum di-deploy.
       setState(() {
         _simpan = false;
-        _error = 'Gagal menyimpan. Coba lagi.';
+        _error = 'Gagal menyimpan: $e';
       });
     }
   }

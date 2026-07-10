@@ -27,6 +27,14 @@ service firebase.storage {
           && isImageMax5MB();
     }
 
+    // Foto profil (P15/K6) — profil/{uid}.jpg; hanya pemilik yang menulis.
+    match /profil/{file} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+          && file == request.auth.uid + '.jpg'
+          && isImageMax5MB();
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

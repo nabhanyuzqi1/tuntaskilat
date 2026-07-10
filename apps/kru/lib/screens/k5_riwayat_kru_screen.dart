@@ -49,23 +49,28 @@ class K5RiwayatKruScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: _latarLembut,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
+      // Header putih membungkus SafeArea — warna naik sampai belakang
+      // status bar (sinkron system bar ↔ header).
+      body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 14),
               decoration: const BoxDecoration(
                 color: TkColors.surface,
                 border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
               ),
-              child: Text('Riwayat & Rating',
-                  style: GoogleFonts.montserrat(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: TkColors.inkSoft,
-                      letterSpacing: -0.3)),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 14),
+                  child: Text('Riwayat & Rating',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: TkColors.inkSoft,
+                          letterSpacing: -0.3)),
+                ),
+              ),
             ),
             Expanded(
               child: ListView(
@@ -108,7 +113,6 @@ class K5RiwayatKruScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 

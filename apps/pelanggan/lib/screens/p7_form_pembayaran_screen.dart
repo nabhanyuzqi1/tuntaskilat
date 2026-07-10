@@ -128,15 +128,16 @@ class _P7FormPembayaranScreenState
       );
     }
     if (draft == null || !draft.lengkap) {
-      return Scaffold(
+      // Draft hilang (mis. layar lama di stack setelah bayar) —
+      // langsung pulang ke Beranda, jangan tampilkan layar mati.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context).popUntil((r) =>
+            r.isFirst || r.settings.name == P3BerandaScreen.route);
+      });
+      return const Scaffold(
         backgroundColor: _latarLembut,
-        body: Center(
-          child: TextButton(
-            onPressed: () =>
-                Navigator.of(context).popUntil((r) => r.isFirst),
-            child: const Text('Kembali ke Beranda'),
-          ),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
     return Scaffold(
@@ -564,47 +565,86 @@ class _P7FormPembayaranScreenState
                     fontWeight: FontWeight.w600,
                     color: TkColors.inkSoft)),
             const SizedBox(height: 16),
-            Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0x140F281C)),
-              ),
-              alignment: Alignment.center,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: (pengaturan['qrisUrl'] != null && pengaturan['qrisUrl'].toString().isNotEmpty)
-                    ? Image.network(
-                        pengaturan['qrisUrl'],
-                        width: 180,
-                        height: 180,
-                        fit: BoxFit.contain,
-                        errorBuilder: (ctx, err, stack) => const Icon(
-                          Icons.qr_code_2,
-                          size: 140,
-                          color: TkColors.inkSoft,
-                        ),
-                      )
-                    : Image.asset(
-                        'assets/brand/qris.jpg',
-                        width: 180,
-                        height: 180,
-                        fit: BoxFit.contain,
-                        errorBuilder: (ctx, err, stack) => const Icon(
-                          Icons.qr_code_2,
-                          size: 140,
-                          color: TkColors.inkSoft,
-                        ),
-                      ),
-              ),
-            ),
+            // QR besar (lebar penuh) + ketuk untuk fullscreen — QR 180px
+            // terlalu kecil untuk discan dari layar lain.
+            Builder(builder: (context) {
+              final qrisUrl = pengaturan['qrisUrl']?.toString() ?? '';
+              final qr = qrisUrl.isNotEmpty
+                  ? Image.network(qrisUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => const Icon(Icons.qr_code_2,
+                          size: 180, color: TkColors.inkSoft))
+                  : Image.asset('assets/brand/qris.jpg',
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => const Icon(Icons.qr_code_2,
+                          size: 180, color: TkColors.inkSoft));
+              return Column(children: [
+                GestureDetector(
+                  onTap: () => _bukaQrisPenuh(context, qr),
+                  child: Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0x140F281C)),
+                    ),
+                    child: AspectRatio(aspectRatio: 1, child: qr),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextButton.icon(
+                  onPressed: () => _bukaQrisPenuh(context, qr),
+                  icon: const Icon(Icons.fullscreen_rounded, size: 20),
+                  label: const Text('Perbesar QR'),
+                ),
+              ]);
+            }),
           ],
         ),
       );
     }
     return const SizedBox();
+  }
+
+  /// QR fullscreen dengan latar terang maksimal agar mudah discan.
+  void _bukaQrisPenuh(BuildContext context, Widget qr) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.white,
+      builder: (ctx) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(ctx).pop(),
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: Column(children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  icon: const Icon(Icons.close_rounded,
+                      size: 28, color: TkColors.inkSoft),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Padding(
+                      padding: const EdgeInsets.all(20), child: qr),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 28),
+                child: Text('Scan QRIS Tuntaskilat — ketuk untuk menutup',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 13, color: TkColors.textMuted)),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -740,8 +780,11 @@ class _MenungguVerifikasi extends StatelessWidget {
           const SizedBox(height: 26),
           TkButton(
             label: 'Lacak Status Pesanan',
-            onPressed: () => Navigator.of(context).pushReplacementNamed(
+            // Bersihkan P4-P7 dari stack (draft sudah null) — back dari P8
+            // mendarat di Beranda, bukan P6 fallback "Data tidak lengkap".
+            onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil(
               P8TrackingScreen.route,
+              (r) => r.isFirst || r.settings.name == P3BerandaScreen.route,
               arguments: order.orderId,
             ),
           ),
@@ -749,8 +792,8 @@ class _MenungguVerifikasi extends StatelessWidget {
           SizedBox(
             height: 50,
             child: OutlinedButton(
-              onPressed: () => Navigator.of(context)
-                  .popUntil(ModalRoute.withName(P3BerandaScreen.route)),
+              onPressed: () => Navigator.of(context).popUntil((r) =>
+                  r.isFirst || r.settings.name == P3BerandaScreen.route),
               child: Text('Kembali ke Beranda',
                   style: GoogleFonts.montserrat(
                       fontSize: 14,

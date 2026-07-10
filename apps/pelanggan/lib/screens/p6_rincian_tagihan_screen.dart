@@ -23,30 +23,16 @@ class P6RincianTagihanScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final draft = ref.watch(draftPesananProvider);
     if (draft == null || !draft.lengkap) {
-      // Draft hilang (mis. dibuka langsung) — kembali dengan aman.
-      return Scaffold(
+      // Draft hilang (layar lama di stack setelah bayar / dibuka langsung) —
+      // langsung pulang ke Beranda, jangan tampilkan layar mati.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        Navigator.of(context)
+            .popUntil((r) => r.isFirst || r.settings.name == '/p3');
+      });
+      return const Scaffold(
         backgroundColor: _latarLembut,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Data pesanan tidak lengkap.',
-                    style: GoogleFonts.montserrat(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: TkColors.inkSoft)),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () =>
-                      Navigator.of(context).popUntil((r) => r.isFirst),
-                  child: const Text('Kembali ke Beranda'),
-                ),
-              ],
-            ),
-          ),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 

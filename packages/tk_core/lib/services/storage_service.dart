@@ -36,6 +36,15 @@ class StorageService {
         contentType,
       );
 
+  /// Unggah foto profil (pelanggan P15 / kru K6). Path `profil/{uid}.jpg` —
+  /// satu file per akun, unggah ulang menimpa yang lama (hemat storage).
+  Future<String> uploadFotoProfil({
+    required String uid,
+    required Uint8List bytes,
+    String contentType = 'image/jpeg',
+  }) =>
+      _upload('profil/$uid.jpg', bytes, contentType);
+
   Future<String> _upload(
     String path,
     Uint8List bytes,

@@ -473,13 +473,16 @@ class A3KelolaPesananScreen extends ConsumerWidget {
     // Admin bebas menugaskan berapapun, min 1 worker
     int minPetugas = 1;
 
+    // State pilihan HARUS di luar builder — deklarasi di dalam builder
+    // membuat list di-reset kosong pada tiap setState (bug: tombol
+    // "Tugaskan" tak pernah aktif).
+    final List<KruModel> worker = [];
+    final List<KruModel> helper = [];
+
     final penugasan = await showDialog<List<Penugasan>>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) {
-          final List<KruModel> worker = [];
-          final List<KruModel> helper = [];
-
           return AlertDialog(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

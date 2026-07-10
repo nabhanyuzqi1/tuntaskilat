@@ -53,9 +53,9 @@ class P9RiwayatScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: _latarLembut,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
+      // Header putih membungkus SafeArea — warna naik sampai belakang
+      // status bar (sinkron system bar ↔ header).
+      body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
@@ -63,7 +63,9 @@ class P9RiwayatScreen extends ConsumerWidget {
                 color: TkColors.surface,
                 border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
               ),
-              child: Column(
+              child: SafeArea(
+                bottom: false,
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
@@ -94,6 +96,7 @@ class P9RiwayatScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              ),
             ),
             Expanded(
               child: riwayat.when(
@@ -122,7 +125,6 @@ class P9RiwayatScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 
