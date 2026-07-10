@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/alamat_model.dart';
+import '../models/kas_kru_model.dart';
+import '../models/komisi_model.dart';
 import '../models/kru_model.dart';
 import '../models/notification_model.dart';
 import '../models/dispute_model.dart';
@@ -36,6 +38,18 @@ class LuarWilayahLayananException implements Exception {
 
   @override
   String toString() => 'Out of Delivery Range';
+}
+
+/// Dilempar saat kru dengan tunggakan setoran tunai melebihi batas hendak
+/// ditugaskan ke order tunai (lapisan produk nyata — cegah akumulasi kas).
+class KruNunggakException implements Exception {
+  const KruNunggakException(this.namaKru);
+  final String namaKru;
+
+  @override
+  String toString() =>
+      '$namaKru masih menunggak setoran tunai — selesaikan dulu sebelum '
+      'menerima order tunai baru.';
 }
 
 /// Dilempar saat voucher ditolak backend (kuota habis, kadaluarsa, dll).
@@ -88,6 +102,14 @@ class FirestoreService {
   /// Banding upah/hasil kerja (lapisan produk nyata).
   CollectionReference<Map<String, dynamic>> get _disputes =>
       _db.collection('disputes');
+
+  /// Buku kas setoran tunai per kru (lapisan produk nyata).
+  CollectionReference<Map<String, dynamic>> get _kasKru =>
+      _db.collection('kasKru');
+
+  /// Riwayat setoran tunai (lapisan produk nyata).
+  CollectionReference<Map<String, dynamic>> get _setoran =>
+      _db.collection('setoran');
 
   // ---------------------------------------------------------------- services
 
@@ -314,6 +336,7 @@ class FirestoreService {
         voucherKode: voucher?.kode ?? '',
         potongan: potongan,
         rincian: hasil.rincian,
+        metodePembayaran: metode,
       );
       final payment = PaymentModel(
         paymentId: paymentRef.id,
@@ -594,24 +617,43 @@ class FirestoreService {
     required String orderId,
     required List<String> fotoSebelum,
     required List<String> fotoSesudah,
-    KonfigUpah konfig = const KonfigUpah(),
+    KonfigUpah? konfig,
   }) async {
+    // Komisi: pakai override bila diberikan (tes), selain itu baca settings.
+    final KonfigKomisi? cfgKomisi = konfig == null ? await getKomisi() : null;
     final orderRef = _orders.doc(orderId);
     await _db.runTransaction((tx) async {
       final snap = await tx.get(orderRef);
       if (!snap.exists) throw StateError('Order tidak ditemukan.');
       final order = OrderModel.fromMap(snap.id, snap.data()!);
 
-      // Update Order
+      // Idempoten: bila sudah selesai/dinilai, jangan bukukan ulang (mencegah
+      // kas tunai & payout tercatat dobel).
+      if (order.status == OrderStatus.selesai ||
+          order.status == OrderStatus.dinilai) {
+        return;
+      }
+
+      final konfigUpah =
+          konfig ?? cfgKomisi!.upahUntuk(order.serviceId);
+      final String leadNama = order.penugasan.isNotEmpty
+          ? order.penugasan.first.nama
+          : (order.namaKru ?? 'Kru');
+
+      // Update Order → selesai.
       tx.update(orderRef, {
         'fotoSebelum': fotoSebelum,
         'fotoSesudah': fotoSesudah,
         'status': OrderStatus.selesai.wire,
       });
 
-      // Hitung dan simpan Payout
+      // Hitung & simpan Payout (server-truthed juga oleh onOrderFinalize).
+      // Pembukuan kas tunai TIDAK dilakukan di sini: kru tak boleh menulis buku
+      // kasnya sendiri. Cloud Function onOrderFinalize (admin SDK) yang mencatat
+      // komisi tunai ke kasKru saat order tunai selesai.
       if (order.penugasan.isNotEmpty) {
-        final hasil = bagiUpah(order.totalHarga, order.penugasan, konfig: konfig);
+        final hasil =
+            bagiUpah(order.totalHarga, order.penugasan, konfig: konfigUpah);
         for (final p in order.penugasan) {
           final payRef = _payouts.doc('${orderId}_${p.cleanerId}');
           tx.set(
@@ -630,14 +672,15 @@ class FirestoreService {
       } else {
         // Fallback untuk pesanan lama (single cleaner tanpa `penugasan`)
         final payRef = _payouts.doc('${orderId}_${order.cleanerId}');
-        final komisi = (order.totalHarga * konfig.komisiPersen / 100).round();
+        final komisi =
+            (order.totalHarga * konfigUpah.komisiPersen / 100).round();
         tx.set(
             payRef,
             PayoutModel(
               payoutId: payRef.id,
               orderId: orderId,
               cleanerId: order.cleanerId,
-              namaKru: 'Kru',
+              namaKru: leadNama,
               peran: PeranKru.worker,
               jumlah: order.totalHarga - komisi,
               status: StatusPayout.pending,
@@ -749,6 +792,12 @@ class FirestoreService {
     // Lead = worker pertama bila ada, jika tidak kru pertama.
     final lead = penugasan.firstWhere((p) => p.peran == PeranKru.worker,
         orElse: () => penugasan.first);
+
+    // Guard setoran tunai: lead pemegang kas tak boleh nunggak di atas batas
+    // saat ditugaskan ke order tunai.
+    if (order.tunai && !await bolehTerimaTunai(lead.cleanerId)) {
+      throw KruNunggakException(lead.nama);
+    }
 
     final batch = _db.batch();
     batch.update(_orders.doc(order.orderId), {
@@ -1080,4 +1129,107 @@ class FirestoreService {
   Future<void> updateSettings(String docId, Map<String, dynamic> data) async {
     await _db.collection('settings').doc(docId).set(data, SetOptions(merge: true));
   }
+
+  // -------------------------------------------------------------------- komisi
+
+  /// Konfigurasi komisi (settings/komisi). Default bila belum diatur.
+  Stream<KonfigKomisi> watchKomisi() => _db
+      .collection('settings')
+      .doc('komisi')
+      .snapshots()
+      .map((s) => KonfigKomisi.fromMap(s.data() ?? const {}));
+
+  Future<KonfigKomisi> getKomisi() async {
+    final s = await _db.collection('settings').doc('komisi').get();
+    return KonfigKomisi.fromMap(s.data() ?? const {});
+  }
+
+  Future<void> simpanKomisi(KonfigKomisi k) async {
+    await _db
+        .collection('settings')
+        .doc('komisi')
+        .set(k.toMap(), SetOptions(merge: false));
+  }
+
+  // ---------------------------------------------------------------- kas tunai
+
+  /// Buku kas satu kru (K6/dashboard kru). Doc mungkin belum ada → default 0.
+  Stream<KasKru> watchKas(String cleanerId) =>
+      _kasKru.doc(cleanerId).snapshots().map(
+            (s) => s.exists
+                ? KasKru.fromMap(s.id, s.data()!)
+                : KasKru(cleanerId: cleanerId),
+          );
+
+  /// Seluruh buku kas (panel admin Setoran).
+  Stream<List<KasKru>> watchSemuaKas() => _kasKru.snapshots().map(
+        (s) => s.docs
+            .map((d) => KasKru.fromMap(d.id, d.data()))
+            .toList(growable: false),
+      );
+
+  /// Apakah kru boleh menerima order tunai (saldo ≤ batas). Doc absen → boleh.
+  Future<bool> bolehTerimaTunai(String cleanerId) async {
+    final s = await _kasKru.doc(cleanerId).get();
+    if (!s.exists) return true;
+    return KasKru.fromMap(s.id, s.data()!).bolehTerimaTunai;
+  }
+
+  /// Admin menerima setoran tunai dari kru. Atomik: kurangi saldoTunai (tak
+  /// boleh minus), tambah totalSetor, catat riwayat `setoran/`.
+  Future<void> terimaSetoran({
+    required String cleanerId,
+    required String namaKru,
+    required int jumlah,
+    required String adminUid,
+    String catatan = '',
+  }) async {
+    if (jumlah <= 0) throw ArgumentError('Jumlah setoran harus > 0.');
+    final kasRef = _kasKru.doc(cleanerId);
+    final setoranRef = _setoran.doc();
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(kasRef);
+      final kas = snap.exists
+          ? KasKru.fromMap(snap.id, snap.data()!)
+          : KasKru(cleanerId: cleanerId, namaKru: namaKru);
+      if (jumlah > kas.saldoTunai) {
+        throw StateError(
+            'Setoran (Rp$jumlah) melebihi saldo tunai kru (Rp${kas.saldoTunai}).');
+      }
+      tx.set(
+        kasRef,
+        {
+          'cleanerId': cleanerId,
+          'namaKru': namaKru.isEmpty ? kas.namaKru : namaKru,
+          'saldoTunai': kas.saldoTunai - jumlah,
+          'batasNunggak': kas.batasNunggak,
+          'totalMasuk': kas.totalMasuk,
+          'totalSetor': kas.totalSetor + jumlah,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+      tx.set(
+        setoranRef,
+        SetoranModel(
+          setoranId: setoranRef.id,
+          cleanerId: cleanerId,
+          namaKru: namaKru,
+          jumlah: jumlah,
+          diterimaOleh: adminUid,
+          waktu: DateTime.now(),
+          catatan: catatan,
+        ).toMap(),
+      );
+    });
+  }
+
+  /// Riwayat setoran (admin). Diurutkan terbaru dulu di klien.
+  Stream<List<SetoranModel>> watchSetoran() => _setoran.snapshots().map(
+        (s) => (s.docs
+                .map((d) => SetoranModel.fromMap(d.id, d.data()))
+                .toList()
+              ..sort((a, b) => b.waktu.compareTo(a.waktu)))
+            .toList(growable: false),
+      );
 }

@@ -87,11 +87,7 @@ class A6PengaturanScreen extends ConsumerWidget {
                     _kartuRekening(context, ref),
                     const SizedBox(height: 22),
                     _judul('BIAYA & KOMISI'),
-                    _kartuDitunda(
-                      'Biaya Platform, Komisi Kru, dan Biaya Pembatalan '
-                      'membutuhkan skema di luar 7 koleksi Firestore yang '
-                      'disahkan TA — ditunda sesuai keputusan scope.',
-                    ),
+                    const _KartuKomisi(),
                     const SizedBox(height: 22),
                     _judul('MANAJEMEN TIM ADMIN'),
                     const _KartuTim(),
@@ -255,30 +251,6 @@ class A6PengaturanScreen extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right_rounded,
               size: 20, color: Color(0xFFC4CBC6)),
         ),
-        const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Divider()),
-        ListTile(
-          enabled: false,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-          leading: Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F2EF),
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: const Icon(Icons.phonelink_lock_outlined,
-                size: 19, color: TkColors.textMuted),
-          ),
-          title: Text('Autentikasi Dua Faktor',
-              style: GoogleFonts.montserrat(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: TkColors.textMuted)),
-          trailing: _badgeSegera(),
-        ),
       ]),
     );
   }
@@ -422,40 +394,6 @@ class A6PengaturanScreen extends ConsumerWidget {
       );
     });
   }
-
-  Widget _kartuDitunda(String penjelasan) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFAFBFA),
-          borderRadius: BorderRadius.circular(TkRadius.card),
-          border: Border.all(color: const Color(0x140F281C)),
-        ),
-        child: Row(children: [
-          const Icon(Icons.lock_clock_outlined,
-              size: 20, color: TkColors.textMuted),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(penjelasan,
-                style: GoogleFonts.montserrat(
-                    fontSize: 13, color: TkColors.textMuted, height: 1.5)),
-          ),
-          const SizedBox(width: 12),
-          _badgeSegera(),
-        ]),
-      );
-
-  Widget _badgeSegera() => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        decoration: BoxDecoration(
-          color: TkColors.accent.withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text('Segera Hadir',
-            style: GoogleFonts.montserrat(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF8A6A00))),
-      );
 
   Widget _kartuRekening(BuildContext context, WidgetRef ref) {
     return Consumer(builder: (context, ref, _) {
@@ -848,6 +786,188 @@ class _Kartu2faState extends ConsumerState<_Kartu2fa> {
       ]),
     );
   }
+}
+
+/// Kartu Biaya & Komisi (A#6). Komisi platform global (%) + override per
+/// layanan. Disimpan di settings/komisi; dibaca backend saat menghitung upah.
+class _KartuKomisi extends ConsumerStatefulWidget {
+  const _KartuKomisi();
+
+  @override
+  ConsumerState<_KartuKomisi> createState() => _KartuKomisiState();
+}
+
+class _KartuKomisiState extends ConsumerState<_KartuKomisi> {
+  final _global = TextEditingController();
+  final _perLayanan = <String, TextEditingController>{};
+  bool _seeded = false;
+  bool _menyimpan = false;
+
+  @override
+  void dispose() {
+    _global.dispose();
+    for (final c in _perLayanan.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _seed(KonfigKomisi k, List<ServiceModel> layanan) {
+    if (_seeded) return;
+    _global.text = _fmt(k.komisiPersen);
+    for (final s in layanan) {
+      _perLayanan[s.serviceId] = TextEditingController(
+        text: k.perLayanan.containsKey(s.serviceId)
+            ? _fmt(k.perLayanan[s.serviceId]!)
+            : '',
+      );
+    }
+    _seeded = true;
+  }
+
+  String _fmt(num v) => v == v.roundToDouble() ? v.round().toString() : '$v';
+
+  Future<void> _simpan() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final global = num.tryParse(_global.text.trim());
+    if (global == null || global < 0 || global > 100) {
+      messenger.showSnackBar(const SnackBar(
+          content: Text('Komisi global harus angka 0–100.')));
+      return;
+    }
+    final per = <String, num>{};
+    for (final e in _perLayanan.entries) {
+      final t = e.value.text.trim();
+      if (t.isEmpty) continue;
+      final v = num.tryParse(t);
+      if (v == null || v < 0 || v > 100) {
+        messenger.showSnackBar(SnackBar(
+            content: Text('Override komisi harus angka 0–100 (cek layanan).')));
+        return;
+      }
+      per[e.key] = v;
+    }
+    setState(() => _menyimpan = true);
+    try {
+      await ref
+          .read(firestoreServiceProvider)
+          .simpanKomisi(KonfigKomisi(komisiPersen: global, perLayanan: per));
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Komisi tersimpan.')));
+    } catch (_) {
+      messenger.showSnackBar(
+          const SnackBar(content: Text('Gagal menyimpan komisi.')));
+    } finally {
+      if (mounted) setState(() => _menyimpan = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final komisi = ref.watch(komisiProvider).valueOrNull;
+    final layanan = ref.watch(semuaLayananProvider).valueOrNull;
+    if (komisi == null || layanan == null) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: AdminUi.kartu(),
+        child: const Center(
+            child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2))),
+      );
+    }
+    _seed(komisi, layanan);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: AdminUi.kartu(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text('Komisi Platform',
+            style: GoogleFonts.montserrat(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: TkColors.inkSoft)),
+        const SizedBox(height: 4),
+        Text('Persentase potongan dari total order untuk platform. Sisanya '
+            'dibagi ke kru sesuai peran. Backend menghitung ulang saat order '
+            'selesai.',
+            style: GoogleFonts.montserrat(
+                fontSize: 12, color: TkColors.textMuted, height: 1.5)),
+        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(
+            child: Text('Komisi Global',
+                style: GoogleFonts.montserrat(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: TkColors.inkSoft)),
+          ),
+          SizedBox(
+            width: 110,
+            child: _fieldPersen(_global),
+          ),
+        ]),
+        if (layanan.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          const Divider(),
+          const SizedBox(height: 6),
+          Text('Override per Layanan (kosongkan = pakai global)',
+              style: GoogleFonts.montserrat(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: TkColors.textMuted)),
+          const SizedBox(height: 8),
+          for (final s in layanan)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(children: [
+                Expanded(
+                  child: Text(s.namaLayanan,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.montserrat(
+                          fontSize: 13, color: TkColors.inkSoft)),
+                ),
+                SizedBox(
+                  width: 110,
+                  child: _fieldPersen(_perLayanan[s.serviceId]!, hint: 'global'),
+                ),
+              ]),
+            ),
+        ],
+        const SizedBox(height: 18),
+        Align(
+          alignment: Alignment.centerRight,
+          child: ElevatedButton(
+            onPressed: _menyimpan ? null : _simpan,
+            style: ElevatedButton.styleFrom(minimumSize: const Size(140, 46)),
+            child: _menyimpan
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.4, color: TkColors.surface))
+                : const Text('Simpan Komisi'),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _fieldPersen(TextEditingController c, {String? hint}) => TextField(
+        controller: c,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        textAlign: TextAlign.right,
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: hint,
+          suffixText: '%',
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
 }
 
 /// Kartu Manajemen Tim Admin (A#2). Daftar akun admin + undang admin baru +

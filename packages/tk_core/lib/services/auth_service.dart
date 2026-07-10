@@ -64,6 +64,7 @@ class AuthService {
     required String email,
     required String noTelepon,
     required String password,
+    String? kodeReferal,
   }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
@@ -77,6 +78,8 @@ class AuthService {
       noTelepon: noTelepon,
       alamat: '',
       role: UserRole.pelanggan,
+      kodeReferal: UserModel.kodeReferalDari(uid),
+      referredBy: (kodeReferal ?? '').trim().toUpperCase(),
     );
     await _db.collection('users').doc(uid).set(user.toMap());
     final prefs = await SharedPreferences.getInstance();
@@ -102,6 +105,7 @@ class AuthService {
         noTelepon: authUser.phoneNumber ?? '',
         alamat: '',
         role: UserRole.pelanggan,
+        kodeReferal: UserModel.kodeReferalDari(authUser.uid),
       );
       await ref.set(user.toMap());
       final prefs = await SharedPreferences.getInstance();

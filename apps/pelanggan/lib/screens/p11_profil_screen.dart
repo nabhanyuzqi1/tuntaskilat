@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tk_core/tk_core.dart';
@@ -211,6 +212,30 @@ class P11ProfilScreen extends ConsumerWidget {
                       onTap: () => _keEdit(context)),
                 ]),
                 const SizedBox(height: 20),
+                _judul('REFERAL'),
+                _grup([
+                  _baris(
+                    context,
+                    Icons.card_giftcard_outlined,
+                    'Kode Referal Anda',
+                    (profil?.kodeReferal ?? '').isEmpty
+                        ? 'Belum tersedia'
+                        : profil!.kodeReferal,
+                    onTap: (profil?.kodeReferal ?? '').isEmpty
+                        ? null
+                        : () async {
+                            await Clipboard.setData(
+                                ClipboardData(text: profil!.kodeReferal));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('Kode referal disalin. '
+                                          'Bagikan ke teman!')));
+                            }
+                          },
+                  ),
+                ]),
+                const SizedBox(height: 20),
                 _judul('PENGATURAN'),
                 _grup([
                   _baris(context, Icons.lock_outline_rounded,
@@ -291,7 +316,7 @@ class P11ProfilScreen extends ConsumerWidget {
 
   Widget _baris(BuildContext context, IconData ikon, String label,
       String? nilai,
-      {required VoidCallback onTap}) {
+      {VoidCallback? onTap}) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,

@@ -69,6 +69,29 @@ final semuaLayananProvider = StreamProvider<List<ServiceModel>>((ref) {
   return ref.watch(firestoreServiceProvider).watchSemuaLayanan();
 });
 
+/// Konfigurasi komisi (settings/komisi) — A6 Biaya & Komisi.
+final komisiProvider = StreamProvider<KonfigKomisi>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) {
+    return Stream.value(const KonfigKomisi());
+  }
+  return ref.watch(firestoreServiceProvider).watchKomisi();
+});
+
+/// Seluruh buku kas kru (A8 Setoran).
+final semuaKasProvider = StreamProvider<List<KasKru>>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
+  return ref.watch(firestoreServiceProvider).watchSemuaKas().map(
+        (l) => (l.toList()..sort((a, b) => b.saldoTunai.compareTo(a.saldoTunai)))
+            .toList(growable: false),
+      );
+});
+
+/// Riwayat setoran tunai (A8 Setoran).
+final setoranProvider = StreamProvider<List<SetoranModel>>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
+  return ref.watch(firestoreServiceProvider).watchSetoran();
+});
+
 /// Daftar admin (A6 Manajemen Tim) — users role==admin.
 final daftarAdminProvider = StreamProvider<List<UserModel>>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
