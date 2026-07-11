@@ -195,6 +195,11 @@ class _P5FormPemesananScreenState
     // Simpan draft dan lanjut ke Rincian Tagihan (order belum dibuat —
     // kunci slot terjadi saat konfirmasi pembayaran di P7).
     _simpanDraft(layanan);
+    // Tutup keyboard SEBELUM push: bila keyboard masih menutup saat transisi,
+    // sebagian perangkat mengirim viewInsets basi ke route baru sehingga body
+    // P6 terkompres setinggi sisa-keyboard (tampak "blank"). Unfocus memaksa
+    // insets pulih dahulu (akar bug P6 blank di HP fisik & emulator).
+    FocusManager.instance.primaryFocus?.unfocus();
     Navigator.of(context).pushNamed(P6RincianTagihanScreen.route);
   }
 

@@ -38,6 +38,10 @@ class P6RincianTagihanScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: _latarLembut,
+      // Kebal terhadap viewInsets basi dari transisi (akar bug "P6 blank"):
+      // body TIDAK dikompres keyboard; field voucher berada dalam scroll
+      // sehingga tetap dapat dijangkau saat mengetik.
+      resizeToAvoidBottomInset: false,
       // SafeArea dipindah KE DALAM header putih agar warna header naik
       // sampai belakang status bar (sinkron system bar ↔ header).
       body: Column(
@@ -47,7 +51,14 @@ class P6RincianTagihanScreen extends ConsumerWidget {
               // Bug9 fix: SingleChildScrollView+Column menggantikan ListView
               // — di perangkat tertentu konten sliver P6 tidak ter-paint
               // (body tampak blank) meski dibangun & layout normal.
-              child: SingleChildScrollView(
+              // Overscroll stretch M3 (StretchingOverscrollIndicator →
+              // ImageFiltered) menghentikan layout scrollable ini di
+              // perangkat tertentu (render tree "size: MISSING" tanpa
+              // exception) → body P6 tak pernah ter-paint. Matikan efeknya.
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context)
+                    .copyWith(overscroll: false),
+                child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -228,6 +239,7 @@ class P6RincianTagihanScreen extends ConsumerWidget {
                   ),
                 ],
                 ),
+              ),
               ),
             ),
             _sheetTotal(context, draft),
@@ -562,16 +574,25 @@ class _KartuVoucherState extends ConsumerState<_KartuVoucher> {
           else
             Row(children: [
               Expanded(
-                child: TextField(
-                  controller: _kode,
-                  textCapitalization: TextCapitalization.characters,
-                  style: GoogleFonts.montserrat(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: TkColors.inkSoft),
-                  decoration: const InputDecoration(
-                    hintText: 'Masukkan kode voucher',
-                    isDense: true,
+                // Tinggi eksplisit: pada beberapa perangkat, layout intrinsic
+                // TextField (isDense) di rantai scroll ini tidak pernah
+                // selesai (render tree "size: MISSING") sehingga SELURUH body
+                // P6 gagal paint — akar bug "Rincian Tagihan blank".
+                child: SizedBox(
+                  height: 44,
+                  child: TextField(
+                    controller: _kode,
+                    textCapitalization: TextCapitalization.characters,
+                    style: GoogleFonts.montserrat(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: TkColors.inkSoft),
+                    decoration: const InputDecoration(
+                      hintText: 'Masukkan kode voucher',
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                    ),
                   ),
                 ),
               ),
@@ -579,6 +600,12 @@ class _KartuVoucherState extends ConsumerState<_KartuVoucher> {
               SizedBox(
                 height: 44,
                 child: ElevatedButton(
+                  // Theme global minimumSize = Size.fromHeight (lebar
+                  // INFINITY) — di dalam Row (unbounded) memicu
+                  // "BoxConstraints forces an infinite width" dan
+                  // menggagalkan layout seluruh body P6 (bug blank).
+                  style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(96, 44)),
                   onPressed: _loading ? null : _terapkan,
                   child: _loading
                       ? const SizedBox(
