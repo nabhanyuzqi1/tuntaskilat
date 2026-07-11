@@ -197,13 +197,14 @@ class A2DashboardScreen extends ConsumerWidget {
                         Align(
                           alignment: Alignment.bottomCenter,
                           child: Container(
-                            width: double.infinity,
+                            // width:infinity + maxWidth memicu assertion
+                            // "BoxConstraints forces an infinite width" pada
+                            // parent unbounded — pakai lebar tetap saja.
+                            width: 40,
                             height: maks == 0
                                 ? 4
                                 : math.max(
                                     4, 170 * (nilai[i] / maks).toDouble()),
-                            constraints:
-                                const BoxConstraints(maxWidth: 40),
                             decoration: BoxDecoration(
                               color: i == 6
                                   ? TkColors.primary

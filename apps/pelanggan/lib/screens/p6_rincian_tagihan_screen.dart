@@ -38,14 +38,19 @@ class P6RincianTagihanScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: _latarLembut,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
+      // SafeArea dipindah KE DALAM header putih agar warna header naik
+      // sampai belakang status bar (sinkron system bar ↔ header).
+      body: Column(
           children: [
             _header(context),
             Expanded(
-              child: ListView(
+              // Bug9 fix: SingleChildScrollView+Column menggantikan ListView
+              // — di perangkat tertentu konten sliver P6 tidak ter-paint
+              // (body tampak blank) meski dibangun & layout normal.
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _kartu(
                     child: Row(children: [
@@ -222,21 +227,24 @@ class P6RincianTagihanScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+                ),
               ),
             ),
             _sheetTotal(context, draft),
           ],
-        ),
       ),
     );
   }
 
   Widget _header(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
         decoration: const BoxDecoration(
           color: TkColors.surface,
           border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
         ),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
         child: Row(children: [
           GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -259,6 +267,8 @@ class P6RincianTagihanScreen extends ConsumerWidget {
                   fontWeight: FontWeight.w700,
                   color: TkColors.inkSoft)),
         ]),
+          ),
+        ),
       );
 
   Widget _kartu({required Widget child}) => Container(
@@ -387,26 +397,42 @@ class P6RincianTagihanScreen extends ConsumerWidget {
   }
 }
 
+/// Garis putus-putus via CustomPaint — tanpa LayoutBuilder (LayoutBuilder di
+/// dalam list P6 ikut tersangka bug paint-blank di perangkat tertentu).
 class _GarisPutus extends StatelessWidget {
   const _GarisPutus();
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, c) => Row(
-        children: [
-          for (var i = 0; i < (c.maxWidth / 10).floor(); i++)
-            Expanded(
-              child: Container(
-                height: 1.5,
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                color: i.isEven ? TkColors.border : Colors.transparent,
-              ),
-            ),
-        ],
-      ),
+    return const SizedBox(
+      height: 1.5,
+      width: double.infinity,
+      child: CustomPaint(painter: _GarisPutusPainter()),
     );
   }
+}
+
+class _GarisPutusPainter extends CustomPainter {
+  const _GarisPutusPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cat = Paint()
+      ..color = TkColors.border
+      ..strokeWidth = size.height;
+    const dash = 6.0;
+    const gap = 4.0;
+    final y = size.height / 2;
+    var x = 0.0;
+    while (x < size.width) {
+      canvas.drawLine(
+          Offset(x, y), Offset((x + dash).clamp(0.0, size.width), y), cat);
+      x += dash + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 /// Kartu input voucher (kode → potongan). Validasi pratinjau di klien;

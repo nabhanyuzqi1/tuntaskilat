@@ -172,20 +172,26 @@ class _P5aPetaScreenState extends ConsumerState<P5aPetaScreen> {
             ),
           ),
         ),
-        // Tombol Lokasi Saya (mengambang kanan bawah, di atas panel).
-        Positioned(
-          right: 16,
-          bottom: 200,
-          child: _TombolBulat(
-            ikon: _cariGps ? null : Icons.my_location_rounded,
-            loading: _cariGps,
-            onTap: _cariGps ? null : _lokasiSaya,
-          ),
-        ),
-        // Panel bawah: alamat terdeteksi + konfirmasi.
+        // Panel bawah + tombol Lokasi Saya mengambang tepat di atasnya.
+        // (Dulu Positioned bottom:200 tetap → ketutup panel saat alamat 2
+        // baris. Kini FAB satu kolom dengan panel → selalu di atas panel.)
         Align(
           alignment: Alignment.bottomCenter,
-          child: Container(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 16, bottom: 12),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _TombolBulat(
+                    ikon: _cariGps ? null : Icons.my_location_rounded,
+                    loading: _cariGps,
+                    onTap: _cariGps ? null : _lokasiSaya,
+                  ),
+                ),
+              ),
+              Container(
             width: double.infinity,
             padding: EdgeInsets.fromLTRB(
                 20, 20, 20, 20 + MediaQuery.paddingOf(context).bottom),
@@ -242,6 +248,8 @@ class _P5aPetaScreenState extends ConsumerState<P5aPetaScreen> {
                 ),
               ],
             ),
+          ),
+            ],
           ),
         ),
       ]),

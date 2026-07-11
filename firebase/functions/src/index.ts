@@ -428,7 +428,7 @@ export const onOrderAssigned = functions.firestore.onDocumentUpdated(
         data: {orderId: event.params.orderId, tipe: "tugas_baru"},
         android: {
           priority: "high",
-          notification: {channelId: "tk_high_importance_channel"},
+          notification: {channelId: "tk_high_importance_channel_v2"},
         },
       });
 
@@ -493,7 +493,7 @@ export const reminderKru = functions.scheduler.onSchedule(
           data: {orderId: doc.id, tipe: "reminder"},
           android: {
             priority: "high",
-            notification: {channelId: "tk_high_importance_channel"},
+            notification: {channelId: "tk_high_importance_channel_v2"},
           },
         });
       }

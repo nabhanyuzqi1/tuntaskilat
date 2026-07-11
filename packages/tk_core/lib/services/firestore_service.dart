@@ -403,6 +403,17 @@ class FirestoreService {
     return d;
   }
 
+  /// Admin membatalkan penugasan kru (A3) — order kembali ke antrean
+  /// "menunggu penugasan" agar bisa ditugaskan ulang. Hanya untuk order yang
+  /// belum mulai dikerjakan (ditugaskan/dalam perjalanan).
+  Future<void> batalkanPenugasan(String orderId) => _orders.doc(orderId).update({
+        'cleanerId': '',
+        'kruIds': <String>[],
+        'namaKru': FieldValue.delete(),
+        'penugasan': FieldValue.delete(),
+        'status': OrderStatus.menungguPenugasan.wire,
+      });
+
   // ---------------------------------------------------------------- vouchers
 
   /// Cari voucher by kode (untuk pratinjau di klien; validasi final tetap di
@@ -1102,6 +1113,7 @@ class FirestoreService {
         'nama': user.nama,
         'noTelepon': user.noTelepon,
         'alamat': user.alamat,
+        'fotoUrl': user.fotoUrl,
       });
 
   // ------------------------------------------------------------------- chat

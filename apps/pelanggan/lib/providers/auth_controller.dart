@@ -55,7 +55,14 @@ class AuthController extends AutoDisposeAsyncNotifier<UserModel?> {
     try {
       final gsi = GoogleSignIn.instance;
       if (!_googleSiap) {
-        await gsi.initialize();
+        // serverClientId = OAuth Web client (client_type 3 di
+        // google-services.json). WAJIB di Android agar
+        // authentication.idToken terisi — tanpa ini idToken null dan
+        // GoogleAuthProvider.credential gagal (akar Bug login Google).
+        await gsi.initialize(
+          serverClientId:
+              '429452141588-07vcu9fniaem41as3tlpsp23lb6a66g2.apps.googleusercontent.com',
+        );
         _googleSiap = true;
       }
       akun = await gsi.authenticate();

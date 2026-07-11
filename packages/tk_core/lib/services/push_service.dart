@@ -58,7 +58,7 @@ class PushService {
 /// Detail notifikasi lokal bersuara custom Tuntaskilat (dipakai push & lokal).
 const tuntaskilatNotifDetails = NotificationDetails(
   android: AndroidNotificationDetails(
-    'tk_high_importance_channel',
+    'tk_high_importance_channel_v2',
     'Tuntaskilat Notifications',
     channelDescription: 'Notifikasi penting pesanan',
     importance: Importance.max,

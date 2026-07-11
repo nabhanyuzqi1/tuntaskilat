@@ -290,31 +290,40 @@ class K5RiwayatKruScreen extends ConsumerWidget {
         const Divider(),
         const SizedBox(height: 12),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            if (review != null)
-              Row(children: [
-                const Icon(Icons.star_rounded,
-                    size: 14, color: TkColors.accent),
-                const SizedBox(width: 4),
-                Text(
-                    review.penilaian
-                        .toDouble()
-                        .toStringAsFixed(1)
-                        .replaceAll('.', ','),
-                    style: GoogleFonts.montserrat(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: TkColors.inkSoft)),
-                const SizedBox(width: 4),
-                Text('· ${review.namaPelanggan}',
-                    style: GoogleFonts.montserrat(
-                        fontSize: 12, color: TkColors.textMuted)),
-              ])
-            else
-              Text('Belum dinilai pelanggan',
-                  style: GoogleFonts.montserrat(
-                      fontSize: 12, color: TkColors.textMuted)),
+            // Expanded + ellipsis: nama pelanggan panjang tidak lagi
+            // menabrak nominal (fix overlap kartu Pekerjaan Selesai).
+            Expanded(
+              child: review != null
+                  ? Row(children: [
+                      const Icon(Icons.star_rounded,
+                          size: 14, color: TkColors.accent),
+                      const SizedBox(width: 4),
+                      Text(
+                          review.penilaian
+                              .toDouble()
+                              .toStringAsFixed(1)
+                              .replaceAll('.', ','),
+                          style: GoogleFonts.montserrat(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: TkColors.inkSoft)),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text('· ${review.namaPelanggan}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.montserrat(
+                                fontSize: 12, color: TkColors.textMuted)),
+                      ),
+                    ])
+                  : Text('Belum dinilai pelanggan',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.montserrat(
+                          fontSize: 12, color: TkColors.textMuted)),
+            ),
+            const SizedBox(width: 10),
             Text('+ ${PriceBadge.formatRupiah(order.totalHarga)}',
                 style: GoogleFonts.montserrat(
                     fontSize: 15,

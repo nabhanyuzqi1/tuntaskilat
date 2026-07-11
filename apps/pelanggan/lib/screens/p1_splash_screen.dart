@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:tk_core/tk_core.dart';
 
 import '../providers/app_providers.dart';
 import 'onboarding_screen.dart';
@@ -24,36 +22,26 @@ class P1SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<P1SplashScreen> createState() => _P1SplashScreenState();
 }
 
-class _P1SplashScreenState extends ConsumerState<P1SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _anim;
+class _P1SplashScreenState extends ConsumerState<P1SplashScreen> {
   var _sudahNavigasi = false;
-  // Singkat: native splash sudah menampilkan logo — layar ini hanya jembatan
-  // menunggu Firebase/prefs, bukan "splash kedua" (fix: splash terasa dobel).
+  // Layar ini hanya jembatan menunggu Firebase/prefs — bukan splash kedua.
   final _minTampil = Future<void>.delayed(const Duration(milliseconds: 250));
 
   @override
   void initState() {
     super.initState();
-    _anim = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-      // Mulai dari tampil penuh — tanpa reveal ulang logo (anti splash dobel).
-      value: 1,
-    );
-    // Mulai proses siap → navigasi begitu Firebase + prefs selesai.
+    // Navigasi begitu Firebase + prefs selesai.
     WidgetsBinding.instance.addPostFrameCallback((_) => _coba());
-  }
-
-  @override
-  void dispose() {
-    _anim.dispose();
-    super.dispose();
   }
 
   Future<void> _coba() async {
     // Tunggu Firebase init (non-blocking di main) + minimal durasi branding.
-    final siap = await ref.read(firebaseInitProvider.future);
+    // Timeout defensif: jangan pernah menyandera pengguna di splash —
+    // bila init menggantung, lanjut sebagai "belum siap" (fitur mengecek
+    // firebaseSiap masing-masing).
+    final siap = await ref
+        .read(firebaseInitProvider.future)
+        .timeout(const Duration(seconds: 8), onTimeout: () => false);
     await _minTampil;
     if (!mounted || _sudahNavigasi) return;
     _sudahNavigasi = true;
@@ -82,93 +70,16 @@ class _P1SplashScreenState extends ConsumerState<P1SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final kurva = CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic);
-    return Scaffold(
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: const [0, 0.38, 0.6],
-                  colors: [
-                    TkColors.primary.withValues(alpha: 0.10),
-                    TkColors.primary.withValues(alpha: 0.02),
-                    TkColors.surface.withValues(alpha: 0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: FadeTransition(
-                      opacity: kurva,
-                      child: ScaleTransition(
-                        scale: Tween(begin: 0.86, end: 1.0).animate(kurva),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Image.asset('assets/brand/logo-color.webp',
-                                width: 190),
-                            const SizedBox(height: 20),
-                            Text(
-                              'Tuntaskilat',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 30,
-                                fontWeight: FontWeight.w700,
-                                color: TkColors.inkSoft,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Layanan kebersihan on-demand untuk Sampit',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.montserrat(
-                                fontSize: 14,
-                                color: TkColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 44),
-                  child: Column(
-                    children: [
-                      const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.4,
-                          color: TkColors.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        'PT Tuntas Kilat Group',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: TkColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+    // Clean logo only — visual identik dengan native splash (logo TK di
+    // tengah, latar putih) sehingga transisi native → Flutter mulus dan
+    // TIDAK terasa sebagai splash kedua.
+    return const Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Image(
+          image: AssetImage('assets/brand/logo_tk.png'),
+          width: 120,
+        ),
       ),
     );
   }

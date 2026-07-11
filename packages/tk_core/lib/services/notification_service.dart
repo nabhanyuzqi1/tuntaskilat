@@ -39,7 +39,7 @@ class NotificationService {
 
     await androidImplementation?.createNotificationChannel(
       const AndroidNotificationChannel(
-        'tk_high_importance_channel',
+        'tk_high_importance_channel_v2',
         'Tuntaskilat Notifications',
         description: 'Notifikasi penting pesanan',
         importance: Importance.max,
@@ -56,12 +56,19 @@ class NotificationService {
       androidConfiguration: AndroidConfiguration(
         onStart: onStart,
         autoStart: true,
-        autoStartOnBoot: true,
+        // Android 15+ MELARANG FGS dataSync start dari BOOT_COMPLETED
+        // (ForegroundServiceStartNotAllowedException → app crash tiap boot).
+        // Service cukup start saat app dibuka (autoStart di atas).
+        autoStartOnBoot: false,
         isForegroundMode: true,
         notificationChannelId: 'tk_background_service',
         initialNotificationTitle: 'Tuntaskilat',
         initialNotificationContent: 'Menunggu pembaruan pesanan...',
         foregroundServiceNotificationId: 888,
+        // Android 14+ (targetSDK 34+) WAJIB tipe FGS eksplisit — tanpa ini
+        // app crash MissingForegroundServiceTypeException saat startService.
+        // dataSync sesuai fungsi service: monitor pembaruan pesanan Firestore.
+        foregroundServiceTypes: [AndroidForegroundType.dataSync],
       ),
       iosConfiguration: IosConfiguration(
         autoStart: true,
@@ -80,7 +87,7 @@ class NotificationService {
       body: body,
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
-          'tk_high_importance_channel',
+          'tk_high_importance_channel_v2',
           'Tuntaskilat Notifications',
           channelDescription: 'Notifikasi penting pesanan',
           importance: Importance.max,
@@ -108,7 +115,7 @@ void onStart(ServiceInstance service) async {
   final localNotif = FlutterLocalNotificationsPlugin();
 
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'tk_high_importance_channel',
+    'tk_high_importance_channel_v2',
     'Tuntaskilat Notifications',
     description: 'Notifikasi penting pesanan',
     importance: Importance.max,

@@ -405,6 +405,7 @@ class _IlustrasiKO3 extends StatelessWidget {
           child: Column(children: [
             Container(
               height: 84,
+              width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(12),

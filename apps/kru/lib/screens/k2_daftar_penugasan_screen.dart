@@ -107,9 +107,16 @@ class K2DaftarPenugasanScreen extends ConsumerWidget {
           ),
           Expanded(
             child: tugas.when(
-                loading: () => const Center(
-                    child: CircularProgressIndicator(
-                        color: TkColors.primaryDark)),
+                // Skeleton shimmer list selagi tugas dimuat (bukan spinner).
+                loading: () => ListView(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 12),
+                      children: const [
+                        TkSkeletonListTile(),
+                        TkSkeletonListTile(),
+                        TkSkeletonListTile(),
+                      ],
+                    ),
                 error: (_, _) => _kosong(
                     'Penugasan tidak dapat dimuat. Periksa koneksi Anda.'),
                 data: (orders) {

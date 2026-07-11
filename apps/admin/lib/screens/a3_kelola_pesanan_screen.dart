@@ -253,9 +253,25 @@ class A3KelolaPesananScreen extends ConsumerWidget {
             ),
           ),
         );
-      case OrderStatus.ditugaskan ||
-            OrderStatus.dalamPerjalanan ||
-            OrderStatus.diproses:
+      case OrderStatus.ditugaskan || OrderStatus.dalamPerjalanan:
+        // Sebelum pengerjaan dimulai admin masih boleh membatalkan petugas —
+        // order kembali ke antrean penugasan.
+        return Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+          Text(o.namaKru ?? '—',
+              style: GoogleFonts.montserrat(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: TkColors.inkSoft)),
+          const SizedBox(width: 6),
+          IconButton(
+            tooltip: 'Batalkan petugas',
+            visualDensity: VisualDensity.compact,
+            onPressed: () => _konfirmBatalkanKru(context, ref, o),
+            icon: const Icon(Icons.person_remove_alt_1_outlined,
+                size: 17, color: TkColors.error),
+          ),
+        ]);
+      case OrderStatus.diproses:
         return Align(
           alignment: Alignment.centerRight,
           child: Text(o.namaKru ?? '—',
@@ -457,6 +473,42 @@ class A3KelolaPesananScreen extends ConsumerWidget {
         .verifikasiPembayaran(order: o, terima: false, alasan: alasan);
   }
 
+  /// Konfirmasi ulang aksi (kaidah HCD) sebelum melepas penugasan kru.
+  Future<void> _konfirmBatalkanKru(
+      BuildContext context, WidgetRef ref, OrderModel o) async {
+    final ya = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Batalkan petugas?',
+            style: GoogleFonts.montserrat(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: TkColors.inkSoft)),
+        content: Text(
+          'Penugasan ${o.namaKru ?? ''} pada #${o.orderId} dilepas dan '
+          'pesanan kembali ke antrean "menunggu penugasan".',
+          style: GoogleFonts.montserrat(
+              fontSize: 14, color: TkColors.textSecondary, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: TkColors.error,
+                minimumSize: const Size(0, 44)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Ya, Lepas Petugas'),
+          ),
+        ],
+      ),
+    );
+    if (ya != true) return;
+    await ref.read(firestoreServiceProvider).batalkanPenugasan(o.orderId);
+  }
+
   Future<void> _dialogTugaskan(
       BuildContext context, WidgetRef ref, OrderModel o) async {
     // Ambil daftar kru; tunggu stream bila belum sempat termuat.
@@ -511,7 +563,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('Pilih 1 Worker (Lead) dan sisanya Helper jika perlu.',
+                        Text('Pilih 1 Ketua Tim dan sisanya Pendamping jika perlu.',
                             style: GoogleFonts.montserrat(
                                 fontSize: 13, color: TkColors.textMuted)),
                         const SizedBox(height: 12),
@@ -568,12 +620,12 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                                   if (worker.contains(k))
                                     Padding(
                                       padding: const EdgeInsets.only(left: 8),
-                                      child: AdminUi.chipStatus('Worker', TkColors.primary),
+                                      child: AdminUi.chipStatus('Ketua Tim', TkColors.primary),
                                     )
                                   else if (helper.contains(k))
                                     Padding(
                                       padding: const EdgeInsets.only(left: 8),
-                                      child: AdminUi.chipStatus('Helper', TkColors.accent),
+                                      child: AdminUi.chipStatus('Pendamping', TkColors.accent),
                                     )
                                 ]),
                                 subtitle: Text(

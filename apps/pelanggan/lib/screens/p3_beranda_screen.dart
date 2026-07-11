@@ -46,6 +46,8 @@ class P3BerandaScreen extends ConsumerWidget {
                   _JudulSection(
                     'Layanan',
                     aksi: 'Lihat Semua',
+                    topPad: 14,
+                    bottomPad: 10,
                     onAksi: () => Navigator.of(context)
                         .pushNamed(P3aKatalogScreen.route),
                   ),
@@ -112,6 +114,9 @@ class _HeaderBeranda extends ConsumerWidget {
                 CircleAvatar(
                   radius: 22,
                   backgroundColor: const Color(0xFFDCE7E0),
+                  foregroundImage: (profil?.fotoUrl ?? '').isEmpty
+                      ? null
+                      : NetworkImage(profil!.fotoUrl),
                   child: Text(
                     inisial,
                     style: GoogleFonts.montserrat(
@@ -327,16 +332,22 @@ class _BannerPromo extends StatelessWidget {
 }
 
 class _JudulSection extends StatelessWidget {
-  const _JudulSection(this.judul, {required this.aksi, required this.onAksi});
+  const _JudulSection(this.judul,
+      {required this.aksi,
+      required this.onAksi,
+      this.topPad = 24,
+      this.bottomPad = 14});
 
   final String judul;
   final String aksi;
   final VoidCallback onAksi;
+  final double topPad;
+  final double bottomPad;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 24, bottom: 14),
+      padding: EdgeInsets.only(top: topPad, bottom: bottomPad),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -378,10 +389,31 @@ class _GridLayanan extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final firebaseSiap = ref.watch(firebaseSiapProvider);
     return layanan.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 48),
-        child: Center(
-          child: CircularProgressIndicator(color: TkColors.primary),
+      // Skeleton shimmer selagi katalog dimuat (kaidah Umpan Balik Segera)
+      // — bentuk placeholder menyerupai kartu asli, bukan spinner kosong.
+      loading: () => GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 14,
+          mainAxisExtent: 184,
+        ),
+        itemCount: 4,
+        itemBuilder: (_, _) => TkShimmer(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Expanded(
+                  child: TkSkeletonBox(height: double.infinity, radius: 18)),
+              SizedBox(height: 10),
+              TkSkeletonBox(width: 110, height: 14),
+              SizedBox(height: 8),
+              TkSkeletonBox(width: 80, height: 20, radius: 6),
+            ],
+          ),
         ),
       ),
       error: (_, _) => _pesanKosong(
@@ -398,6 +430,10 @@ class _GridLayanan extends ConsumerWidget {
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
+          // Tanpa padding eksplisit, GridView mewarisi MediaQuery padding
+          // (setinggi status bar) → gap fantom di atas grid (bug "gap
+          // katalog terlalu jauh").
+          padding: EdgeInsets.zero,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             mainAxisSpacing: 14,

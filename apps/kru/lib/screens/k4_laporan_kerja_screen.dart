@@ -102,20 +102,24 @@ class _K4LaporanKerjaScreenState extends ConsumerState<K4LaporanKerjaScreen> {
   Widget build(BuildContext context) {
     final order = ModalRoute.of(context)!.settings.arguments as OrderModel;
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: _terkirim ? _sukses(order) : _form(order),
-      ),
+      body: _terkirim
+          ? SafeArea(bottom: false, child: _sukses(order))
+          : _form(order),
     );
   }
 
   Widget _form(OrderModel order) {
     return Column(children: [
       Container(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
         decoration: const BoxDecoration(
+          color: TkColors.surface,
           border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
         ),
+        // SafeArea di dalam header → warna sinkron sampai status bar.
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
         child: Row(children: [
           GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -148,6 +152,8 @@ class _K4LaporanKerjaScreenState extends ConsumerState<K4LaporanKerjaScreen> {
             ],
           ),
         ]),
+          ),
+        ),
       ),
       Expanded(
         child: ListView(
@@ -198,6 +204,7 @@ class _K4LaporanKerjaScreenState extends ConsumerState<K4LaporanKerjaScreen> {
           onTap: () => _ambilFoto(sebelum),
           child: Container(
             height: 168,
+            width: double.infinity,
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: TkColors.primary.withValues(alpha: 0.03),
@@ -317,20 +324,27 @@ class _K4LaporanKerjaScreenState extends ConsumerState<K4LaporanKerjaScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Pendapatan tugas',
-                        style: GoogleFonts.montserrat(
-                            fontSize: 12, color: TkColors.textMuted)),
-                    const SizedBox(height: 2),
-                    Text('#${order.orderId}',
-                        style: GoogleFonts.montserrat(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: TkColors.inkSoft)),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Pendapatan tugas',
+                          style: GoogleFonts.montserrat(
+                              fontSize: 12, color: TkColors.textMuted)),
+                      const SizedBox(height: 2),
+                      // Order ID slot bisa panjang — ellipsis agar tak
+                      // overflow (fix "RIGHT OVERFLOWED BY 53 PIXELS").
+                      Text('#${order.orderId}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.montserrat(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: TkColors.inkSoft)),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 10),
                 Text('+ ${PriceBadge.formatRupiah(order.totalHarga)}',
                     style: GoogleFonts.montserrat(
                         fontSize: 18,

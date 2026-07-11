@@ -231,7 +231,12 @@ class A6PengaturanScreen extends ConsumerWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: AdminUi.kartu(),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      // Material transparan: ListTile menggambar ink pada Material terdekat —
+      // tanpa ini DecoratedBox menutupinya (exception di console web).
+      child: Material(
+        type: MaterialType.transparency,
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         ListTile(
           onTap: () => _dialogUbahSandi(context, ref),
           contentPadding:
@@ -254,7 +259,8 @@ class A6PengaturanScreen extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right_rounded,
               size: 20, color: Color(0xFFC4CBC6)),
         ),
-      ]),
+        ]),
+      ),
     );
   }
 
@@ -370,7 +376,11 @@ class A6PengaturanScreen extends ConsumerWidget {
       return Container(
         clipBehavior: Clip.antiAlias,
         decoration: AdminUi.kartu(),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
           for (var i = 0; i < _A6.kunciNotif.length; i++) ...[
             if (i > 0)
               const Padding(
@@ -393,7 +403,8 @@ class A6PengaturanScreen extends ConsumerWidget {
               },
             ),
           ],
-        ]),
+          ]),
+        ),
       );
     });
   }

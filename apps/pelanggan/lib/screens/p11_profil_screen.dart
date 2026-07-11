@@ -130,16 +130,27 @@ class P11ProfilScreen extends ConsumerWidget {
                   Container(
                     width: 72,
                     height: 72,
+                    clipBehavior: Clip.antiAlias,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(22),
                     ),
                     alignment: Alignment.center,
-                    child: Text(inisial,
-                        style: GoogleFonts.montserrat(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            color: TkColors.primaryDark)),
+                    child: (profil?.fotoUrl ?? '').isEmpty
+                        ? Text(inisial,
+                            style: GoogleFonts.montserrat(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w700,
+                                color: TkColors.primaryDark))
+                        : Image.network(profil!.fotoUrl,
+                            width: 72,
+                            height: 72,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Text(inisial,
+                                style: GoogleFonts.montserrat(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w700,
+                                    color: TkColors.primaryDark))),
                   ),
                   const SizedBox(width: 16),
                   Expanded(

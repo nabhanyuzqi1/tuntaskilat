@@ -45,12 +45,14 @@ class Totp {
     return (bin % 1000000).toString().padLeft(6, '0');
   }
 
-  /// Verifikasi [input] terhadap [secret], toleransi ±1 langkah (30 dtk).
+  /// Verifikasi [input] terhadap [secret], toleransi ±2 langkah (60 dtk) —
+  /// mengakomodasi selisih jam PC admin vs HP authenticator (penyebab umum
+  /// "kode 2FA selalu salah").
   static bool verifikasi(String secret, String input) {
     final k = input.trim();
     if (k.length != 6) return false;
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    for (final geser in [0, -30, 30]) {
+    for (final geser in [0, -30, 30, -60, 60]) {
       if (kode(secret, now + geser) == k) return true;
     }
     return false;

@@ -18,6 +18,16 @@ class RoleTidakSesuaiException implements Exception {
       'Akun ini terdaftar sebagai ${roleAktual.wire}, bukan ${roleDiharapkan.wire}.';
 }
 
+/// Dilempar saat akun berstatus nonaktif (diberhentikan/ditangguhkan
+/// perusahaan) mencoba masuk.
+class AkunNonaktifException implements Exception {
+  const AkunNonaktifException();
+
+  @override
+  String toString() =>
+      'Akun Anda dinonaktifkan. Hubungi kantor Tuntaskilat untuk informasi.';
+}
+
 class AuthService {
   AuthService({FirebaseAuth? auth, FirebaseFirestore? firestore})
       : _auth = auth ?? FirebaseAuth.instance,
@@ -51,6 +61,12 @@ class AuthService {
     if (user.role != roleDiharapkan) {
       await _auth.signOut();
       throw RoleTidakSesuaiException(roleDiharapkan, user.role);
+    }
+    // Akun dinonaktifkan perusahaan (mis. kru diberhentikan) tidak boleh
+    // masuk — sesi diakhiri seketika.
+    if (user.nonaktif) {
+      await _auth.signOut();
+      throw const AkunNonaktifException();
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('uid', uid);

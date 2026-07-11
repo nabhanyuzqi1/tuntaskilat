@@ -118,13 +118,10 @@ class _P7FormPembayaranScreenState
     if (_terkirim && _order != null) {
       return Scaffold(
         backgroundColor: _latarLembut,
-        body: SafeArea(
-          bottom: false,
-          child: Column(children: [
-            _header(context),
-            Expanded(child: _MenungguVerifikasi(order: _order!)),
-          ]),
-        ),
+        body: Column(children: [
+          _header(context),
+          Expanded(child: _MenungguVerifikasi(order: _order!)),
+        ]),
       );
     }
     if (draft == null || !draft.lengkap) {
@@ -142,24 +139,25 @@ class _P7FormPembayaranScreenState
     }
     return Scaffold(
       backgroundColor: _latarLembut,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _header(context),
-            Expanded(child: _form(draft, loading, ref)),
-          ],
-        ),
+      // SafeArea di dalam header → warna header sinkron sampai status bar.
+      body: Column(
+        children: [
+          _header(context),
+          Expanded(child: _form(draft, loading, ref)),
+        ],
       ),
     );
   }
 
   Widget _header(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
         decoration: const BoxDecoration(
           color: TkColors.surface,
           border: Border(bottom: BorderSide(color: Color(0x0D0F281C))),
         ),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
         child: Row(children: [
           if (!_terkirim)
             GestureDetector(
@@ -183,6 +181,8 @@ class _P7FormPembayaranScreenState
                   fontWeight: FontWeight.w700,
                   color: TkColors.inkSoft)),
         ]),
+          ),
+        ),
       );
 
   Widget _form(DraftPesanan draft, bool loading, WidgetRef ref) {

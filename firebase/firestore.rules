@@ -74,7 +74,18 @@ service cloud.firestore {
 
     match /kru/{cleanerId} {
       allow read: if true;
-      allow update: if isOwner(cleanerId) || isAdmin();
+      // Pelanggan boleh menyentuh HANYA field rating, terkunci: jumlahUlasan
+      // bertambah tepat +1 dan rataRating 0..5 — dipakai transaction
+      // createReview (P10). Tanpa ini submit ulasan permission-denied
+      // (bug "Ulasan tidak terkirim, periksa koneksi internet").
+      allow update: if isOwner(cleanerId) || isAdmin() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['rataRating', 'jumlahUlasan']) &&
+        request.resource.data.jumlahUlasan == resource.data.jumlahUlasan + 1 &&
+        request.resource.data.rataRating >= 0 &&
+        request.resource.data.rataRating <= 5
+      );
       allow create, delete: if isAdmin();
     }
 
