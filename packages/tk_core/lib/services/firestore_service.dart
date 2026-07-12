@@ -84,6 +84,11 @@ class FirestoreService {
       _db.collection('services');
   CollectionReference<Map<String, dynamic>> get _orders =>
       _db.collection('orders');
+  /// Kunci slot publik-boolean (tanpa PII). Ketersediaan slot & atomic lock
+  /// dibaca dari sini agar `orders` bisa dibatasi ke peserta saja (cegah
+  /// enumerasi detail pesanan orang lain lewat ID slot deterministik).
+  CollectionReference<Map<String, dynamic>> get _slots =>
+      _db.collection('slots');
   CollectionReference<Map<String, dynamic>> get _kru => _db.collection('kru');
   CollectionReference<Map<String, dynamic>> get _payments =>
       _db.collection('payments');
@@ -240,6 +245,10 @@ class FirestoreService {
     }
 
     final orderRef = _orders.doc(slotOrderId(serviceId, jadwal));
+    // Kunci slot = dokumen `slots` publik-boolean dengan ID sama (deterministik).
+    // Atomic lock kini pada dokumen INI, bukan dokumen order, agar `orders`
+    // tak perlu dibaca lintas-pengguna (memungkinkan orders.get dibatasi).
+    final slotRef = _slots.doc(slotOrderId(serviceId, jadwal));
     final serviceRef = _services.doc(serviceId);
     final paymentRef = _payments.doc();
     final kode = (voucherKode ?? '').trim().toUpperCase();
@@ -275,7 +284,7 @@ class FirestoreService {
 
     return _db.runTransaction<OrderModel>((tx) async {
       // Baca SEMUA dokumen dulu (aturan transaction Firestore).
-      final slotSnap = await tx.get(orderRef);
+      final slotSnap = await tx.get(slotRef);
       if (slotSnap.exists) throw JadwalPenuhException(jadwal);
 
       final serviceSnap = await tx.get(serviceRef);
@@ -350,6 +359,17 @@ class FirestoreService {
         waktu: sekarang,
       );
       tx.set(orderRef, order.toMap());
+      // Kunci slot publik-boolean (tanpa PII) — dibaca watchSlotTerisi &
+      // menjadi titik atomic-lock antar-transaksi pada slot yang sama.
+      tx.set(slotRef, {
+        'slotId': slotRef.id,
+        'serviceId': serviceId,
+        'jadwal': Timestamp.fromDate(jadwal),
+        'orderId': orderRef.id,
+        'userId': pelanggan.userId,
+        'taken': true,
+        'waktu': Timestamp.fromDate(sekarang),
+      });
       tx.set(paymentRef, payment.toMap());
       if (voucherRef != null && voucher != null) {
         tx.update(voucherRef, {'terpakai': voucher.terpakai + 1});
@@ -461,7 +481,7 @@ class FirestoreService {
         .map((jam) => DateTime(hari.year, hari.month, hari.day, jam))
         .toList(growable: false);
     final streams = slots
-        .map((s) => _orders.doc(slotOrderId(serviceId, s)).snapshots())
+        .map((s) => _slots.doc(slotOrderId(serviceId, s)).snapshots())
         .toList(growable: false);
 
     late final StreamController<Set<DateTime>> controller;

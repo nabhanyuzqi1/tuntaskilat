@@ -105,6 +105,28 @@ function hitungHargaBackend(
   return service.harga * kuantitas;
 }
 
+/**
+ * Besar potongan MAKSIMUM yang sah dari sebuah voucher untuk sebuah subtotal —
+ * mirror `VoucherModel.hitungPotongan` (Dart), TANPA gate kuota/masa-berlaku
+ * (itu applicability, sudah dikunci transaction klien). Fungsi ini hanya
+ * membatasi NOMINAL agar klien tak bisa mengklaim potongan lebih besar dari
+ * formula voucher (mis. voucher Rp10.000 diklaim Rp89.000).
+ */
+function potonganFormulaVoucher(
+  v: admin.firestore.DocumentData,
+  subtotal: number,
+): number {
+  const minBelanja = Number(v.minBelanja ?? 0);
+  if (subtotal < minBelanja) return 0;
+  const tipe = String(v.tipe ?? "nominal");
+  const nilai = Number(v.nilai ?? 0);
+  let p = tipe === "persen" ? (subtotal * nilai) / 100 : nilai;
+  const maxP = Number(v.maxPotongan ?? 0);
+  if (tipe === "persen" && maxP > 0 && p > maxP) p = maxP;
+  if (p > subtotal) p = subtotal;
+  return Math.round(p);
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ onOrderCreate
 /**
  * Trigger: Firestore `onCreate` pada `orders/{orderId}`.
@@ -146,38 +168,48 @@ export const onOrderCreate = functions.firestore.onDocumentCreated(
     const service = serviceSnap.data() as ServiceDoc;
     const hargaBenar = hitungHargaBackend(service, order);
 
-    // Hitung total setelah potongan voucher (jika ada)
-    const potongan: number = order.potongan ?? 0;
+    // Hitung ulang potongan yang SAH dari dokumen voucher — jangan percaya
+    // angka `potongan` dari klien. Klien tak boleh mengklaim potongan lebih
+    // besar dari formula voucher, dan tanpa voucher valid tak ada potongan.
+    const kode = String(order.voucherKode ?? "").trim().toUpperCase();
+    const potonganKlien = Number(order.potongan ?? 0);
+    let potonganBenar = 0;
+    if (kode && potonganKlien > 0) {
+      const vSnap = await db.collection("vouchers").doc(kode).get();
+      potonganBenar = vSnap.exists ?
+        Math.min(
+          Math.max(0, potonganKlien),
+          potonganFormulaVoucher(vSnap.data()!, hargaBenar),
+        ) :
+        0;
+    }
+
     const subtotalOrder: number = order.subtotal ?? order.totalHarga ?? 0;
-    const totalBenar = hargaBenar - potongan;
+    const totalBenar = hargaBenar - potonganBenar;
 
     // Bandingkan — toleransi pembulatan 1 Rupiah
     const totalKlien: number = order.totalHarga ?? 0;
-    const selisih = Math.abs(totalKlien - totalBenar);
+    const selisihTotal = Math.abs(totalKlien - totalBenar);
+    const selisihPotongan = Math.abs(potonganKlien - potonganBenar);
+    const selisihSubtotal =
+      subtotalOrder > 0 ? Math.abs(subtotalOrder - hargaBenar) : 0;
 
-    if (selisih > 1) {
+    if (selisihTotal > 1 || selisihPotongan > 1 || selisihSubtotal > 1) {
       functions.logger.warn(
-        `[onOrderCreate] ⚠️ HARGA TIDAK COCOK — order ${orderId}: ` +
-          `klien=${totalKlien}, seharusnya=${totalBenar}, selisih=${selisih}. ` +
-          `DIKOREKSI.`,
+        `[onOrderCreate] ⚠️ NILAI TIDAK COCOK — order ${orderId}: ` +
+          `total klien=${totalKlien} seharusnya=${totalBenar}, ` +
+          `potongan klien=${potonganKlien} seharusnya=${potonganBenar}. ` +
+          "DIKOREKSI.",
       );
-
-      // Koreksi harga di Firestore
-      const updates: Record<string, unknown> = {
+      await snap.ref.update({
         totalHarga: totalBenar,
         hargaSatuan: service.harga,
-      };
-      // Koreksi subtotal jika ada selisih juga
-      if (
-        subtotalOrder > 0 &&
-        Math.abs(subtotalOrder - hargaBenar) > 1
-      ) {
-        updates.subtotal = hargaBenar;
-      }
-      await snap.ref.update(updates);
+        subtotal: hargaBenar,
+        potongan: potonganBenar,
+      });
     } else {
       functions.logger.info(
-        `[onOrderCreate] ✓ Order ${orderId} harga valid: ${totalKlien}`,
+        `[onOrderCreate] ✓ Order ${orderId} nilai valid: ${totalKlien}`,
       );
     }
   },

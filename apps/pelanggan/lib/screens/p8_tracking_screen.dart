@@ -52,8 +52,7 @@ class _P8TrackingScreenState extends ConsumerState<P8TrackingScreen> {
 
     return Scaffold(
       body: orderAsync.when(
-        loading: () => const Center(
-            child: CircularProgressIndicator(color: TkColors.primary)),
+        loading: _skeletonLacak,
         error: (_, _) => Center(
           child: Text('Pesanan tidak dapat dimuat.',
               style: GoogleFonts.montserrat(
@@ -62,6 +61,51 @@ class _P8TrackingScreenState extends ConsumerState<P8TrackingScreen> {
         data: (order) => _peta(order),
       ),
     );
+  }
+
+  /// Skeleton saat memuat — meniru tata letak lacak (peta + kartu status)
+  /// agar transisi ke data tidak "berkedip" dari layar kosong/spinner.
+  Widget _skeletonLacak() {
+    return Stack(children: [
+      const Positioned.fill(child: ColoredBox(color: Color(0xFFEDEFEC))),
+      Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: TkColors.surface,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: const TkShimmer(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TkSkeletonBox(width: 150, height: 24),
+                SizedBox(height: 14),
+                TkSkeletonBox(height: 8, radius: 4),
+                SizedBox(height: 20),
+                Row(children: [
+                  TkSkeletonBox(width: 48, height: 48, radius: 14),
+                  SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TkSkeletonBox(width: 160, height: 14),
+                        SizedBox(height: 8),
+                        TkSkeletonBox(width: 100, height: 12),
+                      ],
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ]);
   }
 
   Widget _peta(OrderModel order) {

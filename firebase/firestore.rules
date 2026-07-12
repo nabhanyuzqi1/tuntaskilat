@@ -28,12 +28,29 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Kunci slot publik-boolean (tanpa PII). Ketersediaan slot & atomic lock
+    // dibaca dari sini, sehingga `orders` bisa dibatasi ke peserta saja.
+    // Isi hanya {serviceId, jadwal, orderId, userId, taken} — tak ada
+    // nama/alamat/telepon/harga.
+    match /slots/{slotId} {
+      allow get, list: if isSignedIn();
+      // Dibuat dalam transaction pemesanan oleh pemilik order.
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
     match /orders/{orderId} {
-      // `get` per-dokumen dibuka untuk pengguna masuk: dibutuhkan cek slot
-      // deterministik (P5 "kalender slot penuh (disabled)" + Atomic Locking
-      // membaca dokumen slot di dalam transaction). Query massal (`list`)
-      // tetap owner-only sesuai prinsip skema TA.
-      allow get: if isSignedIn();
+      // `get` DIBATASI ke peserta (pelanggan/kru tertugas) atau admin — cegah
+      // enumerasi detail pesanan orang lain lewat ID slot deterministik.
+      // Cek ketersediaan slot & atomic lock kini lewat koleksi `slots` publik,
+      // jadi transaction tak perlu membaca order lintas-pengguna.
+      allow get: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.cleanerId == request.auth.uid ||
+        request.auth.uid in resource.data.kruIds ||
+        isAdmin()
+      );
       allow list: if isSignedIn() && (
         resource.data.userId == request.auth.uid ||
         resource.data.cleanerId == request.auth.uid ||

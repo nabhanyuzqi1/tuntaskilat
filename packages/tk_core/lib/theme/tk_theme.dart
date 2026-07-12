@@ -37,6 +37,12 @@ class TkTheme {
         surface: TkColors.surface,
       ),
       textTheme: textTheme,
+      // Transisi rute konsisten & halus di semua platform (fade+geser lembut,
+      // gaya Material 3) — menjawab masukan "kurang animatif".
+      pageTransitionsTheme: const PageTransitionsTheme(builders: {
+        TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: FadeForwardsPageTransitionsBuilder(),
+      }),
       appBarTheme: AppBarTheme(
         backgroundColor: TkColors.surface,
         foregroundColor: TkColors.inkSoft,
