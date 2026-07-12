@@ -40,10 +40,21 @@ service cloud.firestore {
         request.auth.uid in resource.data.kruIds ||
         isAdmin()
       );
-      allow create: if isSignedIn() 
+      // Uang tetap berjangkar ke katalog: hargaSatuan WAJIB sama dengan
+      // services.harga, subtotal minimal harga dasar × kuantitas (add-on
+      // hanya menambah), dan total = subtotal - potongan. Potongan hanya
+      // sah bila voucher-nya benar-benar ada (nilai persisnya divalidasi
+      // ulang transaction klien + backend saat settlement). Rumus lama
+      // (total == harga × kuantitas) menolak SEMUA order bervoucher/add-on.
+      allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.hargaSatuan == get(/databases/$(database)/documents/services/$(request.resource.data.serviceId)).data.harga
-        && request.resource.data.totalHarga == request.resource.data.hargaSatuan * request.resource.data.kuantitas;
+        && request.resource.data.subtotal >= request.resource.data.hargaSatuan * request.resource.data.kuantitas
+        && request.resource.data.potongan >= 0
+        && request.resource.data.potongan <= request.resource.data.subtotal
+        && request.resource.data.totalHarga == request.resource.data.subtotal - request.resource.data.potongan
+        && (request.resource.data.potongan == 0 ||
+            exists(/databases/$(database)/documents/vouchers/$(request.resource.data.voucherKode)));
       // Skenario Black-Box #6: field uang (totalHarga/hargaSatuan/kuantitas)
       // dan kepemilikan (userId/cleanerId/serviceId/jadwal) TIDAK BISA
       // diubah klien — pelanggan/kru hanya boleh menyentuh status & foto
@@ -78,11 +89,14 @@ service cloud.firestore {
       // bertambah tepat +1 dan rataRating 0..5 — dipakai transaction
       // createReview (P10). Tanpa ini submit ulasan permission-denied
       // (bug "Ulasan tidak terkirim, periksa koneksi internet").
+      // get(...,0): dokumen kru lama bisa belum punya field rating — akses
+      // langsung field yang absen membuat rule error → denied.
       allow update: if isOwner(cleanerId) || isAdmin() || (
         isSignedIn() &&
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['rataRating', 'jumlahUlasan']) &&
-        request.resource.data.jumlahUlasan == resource.data.jumlahUlasan + 1 &&
+        request.resource.data.jumlahUlasan ==
+          resource.data.get('jumlahUlasan', 0) + 1 &&
         request.resource.data.rataRating >= 0 &&
         request.resource.data.rataRating <= 5
       );
@@ -123,14 +137,19 @@ service cloud.firestore {
         isSignedIn() &&
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['terpakai']) &&
-        request.resource.data.terpakai == resource.data.terpakai + 1
+        // get(...,0): dokumen voucher seeded bisa belum punya field terpakai.
+        request.resource.data.terpakai == resource.data.get('terpakai', 0) + 1
       );
     }
 
     // Catatan pemakaian voucher per-nomor (anti-abuse). Dibuat pengguna saat
     // memakai voucher; tak boleh diubah/dihapus (mengunci klaim). Admin bisa.
     match /voucherUsages/{id} {
-      allow read: if isAdmin() ||
+      // `get` harus longgar: transaction pemesanan mengecek klaim per-nomor
+      // dengan membaca doc yang UMUMNYA BELUM ADA — rule yang menyentuh
+      // resource.data error pada doc non-eksisten → seluruh transaksi gagal.
+      allow get: if isSignedIn();
+      allow list: if isAdmin() ||
         (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn() &&
         request.resource.data.userId == request.auth.uid;

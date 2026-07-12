@@ -569,15 +569,44 @@ class _P7FormPembayaranScreenState
             // terlalu kecil untuk discan dari layar lain.
             Builder(builder: (context) {
               final qrisUrl = pengaturan['qrisUrl']?.toString() ?? '';
-              final qr = qrisUrl.isNotEmpty
-                  ? Image.network(qrisUrl,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => const Icon(Icons.qr_code_2,
-                          size: 180, color: TkColors.inkSoft))
-                  : Image.asset('assets/brand/qris.jpg',
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => const Icon(Icons.qr_code_2,
-                          size: 180, color: TkColors.inkSoft));
+              // QRIS adalah artefak pembayaran per-merchant — tanpa qrisUrl
+              // dari admin (A6 Rekening & QRIS) tidak ada QR yang sah untuk
+              // ditampilkan. Placeholder aset lokal dilarang: file dummy
+              // pernah ter-render sebagai kotak hitam yang menyesatkan.
+              if (qrisUrl.isEmpty) {
+                return Container(
+                  width: double.infinity,
+                  constraints: const BoxConstraints(maxWidth: 320),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 28, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0x140F281C)),
+                  ),
+                  child: Column(children: [
+                    const Icon(Icons.qr_code_2,
+                        size: 64, color: TkColors.textMuted),
+                    const SizedBox(height: 10),
+                    Text('QRIS belum tersedia',
+                        style: GoogleFonts.montserrat(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: TkColors.inkSoft)),
+                    const SizedBox(height: 4),
+                    Text(
+                        'Silakan pilih Transfer Bank atau Tunai '
+                        'untuk saat ini.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.montserrat(
+                            fontSize: 12, color: TkColors.textMuted)),
+                  ]),
+                );
+              }
+              final qr = Image.network(qrisUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => const Icon(Icons.qr_code_2,
+                      size: 180, color: TkColors.inkSoft));
               return Column(children: [
                 GestureDetector(
                   onTap: () => _bukaQrisPenuh(context, qr),

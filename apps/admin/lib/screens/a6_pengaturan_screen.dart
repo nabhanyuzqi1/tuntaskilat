@@ -796,7 +796,13 @@ class _Kartu2faState extends ConsumerState<_Kartu2fa> {
               style: OutlinedButton.styleFrom(foregroundColor: TkColors.error),
               child: const Text('Nonaktifkan'))
         else
-          ElevatedButton(onPressed: _aktifkan, child: const Text('Aktifkan')),
+          ElevatedButton(
+              // Tema global minimumSize = Size.fromHeight (lebar INFINITY) —
+              // di dalam Row menggencet kolom teks jadi 1 huruf/baris.
+              style:
+                  ElevatedButton.styleFrom(minimumSize: const Size(110, 44)),
+              onPressed: _aktifkan,
+              child: const Text('Aktifkan')),
       ]),
     );
   }
