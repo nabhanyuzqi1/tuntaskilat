@@ -13,6 +13,12 @@ Future<void> fcmBackgroundHandler(RemoteMessage message) async {
   // Payload `notification` sudah ditampilkan sistem; tak perlu aksi tambahan.
 }
 
+/// Daftarkan [fcmBackgroundHandler] — panggil SEKALI setelah Firebase siap
+/// (mis. dari shell setelah login). Dibungkus agar app tak perlu meng-import
+/// firebase_messaging langsung.
+void registerFcmBackgroundHandler() =>
+    FirebaseMessaging.onBackgroundMessage(fcmBackgroundHandler);
+
 /// Layanan Firebase Cloud Messaging (push tugas ke kru; bisa dipakai app lain).
 /// Alur: minta izin → ambil token → simpan via [onToken] → dengar pesan
 /// foreground → tampilkan notifikasi lokal (channel bersuara custom).

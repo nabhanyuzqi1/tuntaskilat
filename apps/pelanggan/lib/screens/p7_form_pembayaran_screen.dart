@@ -33,6 +33,7 @@ class _P7FormPembayaranScreenState
   Uint8List? _bukti;
   String? _namaBukti;
   var _terkirim = false;
+  var _submitting = false; // guard sinkron anti double-tap Konfirmasi
   OrderModel? _order; // terisi setelah pesanan berhasil dibuat
 
   Future<void> _pilihBukti() async {
@@ -57,6 +58,19 @@ class _P7FormPembayaranScreenState
   }
 
   Future<void> _konfirmasi(DraftPesanan draft) async {
+    // Guard sinkron: controller baru set state loading SETELAH await profil,
+    // jadi tanpa flag ini ada celah singkat untuk tap ganda → dua percobaan
+    // order. Tutup celah itu di sini.
+    if (_submitting) return;
+    setState(() => _submitting = true);
+    try {
+      await _prosesKonfirmasi(draft);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _prosesKonfirmasi(DraftPesanan draft) async {
     final hasil =
         await ref.read(pembayaranControllerProvider.notifier).konfirmasi(
               draft: draft,
@@ -287,7 +301,7 @@ class _P7FormPembayaranScreenState
               label: _metode == MetodeBayar.tunai
                   ? 'Konfirmasi Pesanan'
                   : 'Konfirmasi Pembayaran',
-              loading: loading,
+              loading: loading || _submitting,
               onPressed: () => _konfirmasi(draft),
             ),
           ),

@@ -45,6 +45,8 @@ class _P10FormUlasanScreenState extends ConsumerState<P10FormUlasanScreen> {
   }
 
   Future<void> _kirim(OrderModel order) async {
+    // Guard anti double-tap: cegah kirim ulasan ganda saat proses berjalan.
+    if (_mengirim) return;
     if (_rating == 0) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Pilih rating bintang terlebih dahulu.')));
@@ -56,11 +58,11 @@ class _P10FormUlasanScreenState extends ConsumerState<P10FormUlasanScreen> {
           .showSnackBar(SnackBar(content: Text(errKomentar)));
       return;
     }
-    final profil = await ref.read(profilSayaProvider.future);
-    if (profil == null || !mounted) return;
-
+    // Set loading SINKRON sebelum await agar tombol langsung nonaktif.
     setState(() => _mengirim = true);
     try {
+      final profil = await ref.read(profilSayaProvider.future);
+      if (profil == null || !mounted) return;
       // Chip aspek digabung ke komentar (schema reviews hanya punya
       // `komentar` — tidak ada field aspek terpisah).
       final bagian = [

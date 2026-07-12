@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tk_core/tk_core.dart';
 
+import '../providers/app_providers.dart';
 import '../providers/beranda_providers.dart';
 import '../providers/notifikasi_providers.dart';
 import '../widgets/tk_bottom_nav.dart';
@@ -18,13 +19,42 @@ final tabAktifProvider = StateProvider<TkNavTab>((_) => TkNavTab.beranda);
 
 /// Shell 4 tab Aplikasi Pelanggan: Beranda (P3) / Riwayat (P9) /
 /// Notifikasi (P12) / Profil (P11) — bottom nav glass dari page-inventory P3.
-class HomeShell extends ConsumerWidget {
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
   static const route = '/home';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends ConsumerState<HomeShell> {
+  @override
+  void initState() {
+    super.initState();
+    // Daftarkan token FCM pelanggan + handler notifikasi sekali saat masuk
+    // (push chat dari kru & status pesanan). Pelanggan TIDAK memakai FGS.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initPush());
+  }
+
+  Future<void> _initPush() async {
+    try {
+      await ref.read(firebaseInitProvider.future);
+      registerFcmBackgroundHandler();
+      await NotificationService().ensureChannels();
+      final uid = ref.read(authServiceProvider).currentUser?.uid;
+      if (uid == null) return;
+      await PushService(
+        onToken: (t) =>
+            ref.read(firestoreServiceProvider).simpanFcmTokenUser(uid, t),
+      ).init();
+    } catch (_) {
+      // Izin notifikasi ditolak / device tanpa Google Play — abaikan.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final aktif = ref.watch(tabAktifProvider);
     return Scaffold(
       extendBody: true, // konten tampak di balik nav glass (blur berarti)

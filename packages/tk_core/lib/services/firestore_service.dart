@@ -862,6 +862,17 @@ class FirestoreService {
         'fcmTokens': FieldValue.arrayRemove([token])
       });
 
+  /// Simpan/hapus token FCM perangkat pelanggan (users/{uid}.fcmTokens).
+  /// Dipakai Cloud Function untuk push notifikasi chat & status pesanan.
+  /// set+merge agar aman bila field belum ada pada dokumen lama.
+  Future<void> simpanFcmTokenUser(String uid, String token) => _users
+      .doc(uid)
+      .set({'fcmTokens': FieldValue.arrayUnion([token])}, SetOptions(merge: true));
+
+  Future<void> hapusFcmTokenUser(String uid, String token) => _users
+      .doc(uid)
+      .set({'fcmTokens': FieldValue.arrayRemove([token])}, SetOptions(merge: true));
+
 
 
   /// Payout milik seorang kru (portal Kru — upah saya).

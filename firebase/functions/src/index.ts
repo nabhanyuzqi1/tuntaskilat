@@ -457,6 +457,141 @@ export const onOrderAssigned = functions.firestore.onDocumentUpdated(
   },
 );
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ helper push umum
+/**
+ * Ambil token FCM milik sebuah uid dari `users` DAN `kru` (uid bisa pelanggan
+ * atau kru). Kembalikan pasangan token+koleksi asal untuk pembersihan token
+ * invalid yang tepat sasaran.
+ */
+async function tokensUntuk(
+  uid: string,
+): Promise<Array<{token: string; col: "users" | "kru"}>> {
+  const out: Array<{token: string; col: "users" | "kru"}> = [];
+  const [u, k] = await Promise.all([
+    db.collection("users").doc(uid).get(),
+    db.collection("kru").doc(uid).get(),
+  ]);
+  for (const t of (u.data()?.fcmTokens ?? []) as string[]) {
+    out.push({token: t, col: "users"});
+  }
+  for (const t of (k.data()?.fcmTokens ?? []) as string[]) {
+    out.push({token: t, col: "kru"});
+  }
+  return out;
+}
+
+/** Kirim push FCM ke satu uid; bersihkan token invalid dari koleksi asalnya. */
+async function pushKeUid(
+  uid: string,
+  judul: string,
+  isi: string,
+  data: Record<string, string>,
+): Promise<void> {
+  const list = await tokensUntuk(uid);
+  if (list.length === 0) return;
+  const res = await admin.messaging().sendEachForMulticast({
+    tokens: list.map((x) => x.token),
+    notification: {title: judul, body: isi},
+    data,
+    android: {
+      priority: "high",
+      notification: {channelId: "tk_high_importance_channel_v2"},
+    },
+  });
+  const rm: Record<"users" | "kru", string[]> = {users: [], kru: []};
+  res.responses.forEach((r, i) => {
+    if (!r.success) {
+      const code = r.error?.code ?? "";
+      if (
+        code.includes("registration-token-not-registered") ||
+        code.includes("invalid-argument")
+      ) {
+        rm[list[i].col].push(list[i].token);
+      }
+    }
+  });
+  await Promise.all(
+    (["users", "kru"] as const).map((col) =>
+      rm[col].length > 0 ?
+        db.collection(col).doc(uid).update({
+          fcmTokens: admin.firestore.FieldValue.arrayRemove(...rm[col]),
+        }) :
+        Promise.resolve(),
+    ),
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ onChatMessageCreate
+/**
+ * Trigger: `onCreate` pada `orders/{orderId}/messages/{messageId}`.
+ *
+ * Saat salah satu pihak mengirim pesan chat, buat notifikasi in-app untuk
+ * penerima (badge + daftar P12/notifikasi) DAN kirim push FCM. Penerima
+ * ditentukan dari senderId: bila pengirim = pelanggan (order.userId) →
+ * kirim ke semua kru tertugas; selain itu (kru) → kirim ke pelanggan.
+ */
+export const onChatMessageCreate = functions.firestore.onDocumentCreated(
+  {document: "orders/{orderId}/messages/{messageId}", region: REGION},
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const msg = snap.data();
+    const orderId = event.params.orderId;
+    const senderId: string = msg.senderId ?? "";
+    const text = String(msg.text ?? "").trim();
+    if (!text || !senderId) return;
+
+    const orderSnap = await db.collection("orders").doc(orderId).get();
+    const order = orderSnap.data();
+    if (!order) return;
+
+    const userId: string = order.userId ?? "";
+    const kruIds: string[] = (
+      order.kruIds ?? (order.cleanerId ? [order.cleanerId] : [])
+    ).filter((x: string) => !!x);
+
+    const cuplik = text.length > 120 ? text.slice(0, 117) + "…" : text;
+
+    let recipients: string[] = [];
+    let judul = "";
+    if (senderId === userId) {
+      // pelanggan → kru
+      recipients = kruIds;
+      judul = `Pesan dari ${order.namaPelanggan ?? "pelanggan"}`;
+    } else {
+      // kru → pelanggan
+      recipients = userId ? [userId] : [];
+      const penugasan: Array<{cleanerId: string; nama: string}> =
+        order.penugasan ?? [];
+      const namaKru =
+        penugasan.find((p) => p.cleanerId === senderId)?.nama ??
+        order.namaKru ??
+        "kru";
+      judul = `Pesan dari ${namaKru}`;
+    }
+
+    for (const rid of recipients) {
+      if (!rid || rid === senderId) continue;
+      const notifRef = db.collection("notifications").doc();
+      await notifRef.set({
+        notificationId: notifRef.id,
+        userId: rid,
+        judul,
+        pesan: cuplik,
+        waktu: admin.firestore.Timestamp.now(),
+        dibaca: false,
+        orderId,
+        tipe: "chat",
+      });
+      await pushKeUid(rid, judul, cuplik, {orderId, tipe: "chat"});
+    }
+    functions.logger.info(
+      `[onChatMessageCreate] ${orderId}: ${senderId} → ` +
+        `${recipients.join(",") || "(none)"}`,
+    );
+  },
+);
+
 /**
  * Pengingat kru ~2 jam sebelum jadwal. Berjalan tiap 30 menit (cron),
  * mencari order 'ditugaskan' yang jadwalnya 90-150 menit lagi lalu push.

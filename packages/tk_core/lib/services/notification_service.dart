@@ -14,28 +14,19 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotif =
       FlutterLocalNotificationsPlugin();
 
-  Future<void> initialize() async {
-    // 1. Inisialisasi local notifications
+  /// Inisialisasi plugin local-notif + buat channel notifikasi (tanpa
+  /// menjalankan Foreground Service). Cukup untuk menampilkan push FCM saat
+  /// foreground — dipakai Aplikasi Pelanggan yang TIDAK butuh FGS "Online".
+  Future<void> ensureChannels() async {
     const AndroidInitializationSettings androidInit =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initSettings =
         InitializationSettings(android: androidInit);
-
     await _localNotif.initialize(settings: initSettings);
 
-    // Create notification channels (essential for Android 12+ foreground services)
     final androidImplementation = _localNotif
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
-
-    await androidImplementation?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        'tk_background_service',
-        'Tuntaskilat Background Service',
-        description: 'Background status monitoring service',
-        importance: Importance.low,
-      ),
-    );
 
     await androidImplementation?.createNotificationChannel(
       const AndroidNotificationChannel(
@@ -46,6 +37,25 @@ class NotificationService {
         // Suara khusus (file di res/raw/tuntaskilat_ring.*). Channel sound
         // hanya berlaku sejak channel dibuat; hapus data app bila ganti suara.
         sound: RawResourceAndroidNotificationSound('tuntaskilat_ring'),
+      ),
+    );
+  }
+
+  Future<void> initialize() async {
+    // 1. Channel notifikasi utama (local-notif + high importance channel).
+    await ensureChannels();
+
+    // Channel khusus Foreground Service (Android 12+).
+    final androidImplementation = _localNotif
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidImplementation?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'tk_background_service',
+        'Tuntaskilat Background Service',
+        description: 'Background status monitoring service',
+        importance: Importance.low,
       ),
     );
 
