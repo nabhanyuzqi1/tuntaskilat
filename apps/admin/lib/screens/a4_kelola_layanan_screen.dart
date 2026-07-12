@@ -66,10 +66,11 @@ class A4KelolaLayananScreen extends ConsumerWidget {
               decoration: AdminUi.kartu(),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 AdminUi.judulTabel(const [
-                  ('LAYANAN', 24),
-                  ('TARIF', 11),
-                  ('SATUAN', 10),
-                  ('STATUS', 9),
+                  ('LAYANAN', 22),
+                  ('TARIF', 10),
+                  ('TIPE HARGA', 11),
+                  ('SATUAN', 8),
+                  ('STATUS', 8),
                   ('AKSI', 7),
                 ]),
                 if (layanan.isEmpty)
@@ -139,15 +140,30 @@ class A4KelolaLayananScreen extends ConsumerWidget {
             ]),
           ),
           Expanded(
-              flex: 11,
+              flex: 10,
               child: AdminUi.teksSel(PriceBadge.formatRupiah(s.harga),
                   tebal: true)),
+          // Kategori harga: statis (tarif tetap × qty / paket) vs dinamis
+          // (tier per m²) — permintaan owner agar mudah dikelola dari tabel.
           Expanded(
-              flex: 10,
+            flex: 11,
+            child: AdminUi.chipStatus(
+              switch (s.tipeHarga) {
+                TipeHarga.mulaiDari => 'Statis · × qty',
+                TipeHarga.paket => 'Statis · paket',
+                TipeHarga.perLuas => 'Dinamis · per m²',
+              },
+              s.tipeHarga == TipeHarga.perLuas
+                  ? TkColors.accentAlt
+                  : TkColors.primary,
+            ),
+          ),
+          Expanded(
+              flex: 8,
               child:
                   AdminUi.teksSel(s.satuan.replaceFirst('per ', ''))),
           Expanded(
-            flex: 9,
+            flex: 8,
             child: Align(
               alignment: Alignment.centerLeft,
               child: Switch(
@@ -361,8 +377,11 @@ class A4KelolaLayananScreen extends ConsumerWidget {
                               const SizedBox(height: 6),
                               DropdownButtonFormField<String>(
                                 initialValue: satuan,
+                                // Satuan layanan lama bisa di luar daftar
+                                // (mis. 'paket') — tanpa disertakan dropdown
+                                // assert dan dialog edit gagal render.
                                 items: [
-                                  for (final s in _pilihanSatuan)
+                                  for (final s in {satuan, ..._pilihanSatuan})
                                     DropdownMenuItem(
                                         value: s,
                                         child: Text(s,

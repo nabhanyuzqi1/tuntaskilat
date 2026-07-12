@@ -56,9 +56,30 @@ class PushService {
   /// Token perangkat saat ini (untuk dihapus saat logout).
   Future<String?> tokenSekarang() => _fm.getToken();
 
+  /// WAJIB dipanggil saat logout, SETELAH token dihapus dari Firestore:
+  /// menginvalidasi token FCM perangkat ini sehingga push untuk akun lama
+  /// tidak lagi mendarat di perangkat (bocor lintas akun). Login berikutnya
+  /// otomatis mendapat token baru lewat [init]. Dokumen lain yang masih
+  /// menyimpan token mati dibersihkan backend saat pengiriman gagal.
+  Future<void> hapusTokenPerangkat() => _fm.deleteToken();
+
   /// Handler pesan saat aplikasi dibuka dari notifikasi (navigasi).
   Stream<RemoteMessage> get onMessageOpened =>
       FirebaseMessaging.onMessageOpenedApp;
+
+  /// Pesan yang MELUNCURKAN app dari keadaan terminated (tap notifikasi saat
+  /// app tertutup). Null bila app dibuka normal.
+  Future<RemoteMessage?> pesanAwal() => _fm.getInitialMessage();
+}
+
+/// Data deep-link dari payload FCM ({orderId, tipe}) — dipakai app untuk
+/// menavigasi ke halaman yang tepat saat notifikasi di-tap.
+({String orderId, String tipe})? deepLinkDari(RemoteMessage? msg) {
+  if (msg == null) return null;
+  final orderId = msg.data['orderId']?.toString() ?? '';
+  final tipe = msg.data['tipe']?.toString() ?? '';
+  if (orderId.isEmpty) return null;
+  return (orderId: orderId, tipe: tipe);
 }
 
 /// Detail notifikasi lokal bersuara custom Tuntaskilat (dipakai push & lokal).

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +12,7 @@ import '../providers/notifikasi_providers.dart';
 import '../widgets/service_icon.dart';
 import '../widgets/tk_bottom_nav.dart';
 import 'home_shell.dart';
+import 'p17_banner_detail_screen.dart';
 import 'p3a_katalog_screen.dart';
 
 /// P3 — Beranda (Gambar TA 3.14 & 4.1). Katalog layanan real-time dari
@@ -49,7 +52,7 @@ class P3BerandaScreen extends ConsumerWidget {
             child: ListView(
               padding: EdgeInsets.fromLTRB(24, 18, 24, padBawah),
                 children: [
-                  const _BannerPromo(),
+                  const _BannerCarousel(),
                   _JudulSection(
                     'Layanan',
                     aksi: 'Lihat Semua',
@@ -258,6 +261,168 @@ class _KolomPencarian extends StatelessWidget {
             borderSide: const BorderSide(color: TkColors.primary, width: 1.5),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Carousel banner hero — konten realtime dari koleksi `banners` (admin).
+/// Auto-slide tiap 5 detik, indikator titik, tap → P17 detail. Saat koleksi
+/// kosong, tampil [_BannerPromo] bawaan (promo perdana).
+class _BannerCarousel extends ConsumerStatefulWidget {
+  const _BannerCarousel();
+
+  @override
+  ConsumerState<_BannerCarousel> createState() => _BannerCarouselState();
+}
+
+class _BannerCarouselState extends ConsumerState<_BannerCarousel> {
+  final _pc = PageController();
+  Timer? _auto;
+  var _hal = 0;
+
+  @override
+  void dispose() {
+    _auto?.cancel();
+    _pc.dispose();
+    super.dispose();
+  }
+
+  void _jadwalkanAuto(int jumlah) {
+    if (jumlah < 2) {
+      _auto?.cancel();
+      _auto = null;
+      return;
+    }
+    _auto ??= Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || !_pc.hasClients) return;
+      final berikut = (_hal + 1) % jumlah;
+      _pc.animateToPage(berikut,
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.easeOutCubic);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final banners = ref.watch(bannersProvider).valueOrNull ?? const [];
+    if (banners.isEmpty) return const _BannerPromo();
+    _jadwalkanAuto(banners.length);
+
+    return Column(children: [
+      SizedBox(
+        height: 116,
+        child: PageView.builder(
+          controller: _pc,
+          itemCount: banners.length,
+          onPageChanged: (i) => setState(() => _hal = i),
+          itemBuilder: (context, i) => _KartuBanner(banner: banners[i]),
+        ),
+      ),
+      if (banners.length > 1) ...[
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < banners.length; i++)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == _hal ? 18 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: i == _hal
+                      ? TkColors.primary
+                      : TkColors.primary.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+          ],
+        ),
+      ],
+    ]);
+  }
+}
+
+class _KartuBanner extends StatelessWidget {
+  const _KartuBanner({required this.banner});
+
+  final BannerModel banner;
+
+  @override
+  Widget build(BuildContext context) {
+    final adaGambar = banner.gambarUrl.isNotEmpty;
+    return GestureDetector(
+      onTap: () => Navigator.of(context)
+          .pushNamed(P17BannerDetailScreen.route, arguments: banner),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(TkRadius.card),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [TkColors.primaryDark, TkColors.primary],
+          ),
+        ),
+        child: Stack(fit: StackFit.expand, children: [
+          if (adaGambar)
+            Image.network(banner.gambarUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox.shrink()),
+          if (adaGambar)
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xB30F281C), Color(0x330F281C)],
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (banner.badge.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: TkColors.accent,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(banner.badge.toUpperCase(),
+                        style: GoogleFonts.montserrat(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: TkColors.onAccent)),
+                  ),
+                if (banner.badge.isNotEmpty) const SizedBox(height: 8),
+                Text(banner.judul,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.montserrat(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: TkColors.surface,
+                        height: 1.25)),
+                if (banner.subjudul.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(banner.subjudul,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.montserrat(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.85))),
+                ],
+              ],
+            ),
+          ),
+        ]),
       ),
     );
   }

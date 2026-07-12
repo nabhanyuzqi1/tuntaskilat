@@ -83,6 +83,7 @@ class OrderModel {
     this.penugasan = const [],
     this.kruIds = const [],
     this.metodePembayaran = MetodeBayar.transferBank,
+    this.waktuPenugasan,
   });
 
   final String orderId;
@@ -139,6 +140,10 @@ class OrderModel {
   /// selesai untuk menentukan pembukuan kas tunai. Default transfer.
   final MetodeBayar metodePembayaran;
 
+  /// Waktu admin menugaskan kru — titik mulai countdown 30 menit konfirmasi
+  /// overlay "Tugas Baru" di portal Kru. Null untuk order lama/pra-penugasan.
+  final DateTime? waktuPenugasan;
+
   /// True bila order dibayar tunai (memicu pembukuan kasKru saat selesai).
   bool get tunai => metodePembayaran == MetodeBayar.tunai;
 
@@ -184,6 +189,7 @@ class OrderModel {
         metodePembayaran: map['metodePembayaran'] == null
             ? MetodeBayar.transferBank
             : MetodeBayar.fromWire(map['metodePembayaran'] as String),
+        waktuPenugasan: (map['waktuPenugasan'] as Timestamp?)?.toDate(),
       );
 
   Map<String, dynamic> toMap() => {
@@ -214,5 +220,7 @@ class OrderModel {
         'penugasan': penugasan.map((e) => e.toMap()).toList(),
         'kruIds': kruIds,
         'metodePembayaran': metodePembayaran.wire,
+        if (waktuPenugasan != null)
+          'waktuPenugasan': Timestamp.fromDate(waktuPenugasan!),
       };
 }

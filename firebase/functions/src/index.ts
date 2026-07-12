@@ -945,6 +945,177 @@ export const waNotifOrder = functions.firestore.onDocumentUpdated(
   },
 );
 
+// ═══════════════════════════════════ Slot bebas saat batal (UX #1)
+/**
+ * Saat order berpindah ke `dibatalkan`, HAPUS dokumen kunci `slots/{slotId}`
+ * agar jadwal bisa dipesan pelanggan lain. slotId dari field order (order
+ * baru) atau = orderId (order lama pra-pemisahan ID).
+ */
+export const onOrderCancelled = functions.firestore.onDocumentUpdated(
+  {document: "orders/{orderId}", region: REGION},
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
+    if (before.status === "dibatalkan" || after.status !== "dibatalkan") {
+      return;
+    }
+    const slotId = String(after.slotId ?? event.params.orderId);
+    await db.collection("slots").doc(slotId).delete();
+    functions.logger.info(
+      `[onOrderCancelled] slot ${slotId} dibebaskan (order ` +
+        `${event.params.orderId}).`,
+    );
+  },
+);
+
+// ═══════════════════════════════════ Push status order ke pelanggan (#4)
+/**
+ * Push FCM ke PELANGGAN pada transisi status penting (melengkapi notifikasi
+ * in-app yang ditulis klien/admin & WA Fonnte). data.tipe='status' →
+ * deep-link ke P8 Lacak Pesanan.
+ */
+export const pushStatusPelanggan = functions.firestore.onDocumentUpdated(
+  {document: "orders/{orderId}", region: REGION},
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
+    if (before.status === after.status) return;
+    const userId: string = after.userId ?? "";
+    if (!userId) return;
+
+    const layanan = after.namaLayanan ?? "Pesanan";
+    let judul: string | null = null;
+    let isi = "";
+    switch (after.status) {
+      case "terverifikasi":
+        judul = "Pembayaran terverifikasi";
+        isi = `${layanan} dikonfirmasi & sedang dijadwalkan.`;
+        break;
+      case "ditugaskan":
+        judul = "Kru ditugaskan";
+        isi = `${after.namaKru ?? "Kru"} akan datang sesuai jadwal Anda.`;
+        break;
+      case "dalam_perjalanan":
+        judul = "Kru dalam perjalanan";
+        isi = `${after.namaKru ?? "Kru"} sedang menuju lokasi Anda.`;
+        break;
+      case "dikerjakan":
+        judul = "Pengerjaan dimulai";
+        isi = `${layanan} sedang dikerjakan.`;
+        break;
+      case "selesai":
+        judul = "Pesanan selesai";
+        isi = "Terima kasih! Jangan lupa beri ulasan untuk kru Anda.";
+        break;
+      case "ditolak":
+        judul = "Pembayaran perlu diunggah ulang";
+        isi =
+          "Bukti transfer belum terverifikasi. Buka aplikasi untuk " +
+          "unggah ulang.";
+        break;
+      default:
+        return;
+    }
+    await pushKeUid(userId, judul, isi, {
+      orderId: event.params.orderId,
+      tipe: "status",
+    });
+  },
+);
+
+// ═══════════════════════════════════ Broadcast marketing (#4)
+/**
+ * Push promo massal: admin membuat dokumen `broadcasts/{id}`
+ * {judul, pesan} → dikirim ke SEMUA pelanggan yang punya token FCM. Hasil
+ * (terkirim/tanpaToken) ditulis balik ke dokumen. Create admin-only (rules);
+ * function berjalan dengan admin SDK.
+ */
+export const onBroadcastCreate = functions.firestore.onDocumentCreated(
+  {document: "broadcasts/{id}", region: REGION},
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const b = snap.data();
+    const judul = String(b.judul ?? "").trim();
+    const pesan = String(b.pesan ?? "").trim();
+    if (!judul || !pesan) return;
+
+    const users = await db
+      .collection("users")
+      .where("role", "==", "pelanggan")
+      .get();
+    let terkirim = 0;
+    let tanpaToken = 0;
+    for (const u of users.docs) {
+      const tokens: string[] = u.data().fcmTokens ?? [];
+      if (tokens.length === 0) {
+        tanpaToken++;
+        continue;
+      }
+      const res = await admin.messaging().sendEachForMulticast({
+        tokens,
+        notification: {title: judul, body: pesan},
+        data: {tipe: "promo"},
+        android: {
+          priority: "high",
+          notification: {channelId: "tk_high_importance_channel_v2"},
+        },
+      });
+      terkirim += res.successCount;
+    }
+    await snap.ref.update({
+      terkirim,
+      tanpaToken,
+      selesaiPada: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    functions.logger.info(
+      `[onBroadcastCreate] "${judul}": ${terkirim} push, ` +
+        `${tanpaToken} user tanpa token.`,
+    );
+  },
+);
+
+// ═══════════════════════════════════ Rating anti-manipulasi (#5)
+/**
+ * Server-authoritative rating: setiap kali review DIBUAT, hitung ulang
+ * rataRating & jumlahUlasan kru dari SELURUH koleksi `reviews` miliknya lalu
+ * timpa dokumen kru. Manipulasi via REST (mis. set rataRating 5.0 langsung)
+ * terkoreksi otomatis; rules tetap gerbang pertama.
+ */
+export const onReviewCreate = functions.firestore.onDocumentCreated(
+  {document: "reviews/{reviewId}", region: REGION},
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const cleanerId = String(snap.data().cleanerId ?? "");
+    if (!cleanerId) return;
+
+    const q = await db
+      .collection("reviews")
+      .where("cleanerId", "==", cleanerId)
+      .get();
+    let total = 0;
+    let n = 0;
+    for (const d of q.docs) {
+      const nilai = Number(d.data().penilaian ?? 0);
+      if (nilai > 0) {
+        total += nilai;
+        n++;
+      }
+    }
+    const rata = n > 0 ? Math.round((total / n) * 10) / 10 : 0;
+    await db.collection("kru").doc(cleanerId).set(
+      {rataRating: rata, jumlahUlasan: n},
+      {merge: true},
+    );
+    functions.logger.info(
+      `[onReviewCreate] kru ${cleanerId}: rata=${rata} n=${n} (recomputed).`,
+    );
+  },
+);
+
 // ═══════════════════════════════════════════════ Xendit webhook (A#7, stub)
 
 /**

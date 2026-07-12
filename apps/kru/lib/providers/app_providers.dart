@@ -90,6 +90,22 @@ final tugasSayaProvider = StreamProvider<List<OrderModel>>((ref) {
       );
 });
 
+/// Tugas BARU yang belum diterima kru ini — pemicu overlay "Tugas Baru"
+/// gaya Gojek/Grab (layar penuh + dering + countdown 30 menit, tanpa opsi
+/// tolak). Null bila tidak ada yang menunggu konfirmasi.
+final tugasBaruProvider = Provider<OrderModel?>((ref) {
+  final uid = ref.watch(authStateProvider).valueOrNull?.uid;
+  if (uid == null) return null;
+  final tugas = ref.watch(tugasSayaProvider).valueOrNull ?? const [];
+  for (final o in tugas) {
+    if (o.status != OrderStatus.ditugaskan) continue;
+    for (final p in o.penugasan) {
+      if (p.cleanerId == uid && !p.diterima) return o;
+    }
+  }
+  return null;
+});
+
 /// Ulasan untuk kru ini — dipakai K5 menampilkan rating per pekerjaan.
 final ulasanSayaProvider = StreamProvider<List<ReviewModel>>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);

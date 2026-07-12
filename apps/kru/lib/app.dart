@@ -9,6 +9,7 @@ import 'screens/k2a_izin_screen.dart';
 import 'screens/k3_detail_penugasan_screen.dart';
 import 'screens/k4_laporan_kerja_screen.dart';
 import 'screens/k_bantuan_screen.dart';
+import 'screens/k_rekening_screen.dart';
 import 'screens/k_ubah_kata_sandi_screen.dart';
 import 'screens/kru_shell.dart';
 import 'screens/onboarding_kru_screen.dart';
@@ -46,6 +47,7 @@ class TkKruApp extends StatelessWidget {
         K4LaporanKerjaScreen.route: (_) => const K4LaporanKerjaScreen(),
         KUbahKataSandiScreen.route: (_) => const KUbahKataSandiScreen(),
         KBantuanScreen.route: (_) => const KBantuanScreen(),
+        KRekeningScreen.route: (_) => const KRekeningScreen(),
         K7ChatScreen.route: (_) => const K7ChatScreen(),
       },
     );

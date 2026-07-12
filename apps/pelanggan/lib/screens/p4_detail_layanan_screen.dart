@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tk_core/tk_core.dart';
 
+import '../providers/app_providers.dart';
 import '../providers/pemesanan_providers.dart';
+import '../widgets/masuk_dulu.dart';
 import '../widgets/service_icon.dart';
 import 'p5_form_pemesanan_screen.dart';
 
@@ -389,6 +391,13 @@ class _BarPesan extends ConsumerWidget {
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: () {
+                    // MODE TAMU: memesan butuh akun — tawarkan login dulu.
+                    if (ref.read(authServiceProvider).currentUser == null) {
+                      mintaLogin(context,
+                          pesan: 'Masuk atau daftar dulu untuk memesan '
+                              '${layanan.namaLayanan}.');
+                      return;
+                    }
                     // Mulai draft baru untuk layanan ini.
                     ref.read(draftPesananProvider.notifier).state =
                         DraftPesanan(

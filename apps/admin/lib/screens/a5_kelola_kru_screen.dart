@@ -8,6 +8,9 @@ import '../providers/app_providers.dart';
 import '../services/akun_kru_service.dart';
 import '../widgets/admin_ui.dart';
 
+/// Kriteria sortir tabel Kelola Kru.
+final _sortKruProvider = StateProvider<String>((_) => 'nama');
+
 /// A5 — Kelola Kru (Gambar TA 3.18). Tabel akun kru: status ketersediaan,
 /// rating, jumlah ulasan; tambah akun kru baru (dibuat admin — K1 tanpa
 /// registrasi mandiri); nonaktifkan kru.
@@ -16,24 +19,52 @@ class A5KelolaKruScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kru = ref.watch(semuaKruProvider).valueOrNull ?? const [];
+    final sortir = ref.watch(_sortKruProvider);
+    final kru = [...ref.watch(semuaKruProvider).valueOrNull ?? const []];
+    kru.sort((a, b) => switch (sortir) {
+          'rating' => b.rataRating.compareTo(a.rataRating),
+          'online' => (b.statusKetersediaan ? 1 : 0)
+              .compareTo(a.statusKetersediaan ? 1 : 0),
+          _ => a.nama.toLowerCase().compareTo(b.nama.toLowerCase()),
+        });
     final online = kru.where((k) => k.statusKetersediaan).length;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       AdminUi.topbar(
         judul: 'Kelola Kru',
         subjudul: '${kru.length} kru · $online online',
-        aksi: SizedBox(
-          height: 46,
-          child: ElevatedButton.icon(
-            onPressed: () => _dialogTambahKru(context, ref),
-            icon: const Icon(Icons.person_add_alt_rounded, size: 18),
-            label: const Text('Tambah Kru'),
-            style: ElevatedButton.styleFrom(
-                minimumSize: const Size(0, 46),
-                padding: const EdgeInsets.symmetric(horizontal: 20)),
+        aksi: Row(mainAxisSize: MainAxisSize.min, children: [
+          // Sortir tabel — nama / rating / online dulu.
+          DropdownButton<String>(
+            value: sortir,
+            underline: const SizedBox.shrink(),
+            style: GoogleFonts.montserrat(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: TkColors.inkSoft),
+            items: const [
+              DropdownMenuItem(value: 'nama', child: Text('Urut: Nama')),
+              DropdownMenuItem(
+                  value: 'rating', child: Text('Urut: Rating tertinggi')),
+              DropdownMenuItem(
+                  value: 'online', child: Text('Urut: Online dulu')),
+            ],
+            onChanged: (v) =>
+                ref.read(_sortKruProvider.notifier).state = v ?? 'nama',
           ),
-        ),
+          const SizedBox(width: 14),
+          SizedBox(
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: () => _dialogTambahKru(context, ref),
+              icon: const Icon(Icons.person_add_alt_rounded, size: 18),
+              label: const Text('Tambah Kru'),
+              style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 46),
+                  padding: const EdgeInsets.symmetric(horizontal: 20)),
+            ),
+          ),
+        ]),
       ),
       Expanded(
         child: ListView(

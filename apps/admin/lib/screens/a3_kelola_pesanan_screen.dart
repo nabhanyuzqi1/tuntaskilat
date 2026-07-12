@@ -538,6 +538,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
     // "Tugaskan" tak pernah aktif).
     final List<KruModel> worker = [];
     final List<KruModel> helper = [];
+    var cari = '';
 
     final penugasan = await showDialog<List<Penugasan>>(
       context: context,
@@ -563,14 +564,35 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('Pilih 1 Ketua Tim dan sisanya Pendamping jika perlu.',
+                        Text(
+                            'Centang kru yang dikirim. Kru pertama otomatis '
+                            'jadi Ketua Tim (penanggung jawab progres & '
+                            'laporan); klik badge peran untuk memindahkan '
+                            'Ketua Tim.',
                             style: GoogleFonts.montserrat(
-                                fontSize: 13, color: TkColors.textMuted)),
-                        const SizedBox(height: 12),
+                                fontSize: 13,
+                                height: 1.45,
+                                color: TkColors.textMuted)),
+                        const SizedBox(height: 10),
+                        // Pencarian — memilih cepat saat kru sudah banyak.
+                        TextField(
+                          onChanged: (v) =>
+                              setState(() => cari = v.trim().toLowerCase()),
+                          decoration: InputDecoration(
+                            hintText: 'Cari nama kru…',
+                            isDense: true,
+                            prefixIcon: const Icon(Icons.search, size: 18),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 340),
+                          constraints: const BoxConstraints(maxHeight: 320),
                           child: ListView(shrinkWrap: true, children: [
-                            for (final k in kruCocok)
+                            for (final k in kruCocok.where((k) =>
+                                cari.isEmpty ||
+                                k.nama.toLowerCase().contains(cari)))
                               ListTile(
                                 enabled: k.statusKetersediaan,
                                 onTap: k.statusKetersediaan ? () {
@@ -620,12 +642,32 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                                   if (worker.contains(k))
                                     Padding(
                                       padding: const EdgeInsets.only(left: 8),
-                                      child: AdminUi.chipStatus('Ketua Tim', TkColors.primary),
+                                      child: Tooltip(
+                                        message: 'Penanggung jawab tugas',
+                                        child: AdminUi.chipStatus(
+                                            'Ketua Tim', TkColors.primary),
+                                      ),
                                     )
                                   else if (helper.contains(k))
                                     Padding(
                                       padding: const EdgeInsets.only(left: 8),
-                                      child: AdminUi.chipStatus('Pendamping', TkColors.accent),
+                                      child: Tooltip(
+                                        message:
+                                            'Klik untuk jadikan Ketua Tim',
+                                        child: InkWell(
+                                          onTap: () => setState(() {
+                                            // Promosi jadi Ketua Tim — ketua
+                                            // lama turun jadi Pendamping.
+                                            helper.remove(k);
+                                            helper.addAll(worker);
+                                            worker
+                                              ..clear()
+                                              ..add(k);
+                                          }),
+                                          child: AdminUi.chipStatus(
+                                              'Pendamping', TkColors.accentAlt),
+                                        ),
+                                      ),
                                     )
                                 ]),
                                 subtitle: Text(

@@ -92,6 +92,12 @@ class A6PengaturanScreen extends ConsumerWidget {
                     _judul('MODE APLIKASI'),
                     const _KartuMaintenance(),
                     const SizedBox(height: 22),
+                    _judul('PROMO / BROADCAST'),
+                    const _KartuBroadcast(),
+                    const SizedBox(height: 22),
+                    _judul('BANNER BERANDA'),
+                    const _KartuBannerBeranda(),
+                    const SizedBox(height: 22),
                     _judul('MANAJEMEN TIM ADMIN'),
                     const _KartuTim(),
                   ],
@@ -655,6 +661,131 @@ class A6PengaturanScreen extends ConsumerWidget {
   }
 }
 
+/// Kartu Promo/Broadcast — kirim push marketing massal ke semua pelanggan.
+/// Menulis dokumen `broadcasts`; Cloud Function yang mengirim FCM.
+class _KartuBroadcast extends ConsumerStatefulWidget {
+  const _KartuBroadcast();
+
+  @override
+  ConsumerState<_KartuBroadcast> createState() => _KartuBroadcastState();
+}
+
+class _KartuBroadcastState extends ConsumerState<_KartuBroadcast> {
+  final _judul = TextEditingController();
+  final _pesan = TextEditingController();
+  var _mengirim = false;
+
+  @override
+  void dispose() {
+    _judul.dispose();
+    _pesan.dispose();
+    super.dispose();
+  }
+
+  Future<void> _kirim() async {
+    final judul = _judul.text.trim();
+    final pesan = _pesan.text.trim();
+    if (judul.isEmpty || pesan.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Judul dan pesan promo wajib diisi.')));
+      return;
+    }
+    final yakin = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Kirim promo ke SEMUA pelanggan?'),
+        content: Text('"$judul" akan dikirim sebagai notifikasi push ke '
+            'seluruh pelanggan yang mengizinkan notifikasi.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal')),
+          ElevatedButton(
+              style:
+                  ElevatedButton.styleFrom(minimumSize: const Size(120, 44)),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Kirim')),
+        ],
+      ),
+    );
+    if (yakin != true || !mounted) return;
+    setState(() => _mengirim = true);
+    try {
+      await ref
+          .read(firestoreServiceProvider)
+          .kirimBroadcast(judul: judul, pesan: pesan);
+      if (mounted) {
+        _judul.clear();
+        _pesan.clear();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Promo dikirim — push sedang diproses server.')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gagal mengirim promo.')));
+      }
+    } finally {
+      if (mounted) setState(() => _mengirim = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: AdminUi.kartu(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Push Promo ke Pelanggan',
+            style: GoogleFonts.montserrat(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: TkColors.inkSoft)),
+        const SizedBox(height: 4),
+        Text(
+            'Notifikasi massal ke semua pelanggan (mis. diskon musiman). '
+            'Gunakan bijak — terlalu sering membuat pengguna mematikan '
+            'notifikasi.',
+            style: GoogleFonts.montserrat(
+                fontSize: 12, color: TkColors.textMuted)),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _judul,
+          maxLength: 50,
+          decoration: const InputDecoration(
+              labelText: 'Judul', counterText: '', hintText:
+                  'Diskon 20% minggu ini!'),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _pesan,
+          maxLength: 140,
+          maxLines: 2,
+          decoration: const InputDecoration(
+              labelText: 'Pesan',
+              counterText: '',
+              hintText: 'Pakai kode HEMAT20 untuk semua layanan…'),
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(minimumSize: const Size(150, 44)),
+            onPressed: _mengirim ? null : _kirim,
+            icon: _mengirim
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.campaign_outlined, size: 18),
+            label: const Text('Kirim Promo'),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
 /// Kartu 2FA (TOTP) admin — opsional. Mengaktifkan mewajibkan verifikasi kode
 /// dulu agar admin tak terkunci. Rahasia disimpan di admin2fa/{uid}.
 class _Kartu2fa extends ConsumerStatefulWidget {
@@ -675,6 +806,15 @@ class _Kartu2faState extends ConsumerState<_Kartu2fa> {
   }
 
   Future<void> _muat() async {
+    // Tunggu Firebase init dulu — pada `flutter run` web initState kartu ini
+    // bisa berjalan sebelum initializeApp selesai; FirebaseAuth.instance
+    // lalu melempar FirebaseException (no-app) yang di web muncul sebagai
+    // "not a subtype of JavaScriptObject" dan merusak seluruh halaman A6.
+    if (!(await ref.read(firebaseInitProvider.future))) {
+      if (mounted) setState(() => _memuat = false);
+      return;
+    }
+    if (!mounted) return;
     final uid = ref.read(authServiceProvider).currentUser?.uid;
     if (uid == null) {
       if (mounted) setState(() => _memuat = false);
@@ -1483,5 +1623,218 @@ class _KartuTim extends ConsumerWidget {
     nama.dispose();
     email.dispose();
     sandi.dispose();
+  }
+}
+
+/// Banner aktif+nonaktif untuk panel kelola banner Beranda pelanggan.
+final _bannersAdminProvider = StreamProvider<List<BannerModel>>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
+  return ref.watch(firestoreServiceProvider).watchSemuaBanner();
+});
+
+/// Kelola banner hero Beranda pelanggan — tambah/edit/hapus, realtime.
+class _KartuBannerBeranda extends ConsumerWidget {
+  const _KartuBannerBeranda();
+
+  Future<void> _formBanner(BuildContext context, WidgetRef ref,
+      [BannerModel? awal]) async {
+    final judul = TextEditingController(text: awal?.judul ?? '');
+    final subjudul = TextEditingController(text: awal?.subjudul ?? '');
+    final badge = TextEditingController(text: awal?.badge ?? '');
+    final gambarUrl = TextEditingController(text: awal?.gambarUrl ?? '');
+    final isi = TextEditingController(text: awal?.isi ?? '');
+    final tautan = TextEditingController(text: awal?.tautan ?? '');
+    final urutan =
+        TextEditingController(text: '${awal?.urutan.toInt() ?? 0}');
+    var aktif = awal?.aktif ?? true;
+
+    final simpan = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: Text(awal == null ? 'Tambah Banner' : 'Edit Banner'),
+          content: SizedBox(
+            width: 420,
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                TextField(
+                    controller: judul,
+                    maxLength: 60,
+                    decoration: const InputDecoration(
+                        labelText: 'Judul', counterText: '')),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: subjudul,
+                    maxLength: 80,
+                    decoration: const InputDecoration(
+                        labelText: 'Subjudul (opsional)', counterText: '')),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: badge,
+                    maxLength: 24,
+                    decoration: const InputDecoration(
+                        labelText: 'Badge (mis. PROMO PERDANA)',
+                        counterText: '')),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: gambarUrl,
+                    decoration: const InputDecoration(
+                        labelText: 'URL gambar (opsional)')),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: isi,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                        labelText: 'Isi / penjelasan di halaman detail')),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: tautan,
+                    decoration: const InputDecoration(
+                        labelText: 'Tautan Selengkapnya (opsional)')),
+                const SizedBox(height: 8),
+                Row(children: [
+                  SizedBox(
+                    width: 110,
+                    child: TextField(
+                        controller: urutan,
+                        keyboardType: TextInputType.number,
+                        decoration:
+                            const InputDecoration(labelText: 'Urutan')),
+                  ),
+                  const Spacer(),
+                  const Text('Aktif'),
+                  Switch(
+                      value: aktif,
+                      onChanged: (v) => setState(() => aktif = v)),
+                ]),
+              ]),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Batal')),
+            ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(120, 44)),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Simpan')),
+          ],
+        ),
+      ),
+    );
+    if (simpan != true) return;
+    if (judul.text.trim().isEmpty) return;
+    await ref.read(firestoreServiceProvider).simpanBanner(BannerModel(
+          id: awal?.id ?? '',
+          judul: judul.text.trim(),
+          subjudul: subjudul.text.trim(),
+          badge: badge.text.trim(),
+          gambarUrl: gambarUrl.text.trim(),
+          isi: isi.text.trim(),
+          tautan: tautan.text.trim(),
+          urutan: int.tryParse(urutan.text.trim()) ?? 0,
+          aktif: aktif,
+        ));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final banners = ref.watch(_bannersAdminProvider).valueOrNull ?? const [];
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: AdminUi.kartu(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Banner Beranda Pelanggan',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: TkColors.inkSoft)),
+                  const SizedBox(height: 4),
+                  Text(
+                      'Carousel hero di Beranda — promosi/pengenalan fitur. '
+                      'Perubahan tampil realtime tanpa update aplikasi.',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 12, color: TkColors.textMuted)),
+                ]),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(minimumSize: const Size(150, 44)),
+            onPressed: () => _formBanner(context, ref),
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('Tambah Banner'),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        if (banners.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Text(
+                'Belum ada banner — pelanggan melihat banner promo bawaan.',
+                style: GoogleFonts.montserrat(
+                    fontSize: 12.5, color: TkColors.textMuted)),
+          )
+        else
+          for (final b in banners)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(children: [
+                AdminUi.chipStatus(
+                    b.aktif ? 'Aktif' : 'Nonaktif',
+                    b.aktif ? TkColors.primary : TkColors.textMuted),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                      '${b.urutan.toInt()}. ${b.judul}'
+                      '${b.badge.isEmpty ? '' : ' · ${b.badge}'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.montserrat(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: TkColors.inkSoft)),
+                ),
+                IconButton(
+                    tooltip: 'Edit',
+                    onPressed: () => _formBanner(context, ref, b),
+                    icon: const Icon(Icons.edit_outlined, size: 18)),
+                IconButton(
+                    tooltip: 'Hapus',
+                    onPressed: () async {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Hapus banner?'),
+                          content: Text('"${b.judul}" dihapus permanen.'),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Batal')),
+                            ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: TkColors.error,
+                                    minimumSize: const Size(110, 42)),
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Hapus')),
+                          ],
+                        ),
+                      );
+                      if (ok == true) {
+                        await ref
+                            .read(firestoreServiceProvider)
+                            .hapusBanner(b.id);
+                      }
+                    },
+                    icon: const Icon(Icons.delete_outline_rounded,
+                        size: 18, color: TkColors.error)),
+              ]),
+            ),
+      ]),
+    );
   }
 }

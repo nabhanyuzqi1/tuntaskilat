@@ -6,6 +6,7 @@ import 'package:tk_core/tk_core.dart';
 import '../providers/app_providers.dart';
 import '../providers/beranda_providers.dart';
 import '../providers/notifikasi_providers.dart';
+import '../widgets/masuk_dulu.dart';
 import '../widgets/tk_bottom_nav.dart';
 import 'p11_profil_screen.dart';
 import 'p12_notifikasi_screen.dart';
@@ -44,18 +45,34 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       await NotificationService().ensureChannels();
       final uid = ref.read(authServiceProvider).currentUser?.uid;
       if (uid == null) return;
-      await PushService(
+      final push = PushService(
         onToken: (t) =>
             ref.read(firestoreServiceProvider).simpanFcmTokenUser(uid, t),
-      ).init();
+      );
+      await push.init();
+      // Deep link: tap notifikasi (chat/status) → langsung buka P8 Lacak
+      // pesanan terkait — dari background maupun terminated.
+      push.onMessageOpened.listen((m) => _bukaDeepLink(deepLinkDari(m)));
+      _bukaDeepLink(deepLinkDari(await push.pesanAwal()));
     } catch (_) {
       // Izin notifikasi ditolak / device tanpa Google Play — abaikan.
     }
   }
 
+  void _bukaDeepLink(({String orderId, String tipe})? link) {
+    if (link == null || !mounted) return;
+    if (link.tipe == 'promo') return; // promo cukup membuka Beranda
+    Navigator.of(context)
+        .pushNamed(P8TrackingScreen.route, arguments: link.orderId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final aktif = ref.watch(tabAktifProvider);
+    // MODE TAMU: Beranda bebas dijelajah; tab lain menampilkan ajakan masuk
+    // (pola marketplace umum — jelajah dulu, aksi = login).
+    final tamu =
+        ref.watch(authStateProvider).valueOrNull == null;
     return Scaffold(
       extendBody: true, // konten tampak di balik nav glass (blur berarti)
       bottomNavigationBar: TkBottomNav(
@@ -66,11 +83,26 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       body: Stack(children: [
         IndexedStack(
           index: aktif.index,
-          children: const [
-            P3BerandaScreen(),
-            P9RiwayatScreen(),
-            P12NotifikasiScreen(),
-            P11ProfilScreen(),
+          children: [
+            const P3BerandaScreen(),
+            tamu
+                ? const MasukDuluView(
+                    judul: 'Riwayat pesanan Anda',
+                    pesan: 'Masuk untuk melihat dan melacak seluruh '
+                        'pesanan Anda.')
+                : const P9RiwayatScreen(),
+            tamu
+                ? const MasukDuluView(
+                    judul: 'Notifikasi',
+                    pesan: 'Masuk untuk menerima info status pesanan dan '
+                        'promo terbaru.')
+                : const P12NotifikasiScreen(),
+            tamu
+                ? const MasukDuluView(
+                    judul: 'Profil Anda',
+                    pesan: 'Masuk atau daftar untuk mengelola akun, alamat, '
+                        'dan kode referal Anda.')
+                : const P11ProfilScreen(),
           ],
         ),
         // Kartu order berjalan mengambang di atas nav (pola Gojek/Grab).

@@ -82,7 +82,13 @@ service cloud.firestore {
          resource.data.cleanerId == request.auth.uid ||
          request.auth.uid in resource.data.kruIds) &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'fotoSebelum', 'fotoSesudah', 'penugasan'])
+          .hasOnly(['status', 'fotoSebelum', 'fotoSesudah', 'penugasan']) &&
+        // Order yang SUDAH DITUGASKAN tidak bisa dibatalkan klien — transisi
+        // ke 'dibatalkan' hanya sah dari status pra-penugasan. Pembatalan
+        // pasca-penugasan hanya lewat admin (kompensasi kru dsb.).
+        (request.resource.data.status != 'dibatalkan' ||
+         resource.data.status in ['dibuat', 'menunggu_pembayaran',
+           'menunggu_verifikasi', 'terverifikasi', 'menunggu_penugasan'])
       );
       allow delete: if isAdmin();
 
@@ -171,6 +177,20 @@ service cloud.firestore {
       allow create: if isSignedIn() &&
         request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAdmin();
+    }
+
+    // Broadcast promo (push marketing massal) — hanya admin yang membuat;
+    // Cloud Function onBroadcastCreate yang mengirim & menulis hasil.
+    match /broadcasts/{id} {
+      allow read, create: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // Banner hero Beranda — konten publik (tampil sebelum login/guest mode),
+    // dikelola admin secara realtime.
+    match /banners/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
     // Rahasia TOTP 2FA admin — hanya pemilik akun yang baca/tulis (verifikasi

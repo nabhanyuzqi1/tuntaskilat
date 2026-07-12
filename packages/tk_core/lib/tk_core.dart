@@ -21,6 +21,7 @@ export 'models/message_model.dart';
 export 'models/komisi_model.dart';
 export 'models/kas_kru_model.dart';
 export 'models/app_config_model.dart';
+export 'models/banner_model.dart';
 
 export 'seed/pricelist_seed.dart';
 

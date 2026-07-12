@@ -171,7 +171,10 @@ class _A1LoginScreenState extends ConsumerState<A1LoginScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               padding: const EdgeInsets.all(10),
-              child: Image.asset('assets/brand/brandmark.webp'),
+              // logo-color: crop rapat + berwarna; brandmark.webp punya
+              // kartu putih ber-margin besar sehingga tampak kecil & dobel.
+              child: Image.asset('assets/brand/logo-color.webp',
+                  fit: BoxFit.contain),
             ),
             const SizedBox(width: 14),
             Column(

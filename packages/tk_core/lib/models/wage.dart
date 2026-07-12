@@ -25,6 +25,7 @@ class Penugasan {
     required this.nama,
     required this.peran,
     this.sudahKonfirmasi = false,
+    this.diterima = false,
     this.fotoUrl,
   });
 
@@ -34,13 +35,20 @@ class Penugasan {
 
   /// True setelah kru menekan "selesai bagian saya" + unggah foto.
   final bool sudahKonfirmasi;
+
+  /// True setelah kru MENERIMA tugas dari overlay "Tugas Baru" (gaya
+  /// Gojek/Grab — konfirmasi maksimal 30 menit, tidak bisa ditolak).
+  final bool diterima;
   final String? fotoUrl;
 
-  Penugasan copyWith({bool? sudahKonfirmasi, String? fotoUrl}) => Penugasan(
+  Penugasan copyWith(
+          {bool? sudahKonfirmasi, bool? diterima, String? fotoUrl}) =>
+      Penugasan(
         cleanerId: cleanerId,
         nama: nama,
         peran: peran,
         sudahKonfirmasi: sudahKonfirmasi ?? this.sudahKonfirmasi,
+        diterima: diterima ?? this.diterima,
         fotoUrl: fotoUrl ?? this.fotoUrl,
       );
 
@@ -49,6 +57,7 @@ class Penugasan {
         nama: m['nama'] as String? ?? '',
         peran: PeranKru.fromWire(m['peran'] as String?),
         sudahKonfirmasi: m['sudahKonfirmasi'] as bool? ?? false,
+        diterima: m['diterima'] as bool? ?? false,
         fotoUrl: m['fotoUrl'] as String?,
       );
 
@@ -57,6 +66,7 @@ class Penugasan {
         'nama': nama,
         'peran': peran.wire,
         'sudahKonfirmasi': sudahKonfirmasi,
+        'diterima': diterima,
         if (fotoUrl != null) 'fotoUrl': fotoUrl,
       };
 }

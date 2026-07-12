@@ -8,6 +8,7 @@ import 'package:tk_core/tk_core.dart';
 import '../providers/app_providers.dart';
 import 'k1_login_screen.dart';
 import 'k_bantuan_screen.dart';
+import 'k_rekening_screen.dart';
 import 'k_ubah_kata_sandi_screen.dart';
 
 /// K6 — Profil Kru. Statistik pesanan selesai & pendapatan bulan ini
@@ -65,6 +66,19 @@ class K6ProfilKruScreen extends ConsumerWidget {
       ),
     );
     if (keluar != true || !context.mounted) return;
+    // Cabut token FCM SEBELUM signOut — cegah push tugas/chat kru lama
+    // mendarat di perangkat setelah ganti akun (bocor notif lintas akun).
+    try {
+      final uid = ref.read(authServiceProvider).currentUser?.uid;
+      final push = PushService(onToken: (_) async {});
+      final token = await push.tokenSekarang();
+      if (uid != null && token != null) {
+        await ref.read(firestoreServiceProvider).hapusFcmTokenKru(uid, token);
+      }
+      await push.hapusTokenPerangkat();
+    } catch (_) {
+      // Offline / izin notif ditolak — logout tetap jalan.
+    }
     await ref.read(authServiceProvider).signOut();
     if (context.mounted) {
       Navigator.of(context)
@@ -206,6 +220,14 @@ class K6ProfilKruScreen extends ConsumerWidget {
                     border: Border.all(color: const Color(0x0D0F281C)),
                   ),
                   child: Column(children: [
+                    _baris(context, Icons.account_balance_outlined,
+                        'Rekening Pencairan',
+                        () => Navigator.of(context)
+                            .pushNamed(KRekeningScreen.route)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Divider(),
+                    ),
                     _baris(context, Icons.lock_outline_rounded,
                         'Ubah Kata Sandi',
                         () => Navigator.of(context)

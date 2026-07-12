@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/alamat_model.dart';
 import '../models/app_config_model.dart';
+import '../models/banner_model.dart';
 import '../models/kas_kru_model.dart';
 import '../models/komisi_model.dart';
 import '../models/kru_model.dart';
@@ -101,6 +103,10 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> get _vouchers =>
       _db.collection('vouchers');
 
+  /// Banner hero Beranda pelanggan — dikelola admin, realtime.
+  CollectionReference<Map<String, dynamic>> get _banners =>
+      _db.collection('banners');
+
   /// Ledger upah kru (lapisan produk nyata).
   CollectionReference<Map<String, dynamic>> get _payouts =>
       _db.collection('payouts');
@@ -140,15 +146,20 @@ class FirestoreService {
 
   // ------------------------------------------------------------------ orders
 
-  /// Jam slot layanan harian (P5 Hi-Fi build): 08.00, 10.00, 13.00, 15.00,
-  /// 17.00, 19.00 WIB.
-  static const jamSlot = [8, 10, 13, 15, 17, 19];
+  /// Jam slot layanan harian — per jam 08.00–19.00 WIB (opsi lebih lengkap;
+  /// jam operasional CS 07.00–21.00, slot terakhir mulai 19.00).
+  static const jamSlot = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
 
-  /// ID dokumen order deterministik dari slot jadwal. Transaction klien tidak
-  /// bisa menjalankan query, jadi kunci slot diwujudkan sebagai ID dokumen:
-  /// dua pemesanan pada slot yang sama memperebutkan SATU dokumen `orders`
-  /// yang sama, dan `runTransaction` menjamin hanya satu yang menang
-  /// (Atomic Locking, TA Bab IV 4.2.2 — tanpa koleksi di luar 7 koleksi TA).
+  /// Sufiks acak 4 karakter (base32 tanpa 0/1/O/I) untuk keunikan ID order.
+  static String _sufiksAcak() {
+    const abjad = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final r = Random();
+    return List.generate(4, (_) => abjad[r.nextInt(abjad.length)]).join();
+  }
+
+  /// ID dokumen SLOT deterministik dari jadwal — kunci Atomic Locking pada
+  /// koleksi `slots`: dua pemesanan slot sama memperebutkan SATU dokumen slot,
+  /// `runTransaction` menjamin hanya satu menang (TA Bab IV 4.2.2).
   static String slotOrderId(String prefix, DateTime jadwal) {
     String dua(int n) => n.toString().padLeft(2, '0');
     final p = prefix.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
@@ -244,11 +255,14 @@ class FirestoreService {
       throw const LuarWilayahLayananException();
     }
 
-    final orderRef = _orders.doc(slotOrderId(serviceId, jadwal));
-    // Kunci slot = dokumen `slots` publik-boolean dengan ID sama (deterministik).
-    // Atomic lock kini pada dokumen INI, bukan dokumen order, agar `orders`
-    // tak perlu dibaca lintas-pengguna (memungkinkan orders.get dibatasi).
-    final slotRef = _slots.doc(slotOrderId(serviceId, jadwal));
+    // ID order = ID slot + sufiks acak 4 karakter. Tetap terbaca manusia,
+    // tapi UNIK antar-percobaan: slot yang dibebaskan (order dibatalkan) bisa
+    // dipesan ulang tanpa menabrak dokumen order lama yang tetap diarsip.
+    final slotId = slotOrderId(serviceId, jadwal);
+    final orderRef = _orders.doc('$slotId-${_sufiksAcak()}');
+    // Kunci slot = dokumen `slots` deterministik. Atomic lock pada dokumen
+    // INI (bukan order), dan DIBEBASKAN Cloud Function saat order dibatalkan.
+    final slotRef = _slots.doc(slotId);
     final serviceRef = _services.doc(serviceId);
     final paymentRef = _payments.doc();
     final kode = (voucherKode ?? '').trim().toUpperCase();
@@ -358,7 +372,9 @@ class FirestoreService {
         statusBayar: StatusBayar.menunggu,
         waktu: sekarang,
       );
-      tx.set(orderRef, order.toMap());
+      // slotId disimpan agar Cloud Function bisa MEMBEBASKAN slot saat order
+      // dibatalkan (kunci dilepas → slot bisa dipesan ulang).
+      tx.set(orderRef, {...order.toMap(), 'slotId': slotRef.id});
       // Kunci slot publik-boolean (tanpa PII) — dibaca watchSlotTerisi &
       // menjadi titik atomic-lock antar-transaksi pada slot yang sama.
       tx.set(slotRef, {
@@ -547,6 +563,18 @@ class FirestoreService {
           ..sort((a, b) => b.tanggalPesan.compareTo(a.tanggalPesan));
         return aktif.isEmpty ? null : aktif.first;
       });
+
+  /// Kru MENERIMA tugas dari overlay "Tugas Baru" (gaya Gojek/Grab) —
+  /// menandai entri penugasan miliknya `diterima: true`. Rules mengizinkan
+  /// kru tertugas menyentuh field `penugasan`.
+  Future<void> terimaTugas(OrderModel order, String cleanerId) {
+    final baru = order.penugasan
+        .map((p) =>
+            p.cleanerId == cleanerId ? p.copyWith(diterima: true) : p)
+        .map((p) => p.toMap())
+        .toList();
+    return _orders.doc(order.orderId).update({'penugasan': baru});
+  }
 
   /// Pelanggan membatalkan pesanan (hanya sebelum kru bekerja). Rules
   /// mengizinkan pemilik mengubah `status`.
@@ -838,6 +866,8 @@ class FirestoreService {
       'cleanerId': lead.cleanerId,
       'namaKru': lead.nama,
       'status': OrderStatus.ditugaskan.wire,
+      // Titik mulai countdown 30 menit konfirmasi kru (overlay tugas baru).
+      'waktuPenugasan': Timestamp.now(),
     });
     final notifRef = _notifications.doc();
     final labelKru = penugasan.length == 1
@@ -881,6 +911,41 @@ class FirestoreService {
       _kru.doc(cleanerId).update({
         'fcmTokens': FieldValue.arrayRemove([token])
       });
+
+  /// Simpan rekening/e-wallet pencairan upah kru (oleh kru sendiri/admin) —
+  /// dipakai manajemen keuangan saat mencairkan upah & menagih setoran.
+  Future<void> simpanRekeningKru(String cleanerId, RekeningKru rekening) =>
+      _kru.doc(cleanerId).update({'rekening': rekening.toMap()});
+
+  // ---------------------------------------------------------------- Banner
+
+  /// Banner aktif Beranda pelanggan, urut `urutan` — realtime sehingga
+  /// perubahan dari admin langsung tampil tanpa update aplikasi.
+  Stream<List<BannerModel>> watchBannersAktif() =>
+      _banners.where('aktif', isEqualTo: true).snapshots().map((s) {
+        final list = s.docs
+            .map((d) => BannerModel.fromMap(d.id, d.data()))
+            .toList(growable: false)
+          ..sort((a, b) => a.urutan.compareTo(b.urutan));
+        return list;
+      });
+
+  /// Semua banner (panel admin), urut `urutan`.
+  Stream<List<BannerModel>> watchSemuaBanner() =>
+      _banners.snapshots().map((s) {
+        final list = s.docs
+            .map((d) => BannerModel.fromMap(d.id, d.data()))
+            .toList(growable: false)
+          ..sort((a, b) => a.urutan.compareTo(b.urutan));
+        return list;
+      });
+
+  /// Buat/perbarui banner (admin). `id` kosong → dokumen baru.
+  Future<void> simpanBanner(BannerModel banner) => banner.id.isEmpty
+      ? _banners.add(banner.toMap())
+      : _banners.doc(banner.id).set(banner.toMap());
+
+  Future<void> hapusBanner(String id) => _banners.doc(id).delete();
 
   /// Simpan/hapus token FCM perangkat pelanggan (users/{uid}.fcmTokens).
   /// Dipakai Cloud Function untuk push notifikasi chat & status pesanan.
@@ -1164,6 +1229,18 @@ class FirestoreService {
       .map((s) => s.docs
           .map((d) => MessageModel.fromFirestore(d))
           .toList(growable: false));
+
+  /// A6 — kirim push promo massal ke semua pelanggan. Cukup MEMBUAT dokumen;
+  /// Cloud Function onBroadcastCreate yang mengirim FCM & menulis hasil.
+  Future<void> kirimBroadcast({
+    required String judul,
+    required String pesan,
+  }) =>
+      _db.collection('broadcasts').add({
+        'judul': judul.trim(),
+        'pesan': pesan.trim(),
+        'dibuatPada': Timestamp.now(),
+      });
 
   // ------------------------------------------------------------------- settings
   

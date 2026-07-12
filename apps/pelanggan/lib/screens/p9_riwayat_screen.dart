@@ -19,7 +19,11 @@ final filterRiwayatProvider =
 /// Seluruh pesanan pengguna, terbaru dulu.
 final riwayatProvider = StreamProvider<List<OrderModel>>((ref) {
   if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
-  final uid = ref.watch(authServiceProvider).currentUser?.uid;
+  // watch(authStateProvider), BUKAN currentUser: saat ganti akun provider
+  // harus rebuild — stream uid lama mati PERMISSION_DENIED ketika auth null
+  // dan error-nya terkunci sampai app restart (bug riwayat "tidak dapat
+  // dimuat" pasca login akun berbeda).
+  final uid = ref.watch(authStateProvider).valueOrNull?.uid;
   if (uid == null) return Stream.value(const []);
   return ref.watch(firestoreServiceProvider).watchOrdersByUser(uid).map(
         (orders) => (orders.toList()

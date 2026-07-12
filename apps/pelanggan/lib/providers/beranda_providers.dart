@@ -17,6 +17,13 @@ final layananAktifProvider = StreamProvider<List<ServiceModel>>((ref) {
   return ref.watch(firestoreServiceProvider).watchActiveServices();
 });
 
+/// Banner hero Beranda — dikelola admin realtime (koleksi `banners`).
+/// Kosong → P3 memakai banner promo perdana bawaan.
+final bannersProvider = StreamProvider<List<BannerModel>>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
+  return ref.watch(firestoreServiceProvider).watchBannersAktif();
+});
+
 /// Order aktif terbaru pelanggan — kartu "pesanan berjalan" di Beranda.
 final orderAktifProvider =
     StreamProvider.autoDispose.family<OrderModel?, String>((ref, uid) {

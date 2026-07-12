@@ -7,6 +7,7 @@ import 'package:tk_core/tk_core.dart';
 import '../providers/auth_controller.dart';
 import 'p2a_izin_screen.dart';
 import 'p2b_lengkapi_profil_screen.dart';
+import 'p3_beranda_screen.dart';
 import 'syarat_ketentuan_screen.dart';
 
 class P2AuthScreenArgs {
@@ -321,6 +322,22 @@ class _FormMasukState extends ConsumerState<_FormMasuk> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+          Center(
+            child: TextButton(
+              // MODE TAMU: jelajahi katalog & promo tanpa akun; setiap aksi
+              // (pesan, riwayat, profil) akan menawarkan login kembali.
+              onPressed: () => Navigator.of(context)
+                  .pushReplacementNamed(P3BerandaScreen.route),
+              child: Text(
+                'Jelajahi dulu tanpa akun',
+                style: GoogleFonts.montserrat(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: TkColors.label,
+                ),
               ),
             ),
           ),

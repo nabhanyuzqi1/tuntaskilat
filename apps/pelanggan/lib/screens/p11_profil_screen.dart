@@ -90,6 +90,21 @@ class P11ProfilScreen extends ConsumerWidget {
       ),
     );
     if (keluar != true || !context.mounted) return;
+    // Cabut token FCM SEBELUM signOut — tanpa ini push chat/status akun lama
+    // terus mendarat di perangkat walau sudah login akun lain (bocor notif
+    // lintas akun). deleteToken menginvalidasi token di sisi FCM sehingga
+    // dokumen user lain yang masih menyimpannya ikut mati.
+    try {
+      final uid = ref.read(authServiceProvider).currentUser?.uid;
+      final push = PushService(onToken: (_) async {});
+      final token = await push.tokenSekarang();
+      if (uid != null && token != null) {
+        await ref.read(firestoreServiceProvider).hapusFcmTokenUser(uid, token);
+      }
+      await push.hapusTokenPerangkat();
+    } catch (_) {
+      // Offline / izin notif ditolak — logout tetap jalan.
+    }
     await ref.read(authServiceProvider).signOut();
     if (context.mounted) {
       Navigator.of(context)
@@ -127,30 +142,53 @@ class P11ProfilScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 30),
                 child: Row(children: [
-                  Container(
-                    width: 72,
-                    height: 72,
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    alignment: Alignment.center,
-                    child: (profil?.fotoUrl ?? '').isEmpty
-                        ? Text(inisial,
-                            style: GoogleFonts.montserrat(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w700,
-                                color: TkColors.primaryDark))
-                        : Image.network(profil!.fotoUrl,
-                            width: 72,
-                            height: 72,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => Text(inisial,
+                  // Avatar + badge edit: sinyal visual bahwa foto bisa
+                  // diganti — tap membuka P15 Edit Profil.
+                  GestureDetector(
+                    onTap: () => Navigator.of(context)
+                        .pushNamed(P15EditProfilScreen.route),
+                    child: Stack(clipBehavior: Clip.none, children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        alignment: Alignment.center,
+                        child: (profil?.fotoUrl ?? '').isEmpty
+                            ? Text(inisial,
                                 style: GoogleFonts.montserrat(
                                     fontSize: 26,
                                     fontWeight: FontWeight.w700,
-                                    color: TkColors.primaryDark))),
+                                    color: TkColors.primaryDark))
+                            : Image.network(profil!.fotoUrl,
+                                width: 72,
+                                height: 72,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Text(inisial,
+                                    style: GoogleFonts.montserrat(
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.w700,
+                                        color: TkColors.primaryDark))),
+                      ),
+                      Positioned(
+                        right: -4,
+                        bottom: -4,
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            color: TkColors.accent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(Icons.edit_rounded,
+                              size: 13, color: TkColors.primaryDark),
+                        ),
+                      ),
+                    ]),
                   ),
                   const SizedBox(width: 16),
                   Expanded(

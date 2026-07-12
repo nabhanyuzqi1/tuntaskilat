@@ -22,6 +22,7 @@ import 'screens/p6_rincian_tagihan_screen.dart';
 import 'screens/p7_form_pembayaran_screen.dart';
 import 'screens/p8_tracking_screen.dart';
 import 'screens/p16_chat_screen.dart';
+import 'screens/p17_banner_detail_screen.dart';
 import 'screens/syarat_ketentuan_screen.dart';
 
 /// Versi aplikasi Pelanggan (untuk pengecekan update paksa settings/app).
@@ -69,6 +70,7 @@ class TkPelangganApp extends StatelessWidget {
         P14BantuanScreen.route: (_) => const P14BantuanScreen(),
         P15EditProfilScreen.route: (_) => const P15EditProfilScreen(),
         P16ChatScreen.route: (_) => const P16ChatScreen(),
+        P17BannerDetailScreen.route: (_) => const P17BannerDetailScreen(),
         SyaratKetentuanScreen.route: (_) => const SyaratKetentuanScreen(),
       },
     );

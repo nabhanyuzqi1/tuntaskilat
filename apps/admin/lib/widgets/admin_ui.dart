@@ -36,7 +36,12 @@ class AdminUi {
         ]),
       );
 
-  static Widget chipStatus(String label, Color warna) => Container(
+  // Align wajib: di dalam Expanded (sel tabel) Container melebar memenuhi
+  // kolom sehingga latar chip "mentok kanan" — Align membuatnya menyusut
+  // mengikuti isi di SEMUA pemakaian.
+  static Widget chipStatus(String label, Color warna) => Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
           color: warna.withValues(alpha: 0.10),
@@ -58,6 +63,7 @@ class AdminUi {
                   fontWeight: FontWeight.w600,
                   color: warna)),
         ]),
+        ),
       );
 
   static Widget topbar({

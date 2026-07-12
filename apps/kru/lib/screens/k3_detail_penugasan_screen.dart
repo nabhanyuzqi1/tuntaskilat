@@ -154,12 +154,9 @@ class _K3DetailPenugasanScreenState
             1000;
 
     return Stack(children: [
-      // Peta rute
-      Positioned(
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 300,
+      // Peta rute FULL-SCREEN — luas peta diatur dengan menarik sheet detail
+      // ke bawah (permintaan owner: peta bisa diperlebar).
+      Positioned.fill(
         child: Stack(children: [
           FlutterMap(
             options: MapOptions(initialCenter: tujuan, initialZoom: 14),
@@ -279,20 +276,27 @@ class _K3DetailPenugasanScreenState
         ],
       ),
       ),
-      // Sheet detail
-      Positioned(
-        top: 278, // 300 - 22
-        left: 0,
-        right: 0,
-        bottom: 0,
-        child: Container(
+      // Sheet detail yang bisa ditarik: turunkan untuk memperluas peta,
+      // naikkan untuk membaca detail. Tombol aksi TIDAK ikut scroll —
+      // menempel di dasar layar (bar terpisah di bawah).
+      DraggableScrollableSheet(
+        initialChildSize: 0.52,
+        minChildSize: 0.28,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => Container(
           decoration: const BoxDecoration(
             color: TkColors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                  color: Color(0x220F281C),
+                  blurRadius: 24,
+                  offset: Offset(0, -6)),
+            ],
           ),
           child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(22, 12, 22, 132),
               children: [
                 Center(
                   child: Container(
@@ -481,60 +485,90 @@ class _K3DetailPenugasanScreenState
                         color: TkColors.inkSoft)),
                 const SizedBox(height: 14),
                 _ProgresLangkah(status: order.status),
-                const SizedBox(height: 20),
-                if (order.status == OrderStatus.selesai ||
-                    order.status == OrderStatus.dinilai)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.check_circle_rounded,
-                          size: 20, color: TkColors.primary),
-                      const SizedBox(width: 8),
-                      Text('Tugas selesai — laporan terkirim',
-                          style: GoogleFonts.montserrat(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: TkColors.primaryDark)),
-                    ],
-                  )
-                else if (order.status.tahapBerikutKru != null)
-                  if (isLead)
-                    SizedBox(
-                      height: 58,
-                      child: TkButton(
-                        label: switch (order.status) {
-                          OrderStatus.ditugaskan => 'Mulai Menuju Lokasi',
-                          OrderStatus.dalamPerjalanan => 'Mulai Pengerjaan',
-                          OrderStatus.diproses => 'Selesai & Buat Laporan',
-                          _ => 'Lanjut',
-                        },
-                        loading: _memproses,
-                        onPressed: () => _majukanStatus(order),
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: TkColors.accent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Anda ditugaskan sebagai Helper. Hanya Worker (Lead) yang dapat memajukan status dan membuat laporan akhir.',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.montserrat(
-                          fontSize: 13,
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                          color: TkColors.primaryDark,
-                        ),
-                      ),
-                    ),
               ],
           ),
         ),
       ),
+      // Bar aksi menempel di dasar layar — tidak ikut scroll sheet.
+      Positioned(
+        left: 0,
+        right: 0,
+        bottom: 0,
+        child: Container(
+          decoration: BoxDecoration(
+            color: TkColors.surface,
+            boxShadow: [
+              BoxShadow(
+                  color: const Color(0x1A0F281C),
+                  blurRadius: 18,
+                  offset: const Offset(0, -4)),
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 12, 22, 12),
+              child: _aksiBawah(order, isLead),
+            ),
+          ),
+        ),
+      ),
     ]);
+  }
+
+  /// Aksi utama K3 (selesai / tombol progres / info Helper) — dirender di
+  /// bar bawah yang menempel, bukan di dalam sheet.
+  Widget _aksiBawah(OrderModel order, bool isLead) {
+    if (order.status == OrderStatus.selesai ||
+        order.status == OrderStatus.dinilai) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.check_circle_rounded,
+              size: 20, color: TkColors.primary),
+          const SizedBox(width: 8),
+          Text('Tugas selesai — laporan terkirim',
+              style: GoogleFonts.montserrat(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: TkColors.primaryDark)),
+        ],
+      );
+    }
+    if (order.status.tahapBerikutKru == null) return const SizedBox.shrink();
+    if (isLead) {
+      return SizedBox(
+        height: 58,
+        child: TkButton(
+          label: switch (order.status) {
+            OrderStatus.ditugaskan => 'Mulai Menuju Lokasi',
+            OrderStatus.dalamPerjalanan => 'Mulai Pengerjaan',
+            OrderStatus.diproses => 'Selesai & Buat Laporan',
+            _ => 'Lanjut',
+          },
+          loading: _memproses,
+          onPressed: () => _majukanStatus(order),
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: TkColors.accent.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        'Anda ditugaskan sebagai Helper. Hanya Worker (Lead) yang dapat '
+        'memajukan status dan membuat laporan akhir.',
+        textAlign: TextAlign.center,
+        style: GoogleFonts.montserrat(
+          fontSize: 13,
+          height: 1.4,
+          fontWeight: FontWeight.w600,
+          color: TkColors.primaryDark,
+        ),
+      ),
+    );
   }
 
   Widget _tombolKontak(IconData ikon, bool utama, VoidCallback onTap) =>

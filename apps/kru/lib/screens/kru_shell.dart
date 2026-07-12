@@ -4,6 +4,7 @@ import 'package:tk_core/tk_core.dart';
 
 import '../providers/app_providers.dart';
 import '../widgets/kru_bottom_nav.dart';
+import '../widgets/tugas_baru_overlay.dart';
 import 'k2_daftar_penugasan_screen.dart';
 import 'k5_riwayat_kru_screen.dart';
 import 'k6_profil_kru_screen.dart';
@@ -44,20 +45,32 @@ class _KruShellState extends ConsumerState<KruShell> {
   @override
   Widget build(BuildContext context) {
     final aktif = ref.watch(kruTabAktifProvider);
+    // Overlay "Tugas Baru" gaya Gojek: layar penuh menutupi shell selama ada
+    // penugasan yang belum diterima — kru harus konfirmasi dulu.
+    final tugasBaru = ref.watch(tugasBaruProvider);
     return Scaffold(
       extendBody: true,
       bottomNavigationBar: KruBottomNav(
         aktif: aktif,
         onPilih: (tab) => ref.read(kruTabAktifProvider.notifier).state = tab,
       ),
-      body: IndexedStack(
-        index: aktif.index,
-        children: const [
-          K2DaftarPenugasanScreen(),
-          K5RiwayatKruScreen(),
-          K6ProfilKruScreen(),
-        ],
-      ),
+      body: Stack(children: [
+        IndexedStack(
+          index: aktif.index,
+          children: const [
+            K2DaftarPenugasanScreen(),
+            K5RiwayatKruScreen(),
+            K6ProfilKruScreen(),
+          ],
+        ),
+        if (tugasBaru != null)
+          Positioned.fill(
+            child: TugasBaruOverlay(
+              key: ValueKey(tugasBaru.orderId),
+              order: tugasBaru,
+            ),
+          ),
+      ]),
     );
   }
 }

@@ -30,6 +30,45 @@ enum StatusKru {
 }
 
 /// Koleksi `kru` — lihat firestore-schema.md.
+/// Rekening pencairan upah kru — bank atau e-wallet. Disimpan sebagai map
+/// `rekening` pada dokumen kru; dipakai admin (manajemen keuangan) saat
+/// mencairkan upah worker & menagih setoran.
+class RekeningKru {
+  const RekeningKru({
+    this.jenis = 'bank',
+    this.penyedia = '',
+    this.nomor = '',
+    this.atasNama = '',
+  });
+
+  /// 'bank' | 'ewallet'.
+  final String jenis;
+
+  /// Nama bank (BCA/BRI/...) atau e-wallet (DANA/OVO/GoPay/...).
+  final String penyedia;
+  final String nomor;
+  final String atasNama;
+
+  bool get lengkap =>
+      penyedia.isNotEmpty && nomor.isNotEmpty && atasNama.isNotEmpty;
+
+  factory RekeningKru.fromMap(Map<String, dynamic>? m) => m == null
+      ? const RekeningKru()
+      : RekeningKru(
+          jenis: m['jenis'] as String? ?? 'bank',
+          penyedia: m['penyedia'] as String? ?? '',
+          nomor: m['nomor'] as String? ?? '',
+          atasNama: m['atasNama'] as String? ?? '',
+        );
+
+  Map<String, dynamic> toMap() => {
+        'jenis': jenis,
+        'penyedia': penyedia,
+        'nomor': nomor,
+        'atasNama': atasNama,
+      };
+}
+
 class KruModel {
   const KruModel({
     required this.cleanerId,
@@ -44,6 +83,7 @@ class KruModel {
     this.keahlian = const [],
     this.tipe = KruTipe.kru,
     this.status = StatusKru.aktif,
+    this.rekening = const RekeningKru(),
   });
 
   /// PK — sama dengan UID Firebase Auth.
@@ -77,6 +117,9 @@ class KruModel {
   /// diberhentikan tidak muncul di daftar penugasan.
   final StatusKru status;
 
+  /// Rekening/e-wallet pencairan upah — kosong bila belum diisi kru.
+  final RekeningKru rekening;
+
   factory KruModel.fromMap(String id, Map<String, dynamic> map) => KruModel(
         cleanerId: id,
         nama: map['nama'] as String? ?? '',
@@ -90,6 +133,8 @@ class KruModel {
         keahlian: (map['keahlian'] as List?)?.cast<String>() ?? const [],
         tipe: KruTipe.fromWire(map['tipe'] as String?),
         status: StatusKru.fromWire(map['status'] as String?),
+        rekening: RekeningKru.fromMap(
+            (map['rekening'] as Map?)?.cast<String, dynamic>()),
       );
 
   Map<String, dynamic> toMap() => {
@@ -105,5 +150,6 @@ class KruModel {
         'keahlian': keahlian,
         'tipe': tipe.wire,
         'status': status.wire,
+        'rekening': rekening.toMap(),
       };
 }

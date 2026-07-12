@@ -86,7 +86,8 @@ class _Sidebar extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               padding: const EdgeInsets.all(7),
-              child: Image.asset('assets/brand/brandmark.webp'),
+              child: Image.asset('assets/brand/logo-color.webp',
+                  fit: BoxFit.contain),
             ),
             const SizedBox(width: 12),
             Column(

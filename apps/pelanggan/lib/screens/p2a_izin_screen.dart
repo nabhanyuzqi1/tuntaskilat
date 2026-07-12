@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tk_core/tk_core.dart';
 
 import 'p3_beranda_screen.dart';
@@ -27,12 +28,20 @@ class _P2aIzinScreenState extends ConsumerState<P2aIzinScreen> {
     _cekIzinAwal();
   }
 
+  static const _kunciSudahLewat = 'izin_sudah_ditangani_v1';
+
   Future<void> _cekIzinAwal() async {
+    // JANGAN cek Permission.storage: di Android 13+ izin itu SELALU denied
+    // (deprecated, image_picker pakai Photo Picker tanpa izin) sehingga
+    // layar ini muncul lagi setiap relog walau izin sudah diberikan.
+    // Cukup lokasi+kamera, ATAU pengguna sudah pernah menangani layar ini
+    // (flag lokal) — sistem tetap meminta izin on-demand saat fitur dipakai.
+    final prefs = await SharedPreferences.getInstance();
+    final sudahDitangani = prefs.getBool(_kunciSudahLewat) ?? false;
     final lokasi = await Permission.location.isGranted;
     final kamera = await Permission.camera.isGranted;
-    final storage = await Permission.storage.isGranted;
-    
-    if (lokasi && kamera && storage) {
+
+    if (sudahDitangani || (lokasi && kamera)) {
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed(P3BerandaScreen.route);
     } else {
@@ -40,19 +49,18 @@ class _P2aIzinScreenState extends ConsumerState<P2aIzinScreen> {
     }
   }
 
+  Future<void> _tandaiSudah() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kunciSudahLewat, true);
+  }
+
   Future<void> _mintaIzin() async {
     setState(() => _memintaIzin = true);
-    
-    // Minta izin lokasi, kamera, dan storage
-    await [
-      Permission.location,
-      Permission.camera,
-      Permission.storage,
-    ].request();
 
-    // Jika lokasi tidak diizinkan, kita tetap bisa lanjut tapi
-    // fitur peta mungkin terbatas (tergantung kebutuhan bisnis, biasanya
-    // kita beri peringatan). Namun untuk flow awal, kita lanjut saja ke P3.
+    await [Permission.location, Permission.camera].request();
+    await _tandaiSudah();
+
+    // Lokasi ditolak pun tetap lanjut ke P3 — peta meminta ulang on-demand.
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(P3BerandaScreen.route);
   }
@@ -117,8 +125,11 @@ class _P2aIzinScreenState extends ConsumerState<P2aIzinScreen> {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pushReplacementNamed(P3BerandaScreen.route);
+                onPressed: () async {
+                  await _tandaiSudah();
+                  if (!context.mounted) return;
+                  Navigator.of(context)
+                      .pushReplacementNamed(P3BerandaScreen.route);
                 },
                 child: Text(
                   'Lewati Sementara',

@@ -56,6 +56,8 @@ flutter_native_splash:
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: tool/brand_src/icon_legacy.png
+  # Inverted (latar hijau tua) — pembeda visual dari app Pelanggan yang
+  # berlatar putih. Di-generate dari icon_adaptive_foreground + latar #006542.
+  image_path: tool/brand_src/icon_legacy_inverted.png
   adaptive_icon_background: "#006542"
   adaptive_icon_foreground: tool/brand_src/icon_adaptive_foreground.png
