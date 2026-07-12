@@ -225,26 +225,34 @@ class P11ProfilScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 _judul('REFERAL'),
                 _grup([
-                  _baris(
-                    context,
-                    Icons.card_giftcard_outlined,
-                    'Kode Referal Anda',
-                    (profil?.kodeReferal ?? '').isEmpty
-                        ? 'Belum tersedia'
-                        : profil!.kodeReferal,
-                    onTap: (profil?.kodeReferal ?? '').isEmpty
-                        ? null
-                        : () async {
-                            await Clipboard.setData(
-                                ClipboardData(text: profil!.kodeReferal));
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('Kode referal disalin. '
-                                          'Bagikan ke teman!')));
-                            }
-                          },
-                  ),
+                  Builder(builder: (context) {
+                    // Akun seeded lama bisa belum punya field kodeReferal.
+                    // Turunkan deterministik dari uid (sama dengan yang dipakai
+                    // saat registrasi) agar kode selalu tersedia & stabil.
+                    final kode = (profil?.kodeReferal ?? '').isNotEmpty
+                        ? profil!.kodeReferal
+                        : (profil != null
+                            ? UserModel.kodeReferalDari(profil.userId)
+                            : '');
+                    return _baris(
+                      context,
+                      Icons.card_giftcard_outlined,
+                      'Kode Referal Anda',
+                      kode.isEmpty ? 'Belum tersedia' : kode,
+                      onTap: kode.isEmpty
+                          ? null
+                          : () async {
+                              await Clipboard.setData(
+                                  ClipboardData(text: kode));
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Kode referal disalin. '
+                                            'Bagikan ke teman!')));
+                              }
+                            },
+                    );
+                  }),
                 ]),
                 const SizedBox(height: 20),
                 _judul('PENGATURAN'),

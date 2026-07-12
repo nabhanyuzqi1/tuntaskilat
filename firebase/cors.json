@@ -1,0 +1,12 @@
+[
+  {
+    "origin": [
+      "http://localhost:8091",
+      "https://tuntaskilat-homeservices.web.app",
+      "https://tuntaskilat-homeservices.firebaseapp.com"
+    ],
+    "method": ["GET", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"]
+  }
+]

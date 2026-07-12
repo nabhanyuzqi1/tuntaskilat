@@ -94,15 +94,18 @@ class A5KelolaKruScreen extends ConsumerWidget {
                 backgroundColor: k.status.bisaDitugaskan
                     ? const Color(0xFFDCE7E0)
                     : const Color(0xFFEDEFEC),
-                backgroundImage:
+                // foregroundImage (bukan background) menimpa inisial hanya bila
+                // foto berhasil dimuat; bila gagal (mis. CORS bucket di web
+                // admin) inisial tetap tampil — bukan lingkaran kosong.
+                foregroundImage:
                     k.fotoUrl.isNotEmpty ? NetworkImage(k.fotoUrl) : null,
-                child: k.fotoUrl.isNotEmpty
-                    ? null
-                    : Text(inisial,
-                        style: GoogleFonts.montserrat(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: TkColors.primaryDark)),
+                onForegroundImageError:
+                    k.fotoUrl.isNotEmpty ? (_, _) {} : null,
+                child: Text(inisial,
+                    style: GoogleFonts.montserrat(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: TkColors.primaryDark)),
               ),
               const SizedBox(width: 12),
               Expanded(

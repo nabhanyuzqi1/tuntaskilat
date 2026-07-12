@@ -24,6 +24,13 @@ class P3BerandaScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final layanan = ref.watch(layananTersaringProvider);
     final pesanUlang = ref.watch(pesanUlangProvider);
+    // Banner order-aktif mengambang ~64px di atas nav (home_shell). Saat ada
+    // order berjalan, sisakan ruang gulir ekstra agar kartu terakhir
+    // (Pesan Ulang) tidak tertutup banner.
+    final uid = ref.watch(profilSayaProvider).valueOrNull?.userId;
+    final adaOrderAktif = uid != null &&
+        ref.watch(orderAktifProvider(uid)).valueOrNull != null;
+    final padBawah = adaOrderAktif ? 176.0 : 108.0;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -40,7 +47,7 @@ class P3BerandaScreen extends ConsumerWidget {
           const _HeaderBeranda(),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 18, 24, 108),
+              padding: EdgeInsets.fromLTRB(24, 18, 24, padBawah),
                 children: [
                   const _BannerPromo(),
                   _JudulSection(
