@@ -126,10 +126,19 @@ service cloud.firestore {
       allow create, delete: if isAdmin();
     }
 
+    // `settings/ai` menyimpan kunci API Anthropic — RAHASIA. Hanya admin
+    // yang boleh baca/tulis; Cloud Function membacanya lewat admin SDK
+    // (menembus rules). Match spesifik ini mencegah klien biasa membacanya
+    // via aturan generik di bawah.
+    match /settings/ai {
+      allow read, write: if isAdmin();
+    }
+
     match /settings/{docId} {
       // `app` (mode maintenance/update) dibaca SEBELUM login di semua app →
-      // publik. Dokumen settings lain tetap butuh login.
-      allow read: if isSignedIn() || docId == 'app';
+      // publik. Dokumen settings lain tetap butuh login. `ai` dikecualikan
+      // (ditangani match spesifik di atas — jangan biarkan bocor di sini).
+      allow read: if docId != 'ai' && (isSignedIn() || docId == 'app');
       allow write: if isAdmin();
     }
 

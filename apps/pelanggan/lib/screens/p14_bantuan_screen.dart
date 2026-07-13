@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tk_core/tk_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'p18_cs_ai_screen.dart';
+
 /// Nomor Customer Service PT Tuntas Kilat Group.
 /// PLACEHOLDER — ganti dengan nomor resmi sebelum rilis.
 const nomorCustomerService = '6282100000000';
@@ -99,6 +101,62 @@ class P14BantuanScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
                 children: [
+                  // Entry Asisten AI — jawaban instan pertanyaan umum.
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(TkRadius.card),
+                      onTap: () => Navigator.of(context)
+                          .pushNamed(P18CsAiScreen.route),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(TkRadius.card),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [TkColors.primaryDark, TkColors.primary],
+                          ),
+                        ),
+                        child: Row(children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.16),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.auto_awesome_rounded,
+                                color: Colors.white, size: 22),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Tanya Asisten AI',
+                                    style: GoogleFonts.montserrat(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white)),
+                                const SizedBox(height: 2),
+                                Text(
+                                    'Jawaban instan soal layanan, harga & '
+                                    'cara pesan',
+                                    style: GoogleFonts.montserrat(
+                                        fontSize: 12,
+                                        color: Colors.white
+                                            .withValues(alpha: 0.85))),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right_rounded,
+                              color: Colors.white),
+                        ]),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.only(left: 4, bottom: 10),
                     child: Text('PERTANYAAN UMUM',

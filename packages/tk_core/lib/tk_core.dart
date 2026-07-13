@@ -26,6 +26,7 @@ export 'models/konfig_pembayaran.dart';
 
 export 'seed/pricelist_seed.dart';
 
+export 'services/ai_service.dart';
 export 'services/app_check_service.dart';
 export 'services/auth_service.dart';
 export 'services/crashlytics_service.dart';

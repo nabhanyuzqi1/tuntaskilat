@@ -1233,3 +1233,171 @@ export const buatTagihanXendit = functions.https.onCall(
     return {invoiceUrl: inv.invoice_url, invoiceId: inv.id};
   },
 );
+
+// ═══════════════════════════════════════════════ AI — Customer Service & analitik
+
+/**
+ * Membaca konfigurasi AI dari settings/ai. Kunci API Anthropic disimpan
+ * di sana (ditulis admin lewat panel) atau env ANTHROPIC_API_KEY.
+ */
+async function konfigAi(): Promise<{key: string; model: string; aktif: boolean}> {
+  const snap = await db.collection("settings").doc("ai").get();
+  const d = snap.data() ?? {};
+  return {
+    key: (d.anthropicApiKey as string) || process.env.ANTHROPIC_API_KEY || "",
+    model: (d.model as string) || "claude-haiku-4-5",
+    aktif: d.aktif !== false,
+  };
+}
+
+/** Memanggil Anthropic Messages API. Melempar bila gagal. */
+async function panggilClaude(
+  key: string, model: string, system: string, prompt: string, maxTokens = 600,
+): Promise<string> {
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      system,
+      messages: [{role: "user", content: prompt}],
+    }),
+  });
+  if (!resp.ok) {
+    functions.logger.error(
+      `[AI] Anthropic ${resp.status}: ${await resp.text()}`);
+    throw new functions.https.HttpsError(
+      "internal", "Asisten AI sedang sibuk. Coba lagi sebentar.");
+  }
+  const data = await resp.json() as {content?: Array<{text?: string}>};
+  return data.content?.[0]?.text?.trim() ?? "";
+}
+
+/**
+ * CS AI — menjawab pertanyaan pelanggan dari knowledge base NON-RAHASIA
+ * (katalog + harga, jam operasional, metode bayar, kebijakan umum). Tidak
+ * pernah membocorkan data pribadi/keuangan; untuk status pesanan hanya
+ * order MILIK penanya (diverifikasi). Di luar pengetahuan → sarankan CS
+ * manusia. Kunci API sepenuhnya di server.
+ */
+export const csAi = functions.https.onCall(
+  {region: REGION},
+  async (req) => {
+    if (!req.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Harus login.");
+    }
+    const pertanyaan = String(req.data?.pertanyaan ?? "").trim();
+    if (!pertanyaan) {
+      throw new functions.https.HttpsError(
+        "invalid-argument", "Pertanyaan kosong.");
+    }
+    const {key, model, aktif} = await konfigAi();
+    if (!key || !aktif) {
+      throw new functions.https.HttpsError(
+        "failed-precondition", "Asisten AI belum diaktifkan.");
+    }
+
+    // Knowledge base: katalog layanan aktif (publik, bukan rahasia).
+    const svc = await db.collection("services")
+      .where("aktif", "==", true).get();
+    const katalog = svc.docs.map((d) => {
+      const rp = Number(d.get("harga") ?? 0).toLocaleString("id-ID");
+      return `- ${d.get("namaLayanan")}: Rp${rp} /${d.get("satuan")}`;
+    }).join("\n");
+
+    // Konteks status pesanan HANYA bila order milik penanya.
+    let konteksOrder = "";
+    const orderId = String(req.data?.orderId ?? "").trim();
+    if (orderId) {
+      const o = await db.collection("orders").doc(orderId).get();
+      if (o.exists && o.get("userId") === req.auth.uid) {
+        konteksOrder = `\nPesanan penanya #${orderId}: status ` +
+          `"${o.get("status")}", layanan ${o.get("namaLayanan")}.`;
+      }
+    }
+
+    const system = [
+      "Kamu asisten Customer Service Tuntaskilat, jasa kebersihan on-demand",
+      "di Kota Sampit, Kalimantan Tengah. Jawab ramah, ringkas, Bahasa",
+      "Indonesia. Gunakan HANYA fakta berikut; JANGAN mengarang harga,",
+      "jadwal, atau kebijakan.",
+      "",
+      `Katalog layanan:\n${katalog}`,
+      "",
+      "Jam operasional kru 08.00-19.00 WIB. Pembayaran: Transfer Bank,",
+      "QRIS, atau Tunai (bayar ke kru). Pemesanan lewat aplikasi: pilih",
+      "layanan, jadwal, alamat, lalu bayar. Pembatalan gratis selama belum",
+      "ditugaskan ke kru.",
+      konteksOrder,
+      "",
+      "Dilarang membocorkan data pribadi/keuangan pelanggan lain. Untuk hal",
+      "sensitif, komplain rumit, atau di luar pengetahuan ini, sarankan",
+      "pengguna menghubungi CS manusia lewat menu Bantuan / WhatsApp.",
+    ].join("\n");
+
+    const jawaban = await panggilClaude(key, model, system, pertanyaan, 500);
+    return {jawaban};
+  },
+);
+
+/**
+ * Business analyst AI (admin) — ringkasan naratif + anomali dari agregat
+ * pesanan 30 hari terakhir. Hanya admin.
+ */
+export const analisaBisnisAi = functions.https.onCall(
+  {region: REGION},
+  async (req) => {
+    if (!req.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Harus login.");
+    }
+    const pemanggil = await db.collection("users").doc(req.auth.uid).get();
+    if (pemanggil.get("role") !== "admin") {
+      throw new functions.https.HttpsError("permission-denied", "Admin saja.");
+    }
+    const {key, model, aktif} = await konfigAi();
+    if (!key || !aktif) {
+      throw new functions.https.HttpsError(
+        "failed-precondition", "Asisten AI belum diaktifkan.");
+    }
+
+    const sejak = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+    const q = await db.collection("orders")
+      .where("tanggalPesan", ">=", sejak).get();
+    let selesai = 0; let batal = 0; let omzet = 0;
+    const perLayanan: Record<string, number> = {};
+    for (const d of q.docs) {
+      const st = d.get("status");
+      if (st === "selesai" || st === "dinilai") {
+        selesai++;
+        omzet += Number(d.get("totalHarga") ?? 0);
+      }
+      if (st === "dibatalkan") batal++;
+      const nama = String(d.get("namaLayanan") ?? "?");
+      perLayanan[nama] = (perLayanan[nama] ?? 0) + 1;
+    }
+    const rincian = Object.entries(perLayanan)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `${k}: ${v} order`).join(", ");
+
+    const system = [
+      "Kamu analis bisnis Tuntaskilat (jasa kebersihan Kota Sampit). Beri",
+      "ringkasan singkat (maks 6 poin) Bahasa Indonesia: kesehatan bisnis,",
+      "layanan paling laku, sinyal anomali (mis. batal tinggi), dan 2-3 saran",
+      "aksi konkret (marketing/operasional/HRD). Berbasis angka yang diberi,",
+      "jangan mengarang.",
+    ].join("\n");
+    const prompt = [
+      `Data 30 hari terakhir: total order ${q.size}, selesai ${selesai},`,
+      `dibatalkan ${batal}, omzet Rp${omzet.toLocaleString("id-ID")}.`,
+      `Per layanan: ${rincian || "tidak ada"}.`,
+    ].join(" ");
+
+    const ringkasan = await panggilClaude(key, model, system, prompt, 700);
+    return {ringkasan};
+  },
+);

@@ -101,6 +101,9 @@ class A6PengaturanScreen extends ConsumerWidget {
                     _judul('METODE PEMBAYARAN'),
                     const _KartuMetodePembayaran(),
                     const SizedBox(height: 22),
+                    _judul('ASISTEN AI'),
+                    const _KartuAi(),
+                    const SizedBox(height: 22),
                     _judul('MANAJEMEN TIM ADMIN'),
                     const _KartuTim(),
                   ],
@@ -1941,6 +1944,160 @@ class _KartuMetodePembayaran extends ConsumerWidget {
           if (m.kode != konfig.metode.last.kode)
             const Divider(height: 1),
         ],
+      ]),
+    );
+  }
+}
+
+/// Konfigurasi Asisten AI (settings/ai) — admin-only (rules).
+final _konfigAiProvider = StreamProvider<Map<String, dynamic>>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value(const {});
+  return ref.watch(firestoreServiceProvider).watchSettings('ai');
+});
+
+/// Kartu setelan Asisten AI: kunci API Anthropic (untuk CS AI & analitik),
+/// model, dan sakelar aktif. Kunci disimpan di settings/ai (dibaca hanya
+/// server & admin) — tidak pernah menyentuh aplikasi pelanggan.
+class _KartuAi extends ConsumerStatefulWidget {
+  const _KartuAi();
+
+  @override
+  ConsumerState<_KartuAi> createState() => _KartuAiState();
+}
+
+class _KartuAiState extends ConsumerState<_KartuAi> {
+  final _key = TextEditingController();
+  final _model = TextEditingController();
+  var _sembunyi = true;
+  var _terisiAwal = false;
+  var _menyimpan = false;
+  bool _aktif = true;
+  bool _sudahAdaKey = false;
+
+  @override
+  void dispose() {
+    _key.dispose();
+    _model.dispose();
+    super.dispose();
+  }
+
+  void _isiAwal(Map<String, dynamic> cfg) {
+    if (_terisiAwal) return;
+    _terisiAwal = true;
+    _model.text = (cfg['model'] as String?) ?? 'claude-haiku-4-5';
+    _aktif = cfg['aktif'] as bool? ?? true;
+    _sudahAdaKey = ((cfg['anthropicApiKey'] as String?) ?? '').isNotEmpty;
+  }
+
+  Future<void> _simpan() async {
+    setState(() => _menyimpan = true);
+    try {
+      final data = <String, dynamic>{
+        'model': _model.text.trim().isEmpty
+            ? 'claude-haiku-4-5'
+            : _model.text.trim(),
+        'aktif': _aktif,
+      };
+      // Hanya tulis kunci bila admin memasukkan yang baru (biar tak
+      // menimpa kunci lama dengan kosong).
+      if (_key.text.trim().isNotEmpty) {
+        data['anthropicApiKey'] = _key.text.trim();
+      }
+      await ref.read(firestoreServiceProvider).updateSettings('ai', data);
+      _key.clear();
+      if (mounted) {
+        setState(() => _sudahAdaKey =
+            _sudahAdaKey || data.containsKey('anthropicApiKey'));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Setelan Asisten AI tersimpan.')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Gagal menyimpan setelan AI.')));
+      }
+    } finally {
+      if (mounted) setState(() => _menyimpan = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cfg = ref.watch(_konfigAiProvider).valueOrNull;
+    if (cfg != null) _isiAwal(cfg);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: AdminUi.kartu(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Asisten AI (Customer Service & Analitik)',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: TkColors.inkSoft)),
+                  const SizedBox(height: 4),
+                  Text(
+                      'Kunci API Anthropic menyalakan CS AI (chat bantuan '
+                      'pelanggan) & analisis bisnis. Disimpan aman di server '
+                      '— tak pernah dikirim ke aplikasi pelanggan.',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 12,
+                          color: TkColors.textMuted,
+                          height: 1.4)),
+                ]),
+          ),
+          Switch(
+            value: _aktif,
+            activeTrackColor: TkColors.primary,
+            onChanged: (v) => setState(() => _aktif = v),
+          ),
+        ]),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _key,
+          obscureText: _sembunyi,
+          decoration: InputDecoration(
+            labelText: _sudahAdaKey
+                ? 'Kunci API baru (kosongkan bila tak diubah)'
+                : 'Kunci API Anthropic (sk-ant-...)',
+            helperText:
+                _sudahAdaKey ? 'Kunci sudah tersimpan.' : null,
+            suffixIcon: IconButton(
+              icon: Icon(_sembunyi
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined),
+              onPressed: () => setState(() => _sembunyi = !_sembunyi),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _model,
+              decoration: const InputDecoration(
+                  labelText: 'Model',
+                  hintText: 'claude-haiku-4-5'),
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(minimumSize: const Size(130, 48)),
+            onPressed: _menyimpan ? null : _simpan,
+            icon: _menyimpan
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.save_outlined, size: 18),
+            label: const Text('Simpan'),
+          ),
+        ]),
       ]),
     );
   }

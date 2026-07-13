@@ -45,6 +45,7 @@ class A2DashboardScreen extends ConsumerWidget {
         judul: 'Dashboard',
         subjudul:
             '${JudulHariAdmin.format(kini)} · Ringkasan operasional',
+        aksi: const _TombolAnalisaAi(),
       ),
       Expanded(
         child: LayoutBuilder(builder: (context, c) {
@@ -568,4 +569,81 @@ class JudulHariAdmin {
 
   static String format(DateTime t) =>
       '${_hari[t.weekday - 1]}, ${t.day} ${_bulan[t.month - 1]} ${t.year}';
+}
+
+/// Tombol "Analisa AI" di topbar dashboard — memanggil analisaBisnisAi
+/// (Claude API di server) dan menampilkan ringkasan naratif.
+class _TombolAnalisaAi extends ConsumerStatefulWidget {
+  const _TombolAnalisaAi();
+
+  @override
+  ConsumerState<_TombolAnalisaAi> createState() => _TombolAnalisaAiState();
+}
+
+class _TombolAnalisaAiState extends ConsumerState<_TombolAnalisaAi> {
+  var _memuat = false;
+
+  Future<void> _jalankan() async {
+    setState(() => _memuat = true);
+    String hasil;
+    try {
+      hasil = await AiService().analisaBisnis();
+    } on AiBelumAktif {
+      hasil = 'Asisten AI belum diaktifkan. Atur kunci API Anthropic di '
+          'Pengaturan → Asisten AI.';
+    } catch (_) {
+      hasil = 'Gagal memuat analisis. Coba lagi sebentar.';
+    } finally {
+      if (mounted) setState(() => _memuat = false);
+    }
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Row(children: [
+          const Icon(Icons.auto_awesome_rounded,
+              size: 20, color: TkColors.primary),
+          const SizedBox(width: 8),
+          Text('Analisis Bisnis AI',
+              style: GoogleFonts.montserrat(
+                  fontSize: 17, fontWeight: FontWeight.w700)),
+        ]),
+        content: SizedBox(
+          width: 460,
+          child: SingleChildScrollView(
+            child: Text(hasil,
+                style: GoogleFonts.montserrat(fontSize: 13.5, height: 1.6)),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Tutup')),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 46,
+      child: ElevatedButton.icon(
+        onPressed: _memuat ? null : _jalankan,
+        icon: _memuat
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white))
+            : const Icon(Icons.auto_awesome_rounded, size: 18),
+        label: const Text('Analisa AI'),
+        style: ElevatedButton.styleFrom(
+            minimumSize: const Size(0, 46),
+            padding: const EdgeInsets.symmetric(horizontal: 18)),
+      ),
+    );
+  }
 }
