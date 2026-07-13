@@ -169,7 +169,7 @@ class A5KelolaKruScreen extends ConsumerWidget {
         Expanded(flex: 12, child: AdminUi.teksSel(k.noTelepon)),
         Expanded(
           flex: 11,
-          child: AdminUi.chipStatus(
+          child: AdminUi.chipSel(
             k.statusKetersediaan ? 'Online' : 'Offline',
             k.statusKetersediaan ? TkColors.primary : TkColors.textMuted,
           ),

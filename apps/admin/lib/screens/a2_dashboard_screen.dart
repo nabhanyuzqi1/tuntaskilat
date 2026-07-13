@@ -516,7 +516,7 @@ class A2DashboardScreen extends ConsumerWidget {
                   flex: 10,
                   child: Builder(builder: (_) {
                     final (label, warna) = AdminUi.statusRingkas(o.status);
-                    return AdminUi.chipStatus(label, warna);
+                    return AdminUi.chipSel(label, warna);
                   }),
                 ),
               ]),

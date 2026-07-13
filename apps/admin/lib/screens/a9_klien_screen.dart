@@ -186,7 +186,7 @@ class A9KlienScreen extends ConsumerWidget {
                 Expanded(flex: 30, child: AdminUi.teksSel(d.alasan)),
                 Expanded(
                   flex: 12,
-                  child: AdminUi.chipStatus(
+                  child: AdminUi.chipSel(
                       _labelBanding(d.status), _warnaBanding(d.status)),
                 ),
                 Expanded(flex: 12, child: AdminUi.teksSel(_tanggal(d.waktu))),

@@ -182,7 +182,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
             flex: 9,
             child: AdminUi.teksSel(PriceBadge.formatRupiah(o.totalHarga),
                 tebal: true, coret: o.status == OrderStatus.ditolak)),
-        Expanded(flex: 10, child: AdminUi.chipStatus(label, warna)),
+        Expanded(flex: 10, child: AdminUi.chipSel(label, warna)),
         Expanded(flex: 16, child: _aksi(context, ref, o)),
       ]),
     );

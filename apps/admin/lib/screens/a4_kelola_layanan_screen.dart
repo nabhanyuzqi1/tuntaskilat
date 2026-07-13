@@ -147,7 +147,7 @@ class A4KelolaLayananScreen extends ConsumerWidget {
           // (tier per m²) — permintaan owner agar mudah dikelola dari tabel.
           Expanded(
             flex: 11,
-            child: AdminUi.chipStatus(
+            child: AdminUi.chipSel(
               switch (s.tipeHarga) {
                 TipeHarga.mulaiDari => 'Statis · × qty',
                 TipeHarga.paket => 'Statis · paket',
