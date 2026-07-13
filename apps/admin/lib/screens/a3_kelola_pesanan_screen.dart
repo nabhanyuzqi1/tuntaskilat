@@ -530,6 +530,36 @@ class A3KelolaPesananScreen extends ConsumerWidget {
             (k.keahlian.isEmpty || k.keahlian.contains(o.serviceId)))
         .toList();
 
+    // Rekomendasi penugasan otomatis (semi-otomatis, fase 1): beri skor tiap
+    // kru dari rating (baik), beban tugas aktif (makin sedikit makin baik),
+    // status online, dan kecocokan keahlian spesifik. Kru dengan skor
+    // tertinggi ditandai "Disarankan" dan diurutkan paling atas — admin
+    // tinggal 1-klik setuju. Bukan black-box: rumusnya transparan.
+    final orders = ref.read(semuaOrderProvider).valueOrNull ?? const [];
+    final bebanAktif = <String, int>{};
+    for (final ord in orders) {
+      final aktif = ord.status == OrderStatus.ditugaskan ||
+          ord.status == OrderStatus.dalamPerjalanan ||
+          ord.status == OrderStatus.diproses;
+      if (!aktif) continue;
+      final ids = ord.penugasan.isNotEmpty
+          ? ord.penugasan.map((p) => p.cleanerId)
+          : (ord.cleanerId.isEmpty ? const <String>[] : [ord.cleanerId]);
+      for (final id in ids) {
+        bebanAktif[id] = (bebanAktif[id] ?? 0) + 1;
+      }
+    }
+    double skor(KruModel k) {
+      final rating = k.rataRating.toDouble(); // 0..5
+      final beban = (bebanAktif[k.cleanerId] ?? 0).toDouble();
+      final online = k.statusKetersediaan ? 1.5 : 0.0;
+      final ahliSpesifik = k.keahlian.contains(o.serviceId) ? 1.0 : 0.0;
+      return rating * 2 - beban * 1.5 + online + ahliSpesifik;
+    }
+
+    kruCocok.sort((a, b) => skor(b).compareTo(skor(a)));
+    final disarankan = kruCocok.isNotEmpty ? kruCocok.first.cleanerId : '';
+
     // Admin bebas menugaskan berapapun, min 1 worker
     int minPetugas = 1;
 
@@ -630,7 +660,7 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                                   } : null,
                                 ),
                                 title: Row(children: [
-                                  Expanded(
+                                  Flexible(
                                     child: Text(k.nama,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -639,6 +669,17 @@ class A3KelolaPesananScreen extends ConsumerWidget {
                                             fontWeight: FontWeight.w600,
                                             color: TkColors.inkSoft)),
                                   ),
+                                  if (k.cleanerId == disarankan) ...[
+                                    const SizedBox(width: 8),
+                                    Tooltip(
+                                      message:
+                                          'Rekomendasi sistem: rating tinggi & '
+                                          'beban ringan',
+                                      child: AdminUi.chipStatus(
+                                          '★ Disarankan', TkColors.accentAlt),
+                                    ),
+                                  ],
+                                  const Spacer(),
                                   if (worker.contains(k))
                                     Padding(
                                       padding: const EdgeInsets.only(left: 8),
