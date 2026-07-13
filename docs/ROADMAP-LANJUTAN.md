@@ -41,10 +41,12 @@ Dokumen desain untuk item yang DIMINTA owner tetapi butuh sesi khusus
 
 ## 4. AI / Machine Learning
 
-- **Automatic crew assignment**: Cloud Function scoring kru saat order
-  terverifikasi — fitur: jarak posisi terakhir, rating, beban tugas hari
-  itu, keahlian; tulis rekomendasi ke order (`rekomendasiKru`), admin
-  tinggal 1-klik setuju (fase 1 semi-otomatis, fase 2 penuh).
+- **Automatic crew assignment** — ✅ FASE 1 (13 Jul): skoring kru di dialog
+  Tugaskan Kru (A3) dari rating + beban tugas aktif + online + keahlian
+  spesifik; kru skor tertinggi ditandai "★ Disarankan" & diurutkan atas,
+  admin 1-klik setuju. **Fase 2 (belum)**: pindah skoring ke Cloud Function
+  saat order terverifikasi (tulis `rekomendasiKru` ke order) + faktor jarak
+  posisi GPS terakhir + auto-assign penuh opsional.
 - **Business analyst otomatis**: job harian (Claude API) membaca
   `stats/*` → ringkasan naratif + anomali → dikirim ke admin (notif +
   panel). Termasuk insight marketing (jam ramai, layanan naik/turun) & HRD
