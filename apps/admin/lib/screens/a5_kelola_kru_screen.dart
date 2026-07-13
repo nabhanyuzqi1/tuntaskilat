@@ -169,10 +169,16 @@ class A5KelolaKruScreen extends ConsumerWidget {
         Expanded(flex: 12, child: AdminUi.teksSel(k.noTelepon)),
         Expanded(
           flex: 11,
-          child: AdminUi.chipSel(
-            k.statusKetersediaan ? 'Online' : 'Offline',
-            k.statusKetersediaan ? TkColors.primary : TkColors.textMuted,
-          ),
+          // Kru nonaktif/diberhentikan → tampilkan status kepegawaian (tak
+          // dihitung kapasitas). Kru aktif → online/offline realtime.
+          child: k.status != StatusKru.aktif
+              ? AdminUi.chipSel(k.status.label, TkColors.error)
+              : AdminUi.chipSel(
+                  k.statusKetersediaan ? 'Online' : 'Offline',
+                  k.statusKetersediaan
+                      ? TkColors.primary
+                      : TkColors.textMuted,
+                ),
         ),
         Expanded(
           flex: 10,
@@ -195,30 +201,36 @@ class A5KelolaKruScreen extends ConsumerWidget {
             alignment: Alignment.centerRight,
             child: SizedBox(
               height: 36,
-              child: OutlinedButton(
-                onPressed: () => ref
-                    .read(firestoreServiceProvider)
-                    .setKetersediaanKru(
-                        k.cleanerId, !k.statusKetersediaan),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 36),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: const EdgeInsets.symmetric(horizontal: 13),
-                  side: BorderSide(
-                      color: k.statusKetersediaan
-                          ? TkColors.error.withValues(alpha: 0.4)
-                          : TkColors.border,
-                      width: 1.5),
-                ),
-                child: Text(
-                    k.statusKetersediaan ? 'Nonaktifkan' : 'Aktifkan',
-                    style: GoogleFonts.montserrat(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: k.statusKetersediaan
-                            ? TkColors.error
-                            : TkColors.primaryDark)),
-              ),
+              child: Builder(builder: (_) {
+                // AKSI = status KEPEGAWAIAN (aktif↔nonaktif) — inilah yang
+                // menentukan KAPASITAS slot (kru nonaktif tidak dihitung).
+                // Online/offline (KETERSEDIAAN) diatur kru sendiri di app-nya.
+                final aktif = k.status == StatusKru.aktif;
+                return OutlinedButton(
+                  onPressed: () => ref
+                      .read(firestoreServiceProvider)
+                      .setStatusKru(k.cleanerId,
+                          aktif ? StatusKru.nonaktif : StatusKru.aktif),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 36),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 13),
+                    side: BorderSide(
+                        color: aktif
+                            ? TkColors.error.withValues(alpha: 0.4)
+                            : TkColors.border,
+                        width: 1.5),
+                  ),
+                  child: Text(
+                      aktif ? 'Nonaktifkan' : 'Aktifkan',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: aktif
+                              ? TkColors.error
+                              : TkColors.primaryDark)),
+                );
+              }),
             ),
           ),
         ),
@@ -232,6 +244,8 @@ class A5KelolaKruScreen extends ConsumerWidget {
     final email = TextEditingController();
     final telepon = TextEditingController();
     final sandi = TextEditingController();
+    final layanan = ref.read(semuaLayananProvider).valueOrNull ?? const [];
+    final keahlian = <String>{}; // serviceId yang dikuasai kru
     var memproses = false;
 
     await showDialog<void>(
@@ -279,6 +293,41 @@ class A5KelolaKruScreen extends ConsumerWidget {
                         hint: 'Minimal 8 karakter — minta kru menggantinya',
                         obscureText: true,
                         validator: Validators.kataSandi),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Bidang / Keahlian',
+                          style: GoogleFonts.montserrat(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: TkColors.inkSoft)),
+                    ),
+                    const SizedBox(height: 2),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                          'Layanan yang bisa dikerjakan kru ini. Kosong = '
+                          'generalis (semua layanan). Menentukan kapasitas '
+                          'slot & rekomendasi penugasan.',
+                          style: GoogleFonts.montserrat(
+                              fontSize: 11, color: TkColors.textMuted)),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        for (final s in layanan)
+                          FilterChip(
+                            label: Text(s.namaLayanan,
+                                style: GoogleFonts.montserrat(fontSize: 12)),
+                            selected: keahlian.contains(s.serviceId),
+                            onSelected: (v) => setState(() => v
+                                ? keahlian.add(s.serviceId)
+                                : keahlian.remove(s.serviceId)),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -301,6 +350,7 @@ class A5KelolaKruScreen extends ConsumerWidget {
                           email: email.text.trim(),
                           noTelepon: telepon.text.trim(),
                           password: sandi.text,
+                          keahlian: keahlian.toList(),
                         );
                         if (ctx.mounted) Navigator.of(ctx).pop();
                         if (context.mounted) {

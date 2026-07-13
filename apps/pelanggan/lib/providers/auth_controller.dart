@@ -74,9 +74,19 @@ class AuthController extends AutoDisposeAsyncNotifier<UserModel?> {
       );
       return false;
     }
-    final credential = GoogleAuthProvider.credential(
-      idToken: akun.authentication.idToken,
-    );
+    // idToken bisa null bila serverClientId salah / Play Services butuh
+    // update / akun perlu consent ulang — GoogleAuthProvider dengan idToken
+    // null gagal diam-diam. Beri pesan jelas + minta coba lagi.
+    final idToken = akun.authentication.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      state = AsyncError(
+        'Masuk Google belum lengkap (token kosong). Pastikan Google Play '
+        'Services ter-update, lalu coba lagi.',
+        StackTrace.current,
+      );
+      return false;
+    }
+    final credential = GoogleAuthProvider.credential(idToken: idToken);
     return _jalankan(() => ref
         .read(authServiceProvider)
         .signInWithCredentialPelanggan(credential));

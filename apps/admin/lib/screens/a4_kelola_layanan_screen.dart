@@ -211,6 +211,31 @@ class A4KelolaLayananScreen extends ConsumerWidget {
     var gambarUrl = awal?.gambarUrl ?? '';
     Uint8List? gambarBaru; // dipilih admin, diunggah saat simpan
 
+    // Salinan mutable skema harga dinamis untuk diedit di dialog. Disimpan
+    // sebagai teks agar mudah dipakai TextFormField; dikonversi saat simpan.
+    final tiers = [
+      for (final t in awal?.tiers ?? const [])
+        _TierEdit(id: t.id, nama: t.nama, harga: '${t.hargaPerM2}'),
+    ];
+    final pakets = [
+      for (final p in awal?.paketOpsi ?? const [])
+        _PaketEdit(
+          id: p.id,
+          nama: p.nama,
+          petugas: '${p.jumlahPetugas}',
+          tambahJam: '${p.hargaTambahJam}',
+          durasi: [
+            for (final d in p.durasi)
+              _DurasiEdit(jam: '${d.jam}', harga: '${d.harga}'),
+          ],
+          spesifikasi: p.spesifikasi.join('\n'),
+        ),
+    ];
+    final addOns = [
+      for (final a in awal?.addOns ?? const [])
+        _AddOnEdit(id: a.id, nama: a.nama, harga: '${a.harga}'),
+    ];
+
     final simpan = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -338,13 +363,15 @@ class A4KelolaLayananScreen extends ConsumerWidget {
                       ),
                     ]),
                     const SizedBox(height: 6),
-                    if (tipeHarga != TipeHarga.mulaiDari)
-                      Text(
-                          'Tier/paket/add-on untuk tipe ini dikelola lewat '
-                          '"Isi Katalog Pricelist" atau data awal — tarif di '
-                          'bawah dipakai sebagai harga dasar.',
-                          style: GoogleFonts.montserrat(
-                              fontSize: 11, color: TkColors.textMuted)),
+                    // Editor harga dinamis — muncul sesuai tipe. Tarif di
+                    // bawah tetap dipakai sebagai "harga dasar / mulai dari".
+                    if (tipeHarga == TipeHarga.perLuas)
+                      _editorTier(setState, tiers),
+                    if (tipeHarga == TipeHarga.paket) ...[
+                      _editorPaket(setState, pakets),
+                      const SizedBox(height: 12),
+                      _editorAddOn(setState, addOns),
+                    ],
                     const SizedBox(height: 14),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -487,9 +514,18 @@ class A4KelolaLayananScreen extends ConsumerWidget {
     );
     if (simpan != true) return;
     final svc = ref.read(firestoreServiceProvider);
-    // Pertahankan field lanjutan (tipeHarga/tiers/paketOpsi/addOns/gambar)
-    // dari data awal agar tak terhapus saat mengedit — hanya field yang
-    // benar-benar diubah admin yang ditimpa.
+    // Skema harga dinamis dikonversi dari editor sesuai tipe yang dipilih.
+    // Tipe lain dipertahankan dari data awal agar tak hilang bila admin
+    // berganti-ganti tipe tanpa sengaja.
+    final tiersOut = tipeHarga == TipeHarga.perLuas
+        ? _konversiTier(tiers)
+        : (awal?.tiers ?? const <TarifTier>[]);
+    final paketOut = tipeHarga == TipeHarga.paket
+        ? _konversiPaket(pakets)
+        : (awal?.paketOpsi ?? const <PaketOpsi>[]);
+    final addOnOut = tipeHarga == TipeHarga.paket
+        ? _konversiAddOn(addOns)
+        : (awal?.addOns ?? const <AddOn>[]);
     var model = ServiceModel(
       serviceId: awal?.serviceId ?? '',
       namaLayanan: nama.text.trim(),
@@ -502,9 +538,9 @@ class A4KelolaLayananScreen extends ConsumerWidget {
       kategori: kategori,
       gambar: awal?.gambar ?? '',
       gambarUrl: gambarUrl,
-      tiers: awal?.tiers ?? const [],
-      paketOpsi: awal?.paketOpsi ?? const [],
-      addOns: awal?.addOns ?? const [],
+      tiers: tiersOut,
+      paketOpsi: paketOut,
+      addOns: addOnOut,
     );
     // Simpan dulu untuk memastikan ada serviceId (path gambar butuh id).
     model = await svc.simpanLayanan(model);
@@ -541,4 +577,380 @@ class A4KelolaLayananScreen extends ConsumerWidget {
         paketOpsi: s.paketOpsi,
         addOns: s.addOns,
       );
+
+  // ───────────────────────────────── konversi editor → model harga dinamis
+
+  static num _p(String s) => num.tryParse(s.trim().replaceAll('.', '')) ?? 0;
+  static int _pi(String s) => int.tryParse(s.trim()) ?? 0;
+
+  /// Slug id stabil dari nama; fallback bila kosong.
+  static String _slug(String s, String fallback) {
+    final base = s
+        .toLowerCase()
+        .trim()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+    return base.isEmpty ? fallback : base;
+  }
+
+  static List<TarifTier> _konversiTier(List<_TierEdit> src) {
+    final out = <TarifTier>[];
+    for (var i = 0; i < src.length; i++) {
+      final t = src[i];
+      if (t.nama.trim().isEmpty) continue;
+      out.add(TarifTier(
+        id: t.id.isNotEmpty ? t.id : _slug(t.nama, 'tier${i + 1}'),
+        nama: t.nama.trim(),
+        hargaPerM2: _p(t.harga),
+      ));
+    }
+    return out;
+  }
+
+  static List<PaketOpsi> _konversiPaket(List<_PaketEdit> src) {
+    final out = <PaketOpsi>[];
+    for (var i = 0; i < src.length; i++) {
+      final p = src[i];
+      if (p.nama.trim().isEmpty) continue;
+      final durasi = <DurasiOpsi>[];
+      for (final d in p.durasi) {
+        final jam = _pi(d.jam);
+        if (jam <= 0) continue;
+        durasi.add(DurasiOpsi(jam: jam, harga: _p(d.harga)));
+      }
+      final spek = p.spesifikasi
+          .split('\n')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      out.add(PaketOpsi(
+        id: p.id.isNotEmpty ? p.id : _slug(p.nama, 'paket${i + 1}'),
+        nama: p.nama.trim(),
+        jumlahPetugas: p.petugas.trim().isEmpty ? 1 : _pi(p.petugas),
+        durasi: durasi,
+        hargaTambahJam: _p(p.tambahJam),
+        spesifikasi: spek,
+      ));
+    }
+    return out;
+  }
+
+  static List<AddOn> _konversiAddOn(List<_AddOnEdit> src) {
+    final out = <AddOn>[];
+    for (var i = 0; i < src.length; i++) {
+      final a = src[i];
+      if (a.nama.trim().isEmpty) continue;
+      out.add(AddOn(
+        id: a.id.isNotEmpty ? a.id : _slug(a.nama, 'addon${i + 1}'),
+        nama: a.nama.trim(),
+        harga: _p(a.harga),
+      ));
+    }
+    return out;
+  }
+
+  // ───────────────────────────────────────────── widget editor harga dinamis
+
+  static Widget _labelSeksi(String judul, String bantu) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(judul,
+              style: GoogleFonts.montserrat(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: TkColors.inkSoft)),
+          const SizedBox(height: 2),
+          Text(bantu,
+              style: GoogleFonts.montserrat(
+                  fontSize: 11, color: TkColors.textMuted, height: 1.3)),
+        ],
+      );
+
+  static Widget _miniField({
+    required Object fieldKey,
+    required String label,
+    required String awal,
+    required ValueChanged<String> onChanged,
+    bool angka = false,
+    int maxLines = 1,
+  }) =>
+      TextFormField(
+        key: ValueKey(fieldKey),
+        initialValue: awal,
+        onChanged: onChanged,
+        keyboardType: angka ? TextInputType.number : null,
+        maxLines: maxLines,
+        style: GoogleFonts.montserrat(fontSize: 13),
+        decoration: InputDecoration(
+          labelText: label,
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+      );
+
+  static Widget _kartuSeksi(List<Widget> anak) => Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: TkColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: anak),
+      );
+
+  static Widget _tombolTambah(String label, VoidCallback onTap) => Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: onTap,
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: Text(label),
+          style: TextButton.styleFrom(padding: EdgeInsets.zero),
+        ),
+      );
+
+  /// Editor tier per-m² untuk [TipeHarga.perLuas] (mis. Rapi/Sedang/Lebat).
+  static Widget _editorTier(
+      void Function(VoidCallback) setState, List<_TierEdit> tiers) {
+    return _kartuSeksi([
+      _labelSeksi('Tingkat Kondisi (tarif per m²)',
+          'Pelanggan memilih salah satu; tarif × luas (m²).'),
+      const SizedBox(height: 4),
+      for (final t in tiers)
+        Padding(
+          key: ObjectKey(t),
+          padding: const EdgeInsets.only(top: 8),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            Expanded(
+              flex: 3,
+              child: _miniField(
+                fieldKey: '${identityHashCode(t)}-nama',
+                label: 'Nama tingkat',
+                awal: t.nama,
+                onChanged: (v) => t.nama = v,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 2,
+              child: _miniField(
+                fieldKey: '${identityHashCode(t)}-harga',
+                label: 'Rp/m²',
+                awal: t.harga,
+                angka: true,
+                onChanged: (v) => t.harga = v,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Hapus tingkat',
+              onPressed: () => setState(() => tiers.remove(t)),
+              icon: const Icon(Icons.delete_outline,
+                  size: 20, color: TkColors.error),
+            ),
+          ]),
+        ),
+      _tombolTambah(
+          'Tambah tingkat', () => setState(() => tiers.add(_TierEdit()))),
+    ]);
+  }
+
+  /// Editor paket (petugas × durasi + tambah jam + spesifikasi) untuk
+  /// [TipeHarga.paket].
+  static Widget _editorPaket(
+      void Function(VoidCallback) setState, List<_PaketEdit> pakets) {
+    return _kartuSeksi([
+      _labelSeksi('Paket Layanan',
+          'Tiap paket: jumlah petugas, opsi durasi berbayar, tarif tambah jam.'),
+      for (final p in pakets)
+        Container(
+          key: ObjectKey(p),
+          margin: const EdgeInsets.only(top: 10),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: TkColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: TkColors.border),
+          ),
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Expanded(
+                    child: _miniField(
+                      fieldKey: '${identityHashCode(p)}-nama',
+                      label: 'Nama paket',
+                      awal: p.nama,
+                      onChanged: (v) => p.nama = v,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Hapus paket',
+                    onPressed: () => setState(() => pakets.remove(p)),
+                    icon: const Icon(Icons.delete_outline,
+                        size: 20, color: TkColors.error),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(
+                    child: _miniField(
+                      fieldKey: '${identityHashCode(p)}-petugas',
+                      label: 'Jml petugas',
+                      awal: p.petugas,
+                      angka: true,
+                      onChanged: (v) => p.petugas = v,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _miniField(
+                      fieldKey: '${identityHashCode(p)}-tambah',
+                      label: 'Rp/tambah jam',
+                      awal: p.tambahJam,
+                      angka: true,
+                      onChanged: (v) => p.tambahJam = v,
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 10),
+                Text('Opsi durasi',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: TkColors.label)),
+                for (final d in p.durasi)
+                  Padding(
+                    key: ObjectKey(d),
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Row(children: [
+                      Expanded(
+                        child: _miniField(
+                          fieldKey: '${identityHashCode(d)}-jam',
+                          label: 'Jam',
+                          awal: d.jam,
+                          angka: true,
+                          onChanged: (v) => d.jam = v,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: _miniField(
+                          fieldKey: '${identityHashCode(d)}-harga',
+                          label: 'Harga (Rp)',
+                          awal: d.harga,
+                          angka: true,
+                          onChanged: (v) => d.harga = v,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Hapus durasi',
+                        onPressed: () => setState(() => p.durasi.remove(d)),
+                        icon: const Icon(Icons.remove_circle_outline,
+                            size: 18, color: TkColors.error),
+                      ),
+                    ]),
+                  ),
+                _tombolTambah('Tambah durasi',
+                    () => setState(() => p.durasi.add(_DurasiEdit()))),
+                const SizedBox(height: 4),
+                _miniField(
+                  fieldKey: '${identityHashCode(p)}-spek',
+                  label: 'Spesifikasi (satu per baris)',
+                  awal: p.spesifikasi,
+                  maxLines: 3,
+                  onChanged: (v) => p.spesifikasi = v,
+                ),
+              ]),
+        ),
+      const SizedBox(height: 4),
+      _tombolTambah('Tambah paket',
+          () => setState(() => pakets.add(_PaketEdit(petugas: '1')))),
+    ]);
+  }
+
+  /// Editor add-on (layanan tambahan berbayar) untuk [TipeHarga.paket].
+  static Widget _editorAddOn(
+      void Function(VoidCallback) setState, List<_AddOnEdit> addOns) {
+    return _kartuSeksi([
+      _labelSeksi('Layanan Tambahan (Add-on)',
+          'Opsional; pelanggan boleh centang lebih dari satu.'),
+      const SizedBox(height: 4),
+      for (final a in addOns)
+        Padding(
+          key: ObjectKey(a),
+          padding: const EdgeInsets.only(top: 8),
+          child: Row(children: [
+            Expanded(
+              flex: 3,
+              child: _miniField(
+                fieldKey: '${identityHashCode(a)}-nama',
+                label: 'Nama add-on',
+                awal: a.nama,
+                onChanged: (v) => a.nama = v,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 2,
+              child: _miniField(
+                fieldKey: '${identityHashCode(a)}-harga',
+                label: 'Harga (Rp)',
+                awal: a.harga,
+                angka: true,
+                onChanged: (v) => a.harga = v,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Hapus add-on',
+              onPressed: () => setState(() => addOns.remove(a)),
+              icon: const Icon(Icons.delete_outline,
+                  size: 20, color: TkColors.error),
+            ),
+          ]),
+        ),
+      _tombolTambah(
+          'Tambah add-on', () => setState(() => addOns.add(_AddOnEdit()))),
+    ]);
+  }
+}
+
+// ─────────────────────────────── holder mutable untuk editor harga dinamis
+
+class _TierEdit {
+  _TierEdit({this.id = '', this.nama = '', this.harga = ''});
+  final String id;
+  String nama;
+  String harga;
+}
+
+class _DurasiEdit {
+  _DurasiEdit({this.jam = '', this.harga = ''});
+  String jam;
+  String harga;
+}
+
+class _PaketEdit {
+  _PaketEdit({
+    this.id = '',
+    this.nama = '',
+    this.petugas = '1',
+    this.tambahJam = '0',
+    List<_DurasiEdit>? durasi,
+    this.spesifikasi = '',
+  }) : durasi = durasi ?? [];
+  final String id;
+  String nama;
+  String petugas;
+  String tambahJam;
+  List<_DurasiEdit> durasi;
+  String spesifikasi;
+}
+
+class _AddOnEdit {
+  _AddOnEdit({this.id = '', this.nama = '', this.harga = ''});
+  final String id;
+  String nama;
+  String harga;
 }

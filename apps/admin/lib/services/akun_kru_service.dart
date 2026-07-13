@@ -19,6 +19,7 @@ class AkunKruService {
     required String email,
     required String noTelepon,
     required String password,
+    List<String> keahlian = const [],
   }) async {
     final sekunder = await Firebase.initializeApp(
       name: 'buat-akun-kru',
@@ -50,6 +51,7 @@ class AkunKruService {
         statusKetersediaan: false,
         rataRating: 0,
         jumlahUlasan: 0,
+        keahlian: keahlian,
       ));
     } finally {
       await sekunder.delete();

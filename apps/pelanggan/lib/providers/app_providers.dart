@@ -39,9 +39,13 @@ final firebaseInitProvider = FutureProvider<bool>((_) async {
       await aktifkanAppCheck();
       await pasangCrashlytics();
       try {
-        await NotificationService().initialize();
+        // Pelanggan HANYA butuh channel notifikasi (untuk push chat/status),
+        // BUKAN Foreground Service "Online" — itu khusus kru. Memanggil
+        // initialize() dulu menyalakan FGS → notifikasi persisten "online"
+        // bocor di app pelanggan. ensureChannels() cukup.
+        await NotificationService().ensureChannels();
       } catch (e) {
-        debugPrint('Gagal inisialisasi background service: $e');
+        debugPrint('Gagal menyiapkan channel notifikasi: $e');
       }
     }
     return true;

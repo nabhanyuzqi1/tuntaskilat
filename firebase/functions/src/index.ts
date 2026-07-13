@@ -669,6 +669,62 @@ export const reminderKru = functions.scheduler.onSchedule(
   },
 );
 
+/**
+ * Batal otomatis 1×24 jam. Pesanan yang sudah terbayar tapi tak kunjung
+ * mendapat kru (status `terverifikasi` atau `menunggu_penugasan`) selama
+ * lebih dari 24 jam sejak `tanggalPesan` dibatalkan otomatis. Trigger
+ * `onOrderCancelled` yang akan mengembalikan kuota slot; di sini cukup ubah
+ * status + tulis alasan + beri tahu pelanggan. Cron tiap jam.
+ */
+export const autoCancelTanpaKru = functions.scheduler.onSchedule(
+  {schedule: "every 60 minutes", region: REGION, timeZone: "Asia/Makassar"},
+  async () => {
+    const batasWaktu = admin.firestore.Timestamp.fromMillis(
+      Date.now() - 24 * 60 * 60 * 1000,
+    );
+    // `in` menampung kedua status "menunggu kru" dalam satu query; filter
+    // rentang pada tanggalPesan butuh index komposit (status, tanggalPesan).
+    const snap = await db
+      .collection("orders")
+      .where("status", "in", ["terverifikasi", "menunggu_penugasan"])
+      .where("tanggalPesan", "<=", batasWaktu)
+      .get();
+
+    let dibatalkan = 0;
+    for (const doc of snap.docs) {
+      const o = doc.data();
+      try {
+        await doc.ref.update({
+          status: "dibatalkan",
+          alasanPembatalan:
+            "Dibatalkan otomatis: belum ada kru tersedia dalam 24 jam. " +
+            "Dana akan dikembalikan sesuai kebijakan.",
+          dibatalkanOtomatis: true,
+          waktuPembatalan: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        dibatalkan++;
+        const userId: string = o.userId ?? "";
+        if (userId) {
+          await pushKeUid(
+            userId,
+            "Pesanan dibatalkan otomatis",
+            `Maaf, ${o.namaLayanan ?? "pesanan Anda"} dibatalkan karena ` +
+              "belum ada kru tersedia dalam 24 jam. Dana akan dikembalikan.",
+            {orderId: doc.id, tipe: "status"},
+          );
+        }
+      } catch (e) {
+        functions.logger.error(
+          `[autoCancelTanpaKru] gagal batalkan ${doc.id}: ${e}`,
+        );
+      }
+    }
+    functions.logger.info(
+      `[autoCancelTanpaKru] ${dibatalkan}/${snap.size} order dibatalkan.`,
+    );
+  },
+);
+
 // ═══════════════════════════════════════════════ Manajemen Tim Admin (A#2)
 
 /** Pastikan pemanggil adalah admin (baca users.role). */
@@ -1255,46 +1311,124 @@ export const buatTagihanXendit = functions.https.onCall(
 
 // ═══════════════════════════════════════════════ AI — Customer Service & analitik
 
+interface KonfigAi {
+  provider: string; // 'gemini' | 'openai' | 'anthropic'
+  key: string;
+  model: string;
+  aktif: boolean;
+}
+
+/** Model default per provider bila admin tak mengisi. */
+function modelDefault(provider: string): string {
+  switch (provider) {
+    case "openai": return "gpt-4o-mini";
+    case "anthropic": return "claude-haiku-4-5";
+    case "gemini":
+    default: return "gemini-2.0-flash";
+  }
+}
+
 /**
- * Membaca konfigurasi AI dari settings/ai. Kunci API Anthropic disimpan
- * di sana (ditulis admin lewat panel) atau env ANTHROPIC_API_KEY.
+ * Membaca konfigurasi AI dari settings/ai. Mendukung banyak provider
+ * (Gemini / OpenAI / Anthropic) — admin memilih provider & menaruh kuncinya.
+ * Fallback env per provider untuk kemudahan CI.
  */
-async function konfigAi(): Promise<{key: string; model: string; aktif: boolean}> {
+async function konfigAi(): Promise<KonfigAi> {
   const snap = await db.collection("settings").doc("ai").get();
   const d = snap.data() ?? {};
+  const provider = (d.provider as string) || "gemini";
+  const keyPerProvider: Record<string, string> = {
+    gemini: (d.geminiApiKey as string) || process.env.GEMINI_API_KEY || "",
+    openai: (d.openaiApiKey as string) || process.env.OPENAI_API_KEY || "",
+    anthropic:
+      (d.anthropicApiKey as string) || process.env.ANTHROPIC_API_KEY || "",
+  };
   return {
-    key: (d.anthropicApiKey as string) || process.env.ANTHROPIC_API_KEY || "",
-    model: (d.model as string) || "claude-haiku-4-5",
+    provider,
+    key: keyPerProvider[provider] ?? "",
+    model: (d.model as string) || modelDefault(provider),
     aktif: d.aktif !== false,
   };
 }
 
-/** Memanggil Anthropic Messages API. Melempar bila gagal. */
-async function panggilClaude(
-  key: string, model: string, system: string, prompt: string, maxTokens = 600,
+/**
+ * Memanggil LLM sesuai provider terpilih. Satu antarmuka untuk Gemini,
+ * OpenAI, dan Anthropic. Melempar HttpsError bila gagal.
+ */
+async function panggilAi(
+  cfg: KonfigAi, system: string, prompt: string, maxTokens = 600,
 ): Promise<string> {
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: maxTokens,
-      system,
-      messages: [{role: "user", content: prompt}],
-    }),
-  });
+  let resp: Response;
+  let ekstrak: (j: unknown) => string;
+
+  if (cfg.provider === "openai") {
+    resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "authorization": `Bearer ${cfg.key}`,
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        max_tokens: maxTokens,
+        messages: [
+          {role: "system", content: system},
+          {role: "user", content: prompt},
+        ],
+      }),
+    });
+    ekstrak = (j) => {
+      const d = j as {choices?: Array<{message?: {content?: string}}>};
+      return d.choices?.[0]?.message?.content ?? "";
+    };
+  } else if (cfg.provider === "anthropic") {
+    resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": cfg.key,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        max_tokens: maxTokens,
+        system,
+        messages: [{role: "user", content: prompt}],
+      }),
+    });
+    ekstrak = (j) => {
+      const d = j as {content?: Array<{text?: string}>};
+      return d.content?.[0]?.text ?? "";
+    };
+  } else {
+    // Gemini (default) — generateContent, kunci di query string.
+    const url =
+      `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model}` +
+      `:generateContent?key=${encodeURIComponent(cfg.key)}`;
+    resp = await fetch(url, {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      body: JSON.stringify({
+        system_instruction: {parts: [{text: system}]},
+        contents: [{parts: [{text: prompt}]}],
+        generationConfig: {maxOutputTokens: maxTokens},
+      }),
+    });
+    ekstrak = (j) => {
+      const d = j as {
+        candidates?: Array<{content?: {parts?: Array<{text?: string}>}}>;
+      };
+      return d.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    };
+  }
+
   if (!resp.ok) {
     functions.logger.error(
-      `[AI] Anthropic ${resp.status}: ${await resp.text()}`);
+      `[AI] ${cfg.provider} ${resp.status}: ${await resp.text()}`);
     throw new functions.https.HttpsError(
       "internal", "Asisten AI sedang sibuk. Coba lagi sebentar.");
   }
-  const data = await resp.json() as {content?: Array<{text?: string}>};
-  return data.content?.[0]?.text?.trim() ?? "";
+  return (ekstrak(await resp.json())).trim();
 }
 
 /**
@@ -1315,8 +1449,8 @@ export const csAi = functions.https.onCall(
       throw new functions.https.HttpsError(
         "invalid-argument", "Pertanyaan kosong.");
     }
-    const {key, model, aktif} = await konfigAi();
-    if (!key || !aktif) {
+    const cfgAi = await konfigAi();
+    if (!cfgAi.key || !cfgAi.aktif) {
       throw new functions.https.HttpsError(
         "failed-precondition", "Asisten AI belum diaktifkan.");
     }
@@ -1359,7 +1493,7 @@ export const csAi = functions.https.onCall(
       "pengguna menghubungi CS manusia lewat menu Bantuan / WhatsApp.",
     ].join("\n");
 
-    const jawaban = await panggilClaude(key, model, system, pertanyaan, 500);
+    const jawaban = await panggilAi(cfgAi, system, pertanyaan, 500);
     return {jawaban};
   },
 );
@@ -1378,8 +1512,8 @@ export const analisaBisnisAi = functions.https.onCall(
     if (pemanggil.get("role") !== "admin") {
       throw new functions.https.HttpsError("permission-denied", "Admin saja.");
     }
-    const {key, model, aktif} = await konfigAi();
-    if (!key || !aktif) {
+    const cfgAi = await konfigAi();
+    if (!cfgAi.key || !cfgAi.aktif) {
       throw new functions.https.HttpsError(
         "failed-precondition", "Asisten AI belum diaktifkan.");
     }
@@ -1416,7 +1550,7 @@ export const analisaBisnisAi = functions.https.onCall(
       `Per layanan: ${rincian || "tidak ada"}.`,
     ].join(" ");
 
-    const ringkasan = await panggilClaude(key, model, system, prompt, 700);
+    const ringkasan = await panggilAi(cfgAi, system, prompt, 700);
     return {ringkasan};
   },
 );

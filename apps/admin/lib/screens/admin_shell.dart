@@ -14,6 +14,7 @@ import 'a6_pengaturan_screen.dart';
 import 'a7_voucher_screen.dart';
 import 'a8_setoran_screen.dart';
 import 'a9_klien_screen.dart';
+import 'a10_pantau_screen.dart';
 
 enum MenuAdmin {
   dashboard,
@@ -23,6 +24,7 @@ enum MenuAdmin {
   voucher,
   setoran,
   klien,
+  pantau,
   pengaturan
 }
 
@@ -54,6 +56,7 @@ class AdminShell extends ConsumerWidget {
               A7VoucherScreen(),
               A8SetoranScreen(),
               A9KlienScreen(),
+              A10PantauScreen(),
               A6PengaturanScreen(),
             ],
           ),
@@ -129,6 +132,7 @@ class _Sidebar extends ConsumerWidget {
         _item(ref, MenuAdmin.setoran, Icons.account_balance_wallet_outlined,
             'Setoran'),
         _item(ref, MenuAdmin.klien, Icons.people_alt_outlined, 'Klien'),
+        _item(ref, MenuAdmin.pantau, Icons.location_searching, 'Pantau'),
         const Spacer(),
         _item(ref, MenuAdmin.pengaturan, Icons.settings_outlined,
             'Pengaturan'),

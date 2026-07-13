@@ -1973,6 +1973,16 @@ class _KartuAiState extends ConsumerState<_KartuAi> {
   var _menyimpan = false;
   bool _aktif = true;
   bool _sudahAdaKey = false;
+  String _provider = 'gemini'; // gemini | openai | anthropic
+
+  static const _providers = {
+    'gemini': ('Google Gemini', 'gemini-2.0-flash', 'geminiApiKey'),
+    'openai': ('OpenAI GPT', 'gpt-4o-mini', 'openaiApiKey'),
+    'anthropic': ('Anthropic Claude', 'claude-haiku-4-5', 'anthropicApiKey'),
+  };
+
+  String get _fieldKey => _providers[_provider]!.$3;
+  String get _modelDefault => _providers[_provider]!.$2;
 
   @override
   void dispose() {
@@ -1984,30 +1994,32 @@ class _KartuAiState extends ConsumerState<_KartuAi> {
   void _isiAwal(Map<String, dynamic> cfg) {
     if (_terisiAwal) return;
     _terisiAwal = true;
-    _model.text = (cfg['model'] as String?) ?? 'claude-haiku-4-5';
+    _provider = (cfg['provider'] as String?) ?? 'gemini';
+    _model.text = (cfg['model'] as String?) ?? _modelDefault;
     _aktif = cfg['aktif'] as bool? ?? true;
-    _sudahAdaKey = ((cfg['anthropicApiKey'] as String?) ?? '').isNotEmpty;
+    _sudahAdaKey = ((cfg[_fieldKey] as String?) ?? '').isNotEmpty;
   }
 
   Future<void> _simpan() async {
     setState(() => _menyimpan = true);
     try {
       final data = <String, dynamic>{
+        'provider': _provider,
         'model': _model.text.trim().isEmpty
-            ? 'claude-haiku-4-5'
+            ? _modelDefault
             : _model.text.trim(),
         'aktif': _aktif,
       };
       // Hanya tulis kunci bila admin memasukkan yang baru (biar tak
-      // menimpa kunci lama dengan kosong).
+      // menimpa kunci lama dengan kosong). Disimpan per provider.
       if (_key.text.trim().isNotEmpty) {
-        data['anthropicApiKey'] = _key.text.trim();
+        data[_fieldKey] = _key.text.trim();
       }
       await ref.read(firestoreServiceProvider).updateSettings('ai', data);
       _key.clear();
       if (mounted) {
         setState(() => _sudahAdaKey =
-            _sudahAdaKey || data.containsKey('anthropicApiKey'));
+            _sudahAdaKey || data.containsKey(_fieldKey));
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Setelan Asisten AI tersimpan.')));
       }
@@ -2042,9 +2054,10 @@ class _KartuAiState extends ConsumerState<_KartuAi> {
                           color: TkColors.inkSoft)),
                   const SizedBox(height: 4),
                   Text(
-                      'Kunci API Anthropic menyalakan CS AI (chat bantuan '
-                      'pelanggan) & analisis bisnis. Disimpan aman di server '
-                      '— tak pernah dikirim ke aplikasi pelanggan.',
+                      'Kunci API menyalakan CS AI (chat bantuan pelanggan) & '
+                      'analisis bisnis. Pilih penyedia (Gemini / GPT / Claude). '
+                      'Disimpan aman di server — tak pernah dikirim ke aplikasi '
+                      'pelanggan.',
                       style: GoogleFonts.montserrat(
                           fontSize: 12,
                           color: TkColors.textMuted,
@@ -2058,13 +2071,32 @@ class _KartuAiState extends ConsumerState<_KartuAi> {
           ),
         ]),
         const SizedBox(height: 14),
+        DropdownButtonFormField<String>(
+          initialValue: _provider,
+          decoration: const InputDecoration(labelText: 'Penyedia AI'),
+          items: [
+            for (final e in _providers.entries)
+              DropdownMenuItem(value: e.key, child: Text(e.value.$1)),
+          ],
+          onChanged: (v) {
+            if (v == null || v == _provider) return;
+            setState(() {
+              _provider = v;
+              _model.text = _modelDefault;
+              _key.clear();
+              final cfg = ref.read(_konfigAiProvider).valueOrNull ?? {};
+              _sudahAdaKey = ((cfg[_fieldKey] as String?) ?? '').isNotEmpty;
+            });
+          },
+        ),
+        const SizedBox(height: 12),
         TextField(
           controller: _key,
           obscureText: _sembunyi,
           decoration: InputDecoration(
             labelText: _sudahAdaKey
                 ? 'Kunci API baru (kosongkan bila tak diubah)'
-                : 'Kunci API Anthropic (sk-ant-...)',
+                : 'Kunci API ${_providers[_provider]!.$1}',
             helperText:
                 _sudahAdaKey ? 'Kunci sudah tersimpan.' : null,
             suffixIcon: IconButton(
@@ -2080,9 +2112,9 @@ class _KartuAiState extends ConsumerState<_KartuAi> {
           Expanded(
             child: TextField(
               controller: _model,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                   labelText: 'Model',
-                  hintText: 'claude-haiku-4-5'),
+                  hintText: _modelDefault),
             ),
           ),
           const SizedBox(width: 12),
