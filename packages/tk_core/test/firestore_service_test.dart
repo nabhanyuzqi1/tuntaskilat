@@ -230,13 +230,14 @@ void main() {
 
   group('P5 — slot terisi tampil disabled (Pencegahan Kesalahan)', () {
     test('watchSlotTerisi memuat slot yang dokumennya ada', () async {
-      await service.createOrder(
+      await service.buatPesananLengkap(
         pelanggan: pelanggan,
         serviceId: 's1',
         jadwal: DateTime(2026, 7, 10, 13, 0),
-        kuantitas: 2,
+        pilihan: const PilihanHarga(kuantitas: 2),
         alamatLayanan: 'Jl. Ahmad Yani, Sampit',
         lokasi: lokasiSampit,
+        metode: MetodeBayar.tunai,
       );
 
       // snapshots() bisa memancarkan state cache yang basi lebih dulu

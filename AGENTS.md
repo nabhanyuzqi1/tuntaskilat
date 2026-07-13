@@ -116,7 +116,7 @@ Sebuah perubahan belum selesai sebelum:
 # 1. Analisis statis bersih di seluruh workspace
 flutter analyze                       # dari root repo
 
-# 2. Unit test tk_core lolos (saat ini 26 test, termasuk 8 skenario Black-Box)
+# 2. Unit test tk_core lolos (saat ini 68 test, termasuk 8 skenario Black-Box)
 cd packages/tk_core && flutter test
 
 # 3. Build target yang tersentuh
@@ -138,7 +138,7 @@ marker melompat, (5) role salah → ditolak routing + rules, (6) manipulasi harg
 ## 6. Status & konteks aktif (per Juli 2026)
 
 - **33/33 layar selesai**, ter-commit di branch `main`. `flutter analyze` bersih,
-  26/26 test lolos.
+  68/68 test lolos.
 - **Naskah TA:** `TA Nabhan 2026 - Rev18.docx` (revisi terbaru). **Sidang: Selasa
   14 Juli 2026, 11.00–12.30.** Pembimbing: Lukman Bachtiar, S.Kom., M.M., M.Kom.
   (NIDN 1116108201). Penguji: Minarni, S.Kom., M.M. (1125128901, Ketua Prodi) &
@@ -178,7 +178,7 @@ role granular). Menambah ini = perluasan skema → **wajib konfirmasi user**.
 - `firebase/firestore.rules`, `firebase/storage.rules` — Security Rules produksi.
 - `packages/tk_core/lib/services/firestore_service.dart` — semua akses data +
   transaction. `.../services/auth_service.dart` — login + validasi role.
-- `packages/tk_core/test/` — 26 unit test yang membuktikan skenario Black-Box.
+- `packages/tk_core/test/` — 68 unit test yang membuktikan skenario Black-Box.
 - `README.md` — ringkasan repo.
 - Naskah TA, Hi-Fi build (`Canvas.dc.html`), dan skill `tuntaskilat-dev` (PRD,
   firestore-schema, design-tokens, page-inventory, test-scenarios) adalah sumber
