@@ -22,6 +22,7 @@ class ServiceModel {
     this.tiers = const [],
     this.paketOpsi = const [],
     this.addOns = const [],
+    this.jumlahKru = 0,
   });
 
   final String serviceId;
@@ -58,6 +59,12 @@ class ServiceModel {
 
   /// Layanan tambahan (add-on) untuk [TipeHarga.paket].
   final List<AddOn> addOns;
+
+  /// KAPASITAS SLOT — jumlah kru AKTIF yang bisa melayani layanan ini
+  /// (keahlian cocok atau generalis). Dipelihara Cloud Function saat data
+  /// kru berubah; dibaca saat pemesanan (kuota per jam) & di P5. TIDAK
+  /// ditulis lewat [toMap] agar edit layanan admin tak menimpanya.
+  final num jumlahKru;
 
   /// Hitung subtotal + rincian dari [pilihan]. SATU sumber kebenaran harga
   /// (klien untuk pratinjau, backend untuk hitung ulang di transaction).
@@ -152,6 +159,7 @@ class ServiceModel {
         addOns: ((map['addOns'] as List?) ?? [])
             .map((e) => AddOn.fromMap(Map<String, dynamic>.from(e as Map)))
             .toList(),
+        jumlahKru: map['jumlahKru'] as num? ?? 0,
       );
 
   Map<String, dynamic> toMap() => {

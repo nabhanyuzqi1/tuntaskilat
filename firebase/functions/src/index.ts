@@ -961,9 +961,28 @@ export const onOrderCancelled = functions.firestore.onDocumentUpdated(
       return;
     }
     const slotId = String(after.slotId ?? event.params.orderId);
-    await db.collection("slots").doc(slotId).delete();
+    const ref = db.collection("slots").doc(slotId);
+    // Slot berbasis KAPASITAS menyimpan counter `terisi` → kurangi 1 (lantai
+    // 0) agar satu kuota kru kembali terbuka. Slot lama (boolean `taken`,
+    // tanpa `terisi`) → hapus dokumen (perilaku lama). Transaction agar aman
+    // dari balapan dengan booking lain pada slot yang sama.
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) return;
+      const d = snap.data() ?? {};
+      if (typeof d.terisi === "number") {
+        const sisa = Math.max(0, d.terisi - 1);
+        if (sisa === 0) {
+          tx.delete(ref);
+        } else {
+          tx.update(ref, {terisi: sisa});
+        }
+      } else {
+        tx.delete(ref); // slot lama boolean
+      }
+    });
     functions.logger.info(
-      `[onOrderCancelled] slot ${slotId} dibebaskan (order ` +
+      `[onOrderCancelled] slot ${slotId} kuota dikembalikan (order ` +
         `${event.params.orderId}).`,
     );
   },
@@ -1399,5 +1418,76 @@ export const analisaBisnisAi = functions.https.onCall(
 
     const ringkasan = await panggilClaude(key, model, system, prompt, 700);
     return {ringkasan};
+  },
+);
+
+// ═══════════════════════════════════ Kapasitas slot per layanan (kru aktif)
+
+/**
+ * Menghitung ulang `services.jumlahKru` = jumlah kru AKTIF yang bisa melayani
+ * tiap layanan (keahlian cocok atau generalis tanpa keahlian). Dipakai
+ * sebagai KAPASITAS slot pemesanan: makin banyak kru → makin banyak booking
+ * per jam terbuka; 0 kru → layanan itu terkunci otomatis. Dipicu tiap kali
+ * dokumen kru berubah (tambah/nonaktif/ubah keahlian).
+ */
+async function recomputeKapasitasLayanan(): Promise<void> {
+  const [kruSnap, svcSnap] = await Promise.all([
+    db.collection("kru").get(),
+    db.collection("services").get(),
+  ]);
+  // Kru aktif: status 'aktif' (atau field status kosong = anggap aktif).
+  const kruAktif = kruSnap.docs.filter((d) => {
+    const st = d.get("status");
+    return st === undefined || st === null || st === "aktif";
+  });
+  functions.logger.info(
+    `[kapasitas] kru total=${kruSnap.size} aktif=${kruAktif.length}`);
+  const batch = db.batch();
+  for (const svc of svcSnap.docs) {
+    const serviceId = svc.id;
+    const jumlah = kruAktif.filter((k) => {
+      const raw = k.get("keahlian");
+      const keahlian = Array.isArray(raw) ? (raw as string[]) : [];
+      return keahlian.length === 0 || keahlian.includes(serviceId);
+    }).length;
+    functions.logger.info(
+      `[kapasitas] ${serviceId}: jumlahKru ${svc.get("jumlahKru")} → ${jumlah}`);
+    batch.set(svc.ref, {jumlahKru: jumlah}, {merge: true});
+  }
+  await batch.commit();
+}
+
+/** Recompute kapasitas saat dokumen kru ditulis (create/update/delete). */
+export const onKruDitulis = functions.firestore.onDocumentWritten(
+  {document: "kru/{cleanerId}", region: REGION},
+  async () => {
+    await recomputeKapasitasLayanan();
+  },
+);
+
+/** Recompute kapasitas saat layanan baru dibuat (agar jumlahKru terisi). */
+export const onLayananDibuat = functions.firestore.onDocumentCreated(
+  {document: "services/{serviceId}", region: REGION},
+  async () => {
+    await recomputeKapasitasLayanan();
+  },
+);
+
+/**
+ * Callable admin untuk memaksa hitung ulang kapasitas (backfill awal / setelah
+ * ubah keahlian massal). Aman dipanggil kapan saja.
+ */
+export const backfillKapasitasKru = functions.https.onCall(
+  {region: REGION},
+  async (req) => {
+    if (!req.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Harus login.");
+    }
+    const u = await db.collection("users").doc(req.auth.uid).get();
+    if (u.get("role") !== "admin") {
+      throw new functions.https.HttpsError("permission-denied", "Admin saja.");
+    }
+    await recomputeKapasitasLayanan();
+    return {ok: true};
   },
 );

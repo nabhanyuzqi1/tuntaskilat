@@ -25,14 +25,24 @@ import '../models/voucher_model.dart';
 import '../seed/pricelist_seed.dart';
 import '../utils/validators.dart';
 
-/// Dilempar saat slot `jadwal` sudah terisi — transaction kedua pada slot yang
-/// sama wajib gagal (skenario Black-Box #1); UI menampilkan "Jadwal Penuh".
+/// Dilempar saat slot `jadwal` sudah penuh — semua kru yang bisa melayani
+/// pada jam itu sudah terpakai (kuota `services.jumlahKru` habis). Transaction
+/// yang kalah balapan wajib gagal (atomic lock); UI menampilkan "Jadwal Penuh".
 class JadwalPenuhException implements Exception {
   const JadwalPenuhException(this.jadwal);
   final DateTime jadwal;
 
   @override
   String toString() => 'Jadwal Penuh';
+}
+
+/// Dilempar saat TIDAK ADA kru aktif yang bisa melayani layanan ini
+/// (`services.jumlahKru == 0`) — slot terkunci otomatis sampai ada kru.
+class TidakAdaKruException implements Exception {
+  const TidakAdaKruException();
+
+  @override
+  String toString() => 'Belum ada kru tersedia untuk layanan ini';
 }
 
 /// Dilempar saat koordinat alamat di luar area layanan Kota Sampit
@@ -300,8 +310,6 @@ class FirestoreService {
     return _db.runTransaction<OrderModel>((tx) async {
       // Baca SEMUA dokumen dulu (aturan transaction Firestore).
       final slotSnap = await tx.get(slotRef);
-      if (slotSnap.exists) throw JadwalPenuhException(jadwal);
-
       final serviceSnap = await tx.get(serviceRef);
       if (!serviceSnap.exists) {
         throw StateError('Layanan $serviceId tidak ditemukan.');
@@ -310,6 +318,25 @@ class FirestoreService {
       if (!service.aktif) {
         throw StateError('Layanan ${service.namaLayanan} sedang nonaktif.');
       }
+
+      // KAPASITAS SLOT = jumlah kru aktif yang bisa melayani layanan ini
+      // (dipelihara Cloud Function di services.jumlahKru). Slot menyimpan
+      // COUNTER `terisi`, bukan boolean: booking diterima selama masih ada
+      // kru yang belum terpakai pada jam itu. Atomic lock tetap — transaction
+      // yang kalah balapan membaca `terisi` lama dan gagal saat commit.
+      // Field `jumlahKru` ABSEN (layanan lama belum di-backfill) → fallback
+      // kapasitas 1 (perilaku lama, tak mengunci). Field ADA & 0 → memang
+      // tak ada kru → terkunci. Field ADA & N → kuota N.
+      final svcData = serviceSnap.data();
+      final kapasitas = (svcData != null && svcData.containsKey('jumlahKru'))
+          ? (svcData['jumlahKru'] as num).toInt()
+          : 1;
+      final terisi = slotSnap.exists
+          ? ((slotSnap.data()?['terisi'] as num?)?.toInt() ??
+              (slotSnap.data()?['taken'] == true ? 1 : 0))
+          : 0;
+      if (kapasitas <= 0) throw const TidakAdaKruException();
+      if (terisi >= kapasitas) throw JadwalPenuhException(jadwal);
 
       // Hitung ULANG subtotal dari dokumen services — jangan percaya klien.
       final hasil = service.hitungHarga(pilihan);
@@ -373,20 +400,23 @@ class FirestoreService {
         statusBayar: StatusBayar.menunggu,
         waktu: sekarang,
       );
-      // slotId disimpan agar Cloud Function bisa MEMBEBASKAN slot saat order
-      // dibatalkan (kunci dilepas → slot bisa dipesan ulang).
+      // slotId disimpan agar Cloud Function bisa MENGURANGI counter slot saat
+      // order dibatalkan (satu kuota kru dilepas → bisa dipesan ulang).
       tx.set(orderRef, {...order.toMap(), 'slotId': slotRef.id});
-      // Kunci slot publik-boolean (tanpa PII) — dibaca watchSlotTerisi &
-      // menjadi titik atomic-lock antar-transaksi pada slot yang sama.
-      tx.set(slotRef, {
-        'slotId': slotRef.id,
-        'serviceId': serviceId,
-        'jadwal': Timestamp.fromDate(jadwal),
-        'orderId': orderRef.id,
-        'userId': pelanggan.userId,
-        'taken': true,
-        'waktu': Timestamp.fromDate(sekarang),
-      });
+      // Slot publik (tanpa PII) menyimpan COUNTER `terisi` + `kapasitas`.
+      // Titik atomic-lock antar-transaksi: menaikkan terisi dari nilai yang
+      // dibaca di awal transaction; balapan otomatis terserialisasi Firestore.
+      tx.set(
+          slotRef,
+          {
+            'slotId': slotRef.id,
+            'serviceId': serviceId,
+            'jadwal': Timestamp.fromDate(jadwal),
+            'terisi': terisi + 1,
+            'kapasitas': kapasitas,
+            'waktuTerakhir': Timestamp.fromDate(sekarang),
+          },
+          SetOptions(merge: true));
       tx.set(paymentRef, payment.toMap());
       if (voucherRef != null && voucher != null) {
         tx.update(voucherRef, {'terpakai': voucher.terpakai + 1});
@@ -489,36 +519,61 @@ class FirestoreService {
     await batch.commit();
   }
 
-  /// Slot yang sudah terisi pada [hari] — untuk menampilkan slot disabled +
-  /// ikon gembok di P5 (kaidah Pencegahan Kesalahan). Memakai `get` per ID
-  /// slot deterministik, BUKAN query — Security Rules mengizinkan `get`
-  /// dokumen order untuk pengguna masuk, sementara `list` tetap owner-only.
+  /// Slot yang TIDAK TERSEDIA pada [hari] untuk P5 (disabled + gembok).
+  ///
+  /// Kapasitas tiap jam = `services.jumlahKru` (jumlah kru aktif yang bisa
+  /// melayani layanan ini, dipelihara Cloud Function). Sebuah jam terkunci
+  /// bila `terisi >= kapasitas`, ATAU kapasitas 0 (tak ada kru → SELURUH
+  /// jam layanan itu terkunci otomatis). Makin banyak kru pada layanan,
+  /// makin banyak booking per jam yang terbuka. Dengar `services/{id}`
+  /// (kapasitas berubah realtime) + tiap dokumen slot (counter `terisi`).
   Stream<Set<DateTime>> watchSlotTerisi(String serviceId, DateTime hari) {
     final slots = jamSlot
         .map((jam) => DateTime(hari.year, hari.month, hari.day, jam))
         .toList(growable: false);
-    final streams = slots
+    final slotStreams = slots
         .map((s) => _slots.doc(slotOrderId(serviceId, s)).snapshots())
         .toList(growable: false);
+    final serviceStream = _services.doc(serviceId).snapshots();
 
     late final StreamController<Set<DateTime>> controller;
-    final adaDoc = List<bool>.filled(slots.length, false);
+    final terisi = List<int>.filled(slots.length, 0);
     final sudahEmit = List<bool>.filled(slots.length, false);
+    // Kapasitas awal 1 (fallback layanan lama sebelum jumlahKru di-backfill)
+    // agar tak terlihat semua terkunci sebelum service snapshot tiba.
+    var kapasitas = 1;
+    var serviceEmit = false;
     final subs = <StreamSubscription<dynamic>>[];
+
+    void pancarkan() {
+      if (!serviceEmit || !sudahEmit.every((e) => e)) return;
+      controller.add({
+        for (var j = 0; j < slots.length; j++)
+          if (kapasitas <= 0 || terisi[j] >= kapasitas) slots[j],
+      });
+    }
+
     controller = StreamController<Set<DateTime>>(
       onListen: () {
-        for (var i = 0; i < streams.length; i++) {
-          subs.add(streams[i].listen((snap) {
-            adaDoc[i] = snap.exists;
-            sudahEmit[i] = true;
-            // Tunggu snapshot pertama SEMUA slot supaya emisi awal tidak
-            // parsial (slot terisi sempat tampak kosong).
-            if (sudahEmit.every((e) => e)) {
-              controller.add({
-                for (var j = 0; j < slots.length; j++)
-                  if (adaDoc[j]) slots[j],
-              });
-            }
+        subs.add(serviceStream.listen((snap) {
+          final d = snap.data();
+          // Field absen → fallback 1; ada (termasuk 0) → pakai nilainya.
+          kapasitas = (d != null && d.containsKey('jumlahKru'))
+              ? (d['jumlahKru'] as num).toInt()
+              : 1;
+          serviceEmit = true;
+          pancarkan();
+        }, onError: controller.addError));
+        for (var i = 0; i < slotStreams.length; i++) {
+          final idx = i;
+          subs.add(slotStreams[i].listen((snap) {
+            final d = snap.data();
+            terisi[idx] = d == null
+                ? 0
+                : ((d['terisi'] as num?)?.toInt() ??
+                    (d['taken'] == true ? 1 : 0));
+            sudahEmit[idx] = true;
+            pancarkan();
           }, onError: controller.addError));
         }
       },

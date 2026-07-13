@@ -183,6 +183,10 @@ class PembayaranController extends AutoDisposeAsyncNotifier<OrderModel?> {
     } on JadwalPenuhException {
       state = const AsyncData(null);
       return (order: null, error: 'Jadwal Penuh', jadwalPenuh: true);
+    } on TidakAdaKruException {
+      // Semua kru pada jam itu terpakai / belum ada kru untuk layanan ini.
+      state = const AsyncData(null);
+      return (order: null, error: 'Jadwal Penuh', jadwalPenuh: true);
     } on VoucherException catch (e) {
       state = const AsyncData(null);
       return (order: null, error: e.toString(), jadwalPenuh: false);

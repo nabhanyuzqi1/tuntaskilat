@@ -28,16 +28,20 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Kunci slot publik-boolean (tanpa PII). Ketersediaan slot & atomic lock
-    // dibaca dari sini, sehingga `orders` bisa dibatasi ke peserta saja.
-    // Isi hanya {serviceId, jadwal, orderId, userId, taken} — tak ada
-    // nama/alamat/telepon/harga.
+    // Slot berbasis KAPASITAS (tanpa PII). Menyimpan counter `terisi` +
+    // `kapasitas` (= jumlah kru yang bisa melayani). Ketersediaan & atomic
+    // lock dibaca dari sini; `orders` tetap dibatasi ke peserta.
     match /slots/{slotId} {
       allow get, list: if isSignedIn();
-      // Dibuat dalam transaction pemesanan oleh pemilik order.
-      allow create: if isSignedIn() &&
-        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin();
+      // Booking pertama membuat slot dengan terisi = 1.
+      allow create: if isSignedIn() && request.resource.data.terisi == 1;
+      // Booking berikutnya menaikkan counter TEPAT +1 (atomic via
+      // transaction). Pengurangan/penghapusan (pembatalan) hanya lewat
+      // Cloud Function (admin SDK) atau admin.
+      allow update: if (isSignedIn() &&
+          request.resource.data.terisi == resource.data.terisi + 1) ||
+        isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /orders/{orderId} {
