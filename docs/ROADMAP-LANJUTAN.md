@@ -47,16 +47,16 @@ Dokumen desain untuk item yang DIMINTA owner tetapi butuh sesi khusus
   admin 1-klik setuju. **Fase 2 (belum)**: pindah skoring ke Cloud Function
   saat order terverifikasi (tulis `rekomendasiKru` ke order) + faktor jarak
   posisi GPS terakhir + auto-assign penuh opsional.
-- **Business analyst otomatis**: job harian (Claude API) membaca
-  `stats/*` → ringkasan naratif + anomali → dikirim ke admin (notif +
-  panel). Termasuk insight marketing (jam ramai, layanan naik/turun) & HRD
-  (kru overload/underutilized).
-- **CS AI (live chat & WhatsApp)**: endpoint Cloud Function `csAi` —
-  knowledge base HANYA data non-rahasia (katalog + harga, jam operasional,
-  kebijakan refund, status order MILIK penanya setelah verifikasi nomor).
-  Data pribadi/finansial/kredensial DILARANG masuk konteks. Integrasi:
-  widget chat pelanggan + Fonnte webhook WA (sudah ada `waNotifOrder`).
-  Eskalasi ke manusia bila confidence rendah / permintaan sensitif.
+- **Business analyst AI** — ✅ v1 (13 Jul): callable `analisaBisnisAi`
+  (admin-only) membaca agregat pesanan 30 hari → ringkasan naratif + anomali
+  + saran aksi via Claude API; tombol "Analisa AI" di dashboard A2.
+  **Belum**: job harian otomatis + notif (kini on-demand).
+- **CS AI (live chat)** — ✅ v1 (13 Jul): Cloud Function `csAi` menjawab dari
+  knowledge base non-rahasia (katalog+harga, jam, cara pesan/bayar); status
+  hanya order MILIK penanya (diverifikasi server). Chat di app pelanggan
+  (P18, entry di Bantuan). Kunci API diatur admin di Pengaturan → Asisten AI
+  (`settings/ai`, admin-only). **Belum**: integrasi WhatsApp via Fonnte
+  webhook (endpoint `csAi` sudah reusable untuk itu).
 
 ## 5. Sudah dikerjakan sesi 13 Juli (referensi)
 
