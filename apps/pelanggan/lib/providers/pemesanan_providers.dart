@@ -173,6 +173,9 @@ class PembayaranController extends AutoDisposeAsyncNotifier<OrderModel?> {
             catatan: draft.catatan.trim(),
           );
       state = AsyncData(order);
+      // Konteks Crashlytics — bila ada crash di alur lacak/bayar, tim tahu
+      // order mana yang bermasalah.
+      unawaited(setKunciCrash('orderId', order.orderId));
       // Simpan alamat terakhir agar bisa dipilih cepat lain kali (dedupe
       // berdasar teks). Gagal simpan tidak menggagalkan pemesanan.
       unawaited(_simpanAlamatTerakhir(profil.userId, draft));

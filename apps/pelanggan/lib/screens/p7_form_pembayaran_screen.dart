@@ -200,9 +200,25 @@ class _P7FormPembayaranScreenState
       );
 
   Widget _form(DraftPesanan draft, bool loading, WidgetRef ref) {
-    final butuhBukti = _metode != MetodeBayar.tunai;
     final pengaturan = ref.watch(pengaturanRekeningProvider).valueOrNull ?? {};
-    
+    // Metode yang tampil & tipe (statis/dinamis) diatur admin.
+    final konfig = ref.watch(konfigPembayaranProvider).valueOrNull ??
+        KonfigPembayaran.bawaan;
+    final metodeAktif = konfig.aktif;
+    // Jika metode terpilih dinonaktifkan admin, jatuh ke metode aktif pertama.
+    if (metodeAktif.isNotEmpty &&
+        !metodeAktif.any((m) => m.kode == _metode.wire)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() => _metode = MetodeBayar.fromWire(metodeAktif.first.kode));
+        }
+      });
+    }
+    final konfigTerpilih = konfig.byKode(_metode.wire);
+    final dinamis = konfigTerpilih?.dinamis ?? false;
+    // Tunai & metode dinamis (Xendit) tak perlu unggah bukti manual.
+    final butuhBukti = _metode != MetodeBayar.tunai && !dinamis;
+
     return Column(
       children: [
         Expanded(
@@ -242,29 +258,43 @@ class _P7FormPembayaranScreenState
                       fontWeight: FontWeight.w600,
                       color: TkColors.inkSoft)),
               const SizedBox(height: 12),
-              _kartuMetode(
-                MetodeBayar.transferBank,
-                Icons.account_balance_outlined,
-                TkColors.primary,
-                'Transfer Bank',
-                'BCA · BRI · Mandiri',
-              ),
-              const SizedBox(height: 12),
-              _kartuMetode(
-                MetodeBayar.qris,
-                Icons.qr_code_2_rounded,
-                TkColors.accentAlt,
-                'QRIS',
-                'Scan dari semua e-wallet',
-              ),
-              const SizedBox(height: 12),
-              _kartuMetode(
-                MetodeBayar.tunai,
-                Icons.payments_outlined,
-                TkColors.primary,
-                'Tunai',
-                'Bayar langsung ke kru',
-              ),
+              for (final m in metodeAktif) ...[
+                _kartuMetode(
+                  MetodeBayar.fromWire(m.kode),
+                  _ikonMetode(m.kode),
+                  _warnaMetode(m.kode),
+                  m.nama,
+                  m.dinamis
+                      ? '${m.deskripsi} · otomatis (Xendit)'
+                      : m.deskripsi,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (dinamis) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: TkColors.primary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.bolt_rounded,
+                        size: 17, color: TkColors.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                          'Nomor Virtual Account / QRIS unik dibuat otomatis '
+                          'setelah konfirmasi. Pembayaran terverifikasi '
+                          'sendiri — tanpa unggah bukti.',
+                          style: GoogleFonts.montserrat(
+                              fontSize: 12,
+                              color: const Color(0xFF33403A),
+                              height: 1.45)),
+                    ),
+                  ]),
+                ),
+              ],
               if (butuhBukti) ...[
                 const SizedBox(height: 20),
                 _infoRekening(pengaturan),
@@ -354,6 +384,16 @@ class _P7FormPembayaranScreenState
           ],
         ),
       );
+
+  IconData _ikonMetode(String kode) => switch (kode) {
+        'transfer_bank' => Icons.account_balance_outlined,
+        'qris' => Icons.qr_code_2_rounded,
+        'tunai' => Icons.payments_outlined,
+        _ => Icons.payment_rounded,
+      };
+
+  Color _warnaMetode(String kode) =>
+      kode == 'qris' ? TkColors.accentAlt : TkColors.primary;
 
   Widget _kartuMetode(
     MetodeBayar metode,

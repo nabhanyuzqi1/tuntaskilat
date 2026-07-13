@@ -98,6 +98,9 @@ class A6PengaturanScreen extends ConsumerWidget {
                     _judul('BANNER BERANDA'),
                     const _KartuBannerBeranda(),
                     const SizedBox(height: 22),
+                    _judul('METODE PEMBAYARAN'),
+                    const _KartuMetodePembayaran(),
+                    const SizedBox(height: 22),
                     _judul('MANAJEMEN TIM ADMIN'),
                     const _KartuTim(),
                   ],
@@ -1834,6 +1837,110 @@ class _KartuBannerBeranda extends ConsumerWidget {
                         size: 18, color: TkColors.error)),
               ]),
             ),
+      ]),
+    );
+  }
+}
+
+/// Konfigurasi metode pembayaran (settings/pembayaran) untuk switcher admin.
+final _konfigPembayaranAdminProvider =
+    StreamProvider<KonfigPembayaran>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) {
+    return Stream.value(KonfigPembayaran.bawaan);
+  }
+  return ref.watch(firestoreServiceProvider).watchKonfigPembayaran();
+});
+
+/// Switcher metode pembayaran: aktif/nonaktif per metode + tipe statis
+/// (bukti manual) vs dinamis (Virtual Account/QRIS otomatis via Xendit).
+class _KartuMetodePembayaran extends ConsumerWidget {
+  const _KartuMetodePembayaran();
+
+  Future<void> _simpan(WidgetRef ref, KonfigPembayaran konfig) =>
+      ref.read(firestoreServiceProvider).simpanKonfigPembayaran(konfig);
+
+  KonfigPembayaran _ubah(
+      KonfigPembayaran konfig, String kode, MetodePembayaranKonfig baru) {
+    return KonfigPembayaran(metode: [
+      for (final m in konfig.metode) if (m.kode == kode) baru else m,
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final konfig =
+        ref.watch(_konfigPembayaranAdminProvider).valueOrNull ??
+            KonfigPembayaran.bawaan;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: AdminUi.kartu(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Metode Pembayaran Pelanggan',
+            style: GoogleFonts.montserrat(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: TkColors.inkSoft)),
+        const SizedBox(height: 4),
+        Text(
+            'Aktifkan metode yang tampil di checkout. Statis = pelanggan '
+            'unggah bukti, admin verifikasi. Dinamis = Virtual Account/QRIS '
+            'otomatis via Xendit, terverifikasi sendiri (butuh kredensial '
+            'Xendit aktif di server).',
+            style: GoogleFonts.montserrat(
+                fontSize: 12, color: TkColors.textMuted, height: 1.4)),
+        const SizedBox(height: 14),
+        for (final m in konfig.metode) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(children: [
+              Expanded(
+                flex: 3,
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(m.nama,
+                          style: GoogleFonts.montserrat(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: TkColors.inkSoft)),
+                      Text(m.deskripsi,
+                          style: GoogleFonts.montserrat(
+                              fontSize: 12, color: TkColors.textMuted)),
+                    ]),
+              ),
+              // Tunai selalu statis (bayar ke kru) — tak ada pilihan tipe.
+              if (m.kode != 'tunai')
+                Expanded(
+                  flex: 2,
+                  child: SegmentedButton<String>(
+                    style: ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      textStyle: WidgetStatePropertyAll(
+                          GoogleFonts.montserrat(fontSize: 12)),
+                    ),
+                    segments: const [
+                      ButtonSegment(value: 'statis', label: Text('Statis')),
+                      ButtonSegment(value: 'dinamis', label: Text('Dinamis')),
+                    ],
+                    selected: {m.tipe},
+                    onSelectionChanged: (s) => _simpan(
+                        ref, _ubah(konfig, m.kode, m.copyWith(tipe: s.first))),
+                  ),
+                )
+              else
+                const Expanded(flex: 2, child: SizedBox.shrink()),
+              const SizedBox(width: 12),
+              Switch(
+                value: m.aktif,
+                activeTrackColor: TkColors.primary,
+                onChanged: (v) => _simpan(
+                    ref, _ubah(konfig, m.kode, m.copyWith(aktif: v))),
+              ),
+            ]),
+          ),
+          if (m.kode != konfig.metode.last.kode)
+            const Divider(height: 1),
+        ],
       ]),
     );
   }

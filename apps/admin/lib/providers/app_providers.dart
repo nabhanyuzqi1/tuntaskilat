@@ -6,12 +6,18 @@ import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
 import '../services/tim_admin_service.dart';
 
+/// reCAPTCHA v3 site key untuk App Check web (Firebase Console → App Check →
+/// Web app → reCAPTCHA v3). Kosong = App Check web dilewati (aman untuk dev).
+/// Isi sebelum enforcement diaktifkan di produksi.
+const _recaptchaSiteKey = String.fromEnvironment('RECAPTCHA_SITE_KEY');
+
 final firebaseInitProvider = FutureProvider<bool>((_) async {
   try {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      await aktifkanAppCheck(recaptchaSiteKey: _recaptchaSiteKey);
     }
     return true;
   } on UnsupportedError {

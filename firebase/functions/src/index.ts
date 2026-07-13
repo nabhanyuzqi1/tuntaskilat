@@ -1160,3 +1160,76 @@ export const xenditWebhook = functions.https.onRequest(
     res.status(200).send("OK");
   },
 );
+
+// ═══════════════════════════════════ Xendit — buat tagihan dinamis (callable)
+
+/**
+ * Membuat tagihan Xendit (Invoice/VA/QRIS) untuk metode DINAMIS. Callable
+ * dari app pelanggan saat checkout memilih metode dinamis. Defensif: bila
+ * XENDIT_SECRET_KEY belum diset, melempar failed-precondition (app jatuh ke
+ * instruksi manual). Saat aktif: memanggil Xendit Invoices API, menyimpan
+ * invoiceUrl ke payment, dan mengembalikannya agar app membuka halaman bayar.
+ * Settlement final ditangani xenditWebhook (external_id = orderId).
+ */
+export const buatTagihanXendit = functions.https.onCall(
+  {region: REGION},
+  async (req) => {
+    if (!req.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated", "Harus login.");
+    }
+    const secret = process.env.XENDIT_SECRET_KEY ?? "";
+    if (!secret) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Pembayaran dinamis belum diaktifkan (kredensial Xendit kosong).");
+    }
+    const orderId: string = req.data?.orderId ?? "";
+    const amount: number = Number(req.data?.amount ?? 0);
+    if (!orderId || amount <= 0) {
+      throw new functions.https.HttpsError(
+        "invalid-argument", "orderId/amount tidak valid.");
+    }
+    // Order WAJIB milik pemanggil (cegah bikin tagihan atas order orang lain).
+    const orderSnap = await db.collection("orders").doc(orderId).get();
+    if (!orderSnap.exists || orderSnap.get("userId") !== req.auth.uid) {
+      throw new functions.https.HttpsError(
+        "permission-denied", "Order bukan milik Anda.");
+    }
+    const resp = await fetch("https://api.xendit.co/v2/invoices", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Basic " +
+          Buffer.from(secret + ":").toString("base64"),
+      },
+      body: JSON.stringify({
+        external_id: orderId,
+        amount,
+        description: `Pembayaran pesanan ${orderId} Tuntaskilat`,
+        currency: "IDR",
+      }),
+    });
+    if (!resp.ok) {
+      functions.logger.error(
+        `[buatTagihanXendit] gagal ${resp.status}: ${await resp.text()}`);
+      throw new functions.https.HttpsError(
+        "internal", "Gagal membuat tagihan. Coba lagi atau pilih transfer.");
+    }
+    const inv = await resp.json() as {id: string; invoice_url: string};
+    const payQ = await db
+      .collection("payments")
+      .where("orderId", "==", orderId)
+      .limit(1)
+      .get();
+    if (!payQ.empty) {
+      await payQ.docs[0].ref.update({
+        gateway: "xendit",
+        invoiceId: inv.id,
+        invoiceUrl: inv.invoice_url,
+      });
+    }
+    functions.logger.info(`[buatTagihanXendit] order ${orderId} invoice ${inv.id}`);
+    return {invoiceUrl: inv.invoice_url, invoiceId: inv.id};
+  },
+);

@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/alamat_model.dart';
 import '../models/app_config_model.dart';
 import '../models/banner_model.dart';
+import '../models/konfig_pembayaran.dart';
 import '../models/kas_kru_model.dart';
 import '../models/komisi_model.dart';
 import '../models/kru_model.dart';
@@ -1250,6 +1251,21 @@ class FirestoreService {
   Future<void> updateSettings(String docId, Map<String, dynamic> data) async {
     await _db.collection('settings').doc(docId).set(data, SetOptions(merge: true));
   }
+
+  // ------------------------------------------------------------- pembayaran
+
+  /// Konfigurasi metode pembayaran (settings/pembayaran) — mana yang aktif
+  /// dan statis/dinamis. Kosong → bawaan (3 metode statis).
+  Stream<KonfigPembayaran> watchKonfigPembayaran() => _db
+      .collection('settings')
+      .doc('pembayaran')
+      .snapshots()
+      .map((s) => KonfigPembayaran.fromMap(s.data() ?? const {}));
+
+  Future<void> simpanKonfigPembayaran(KonfigPembayaran k) => _db
+      .collection('settings')
+      .doc('pembayaran')
+      .set(k.toMap(), SetOptions(merge: false));
 
   // --------------------------------------------------------------- app config
 

@@ -1,0 +1,15 @@
+{
+  "name": "tuntaskilat-rules-test",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Tes unit Security Rules Firestore Tuntaskilat (emulator).",
+  "type": "module",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project tuntaskilat-test \"vitest run\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.0.0",
+    "vitest": "^2.1.0"
+  }
+}

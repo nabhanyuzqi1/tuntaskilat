@@ -24,6 +24,8 @@ Future<void> main() async {
       await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform);
     }
+    await aktifkanAppCheck();
+    await pasangCrashlytics();
     FirebaseMessaging.onBackgroundMessage(fcmBackgroundHandler);
   } catch (e) {
     debugPrint('Gagal init Firebase/FCM: $e');
@@ -31,9 +33,9 @@ Future<void> main() async {
 
   await NotificationService().initialize();
 
-  runApp(
-    const ProviderScope(
-      child: TkKruApp(),
-    ),
-  );
+  jalankanTerpantau(() => runApp(
+        const ProviderScope(
+          child: TkKruApp(),
+        ),
+      ));
 }

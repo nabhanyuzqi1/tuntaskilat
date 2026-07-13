@@ -15,6 +15,15 @@ final pengaturanRekeningProvider = StreamProvider<Map<String, dynamic>>((ref) {
       .watchSettings('payments');
 });
 
+/// Konfigurasi metode pembayaran (aktif + statis/dinamis) yang dikelola
+/// admin. Kosong/belum siap → bawaan (3 metode statis) supaya P7 tetap jalan.
+final konfigPembayaranProvider = StreamProvider<KonfigPembayaran>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) {
+    return Stream.value(KonfigPembayaran.bawaan);
+  }
+  return ref.watch(firestoreServiceProvider).watchKonfigPembayaran();
+});
+
 /// Inisialisasi Firebase non-blocking — dijalankan setelah frame pertama
 /// (P1 sudah tampil) sehingga tidak ada jeda layar putih saat cold start.
 /// Mengembalikan true bila berhasil, false bila firebase_options masih
@@ -25,6 +34,10 @@ final firebaseInitProvider = FutureProvider<bool>((_) async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      // App Check tepat setelah init — lindungi Firestore/Storage dari
+      // pemanggil non-resmi (enforcement diaktifkan bertahap di Console).
+      await aktifkanAppCheck();
+      await pasangCrashlytics();
       try {
         await NotificationService().initialize();
       } catch (e) {
