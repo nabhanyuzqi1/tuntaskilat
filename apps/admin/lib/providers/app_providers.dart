@@ -121,6 +121,15 @@ final vouchersProvider = StreamProvider<List<VoucherModel>>((ref) {
   return ref.watch(firestoreServiceProvider).watchVouchers();
 });
 
+/// Keluhan/sengketa pelanggan (A9 Klien — pantau keluhan), terbaru dulu.
+final disputesProvider = StreamProvider<List<DisputeModel>>((ref) {
+  if (!ref.watch(firebaseSiapProvider)) return Stream.value(const []);
+  return ref.watch(firestoreServiceProvider).watchDisputes().map(
+        (l) => (l.toList()..sort((a, b) => b.waktu.compareTo(a.waktu)))
+            .toList(growable: false),
+      );
+});
+
 /// Jumlah pesanan menunggu verifikasi — badge sidebar & KPI A2.
 final menungguVerifikasiProvider = Provider<int>((ref) =>
     ref

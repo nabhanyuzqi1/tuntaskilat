@@ -97,11 +97,108 @@ class A2DashboardScreen extends ConsumerWidget {
                 ),
               const SizedBox(height: 20),
               _tabelTerbaru(orders),
+              const SizedBox(height: 20),
+              _performaKru(orders, kru),
             ],
           );
         }),
       ),
     ]);
+  }
+
+  /// Performa kru — ranking individual dihitung dari order yang sudah dimuat
+  /// (tanpa query tambahan): jumlah tugas selesai, rating, dan total nilai
+  /// order yang dikerjakan. Membantu admin melihat kru paling produktif.
+  Widget _performaKru(List<OrderModel> orders, List<KruModel> kru) {
+    // Kumpulkan statistik per cleanerId dari order selesai.
+    final tugasSelesai = <String, int>{};
+    final nilaiDikerjakan = <String, num>{};
+    for (final o in orders) {
+      if (!_selesai(o.status)) continue;
+      // Kru yang dikreditkan: seluruh penugasan bila ada, jika tidak
+      // fallback ke cleanerId tunggal.
+      final ids = o.penugasan.isNotEmpty
+          ? o.penugasan.map((p) => p.cleanerId).toSet()
+          : (o.cleanerId.isEmpty ? <String>{} : {o.cleanerId});
+      for (final id in ids) {
+        tugasSelesai[id] = (tugasSelesai[id] ?? 0) + 1;
+        nilaiDikerjakan[id] = (nilaiDikerjakan[id] ?? 0) + o.totalHarga;
+      }
+    }
+    // Urutkan kru berdasar tugas selesai terbanyak, lalu rating.
+    final baris = [...kru]..sort((a, b) {
+        final ta = tugasSelesai[a.cleanerId] ?? 0;
+        final tb = tugasSelesai[b.cleanerId] ?? 0;
+        if (tb != ta) return tb.compareTo(ta);
+        return b.rataRating.compareTo(a.rataRating);
+      });
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: AdminUi.kartu(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+          child: Row(children: [
+            Text('Performa Kru',
+                style: GoogleFonts.montserrat(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: TkColors.inkSoft)),
+            const SizedBox(width: 8),
+            Text('· bulan berjalan & lampau',
+                style: GoogleFonts.montserrat(
+                    fontSize: 12, color: TkColors.textMuted)),
+          ]),
+        ),
+        AdminUi.judulTabel(const [
+          ('KRU', 22),
+          ('TUGAS SELESAI', 14),
+          ('RATING', 12),
+          ('NILAI DIKERJAKAN', 16),
+        ]),
+        if (baris.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(28),
+            child: Text('Belum ada kru.',
+                style: GoogleFonts.montserrat(
+                    fontSize: 13, color: TkColors.textMuted)),
+          )
+        else
+          for (final k in baris)
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: Color(0x0D0F281C))),
+              ),
+              child: Row(children: [
+                Expanded(flex: 22, child: AdminUi.teksSel(k.nama, tebal: true)),
+                Expanded(
+                    flex: 14,
+                    child: AdminUi.teksSel(
+                        '${tugasSelesai[k.cleanerId] ?? 0}')),
+                Expanded(
+                  flex: 12,
+                  child: Row(children: [
+                    const Icon(Icons.star_rounded,
+                        size: 15, color: TkColors.accent),
+                    const SizedBox(width: 4),
+                    AdminUi.teksSel(
+                        '${k.rataRating.toStringAsFixed(1).replaceAll('.', ',')} '
+                        '(${k.jumlahUlasan.round()})'),
+                  ]),
+                ),
+                Expanded(
+                    flex: 16,
+                    child: AdminUi.teksSel(
+                        PriceBadge.formatRupiah(
+                            nilaiDikerjakan[k.cleanerId] ?? 0),
+                        tebal: true)),
+              ]),
+            ),
+      ]),
+    );
   }
 
   Widget _kpi(IconData ikon, String nilai, String label, Color warna) =>

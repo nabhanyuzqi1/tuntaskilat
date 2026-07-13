@@ -17,25 +17,27 @@ Dokumen desain untuk item yang DIMINTA owner tetapi butuh sesi khusus
    dinamis|statis}`; switcher per metode di A6; P7 membaca daftar ini
    (dinamis = VA/QRIS Xendit; statis = transfer manual + bukti).
 
-## 2. Dashboard performa (admin)
+## 2. Dashboard performa (admin) — ✅ SEBAGIAN (13 Jul)
 
-- **Bisnis**: omzet per hari/minggu/bulan, order per layanan, konversi
-  batal, AOV — agregasi dari `orders` selesai (Cloud Function harian menulis
-  `stats/{yyyymmdd}` agar panel tidak membaca ribuan dokumen).
-- **Kru (agregat)**: jumlah tugas selesai, rata-rata rating, on-time rate.
-- **Individual**: riwayat tugas + rating + pendapatan per kru (join
-  `orders.penugasan` × `payouts`), tab di dialog Kelola Kru A5.
+- **Bisnis**: ✅ sudah ada di A2 (omzet bulan ini, order aktif, grafik
+  pendapatan 7 hari, sebaran status, transaksi terbaru).
+- **Kru (agregat) + Individual**: ✅ tabel "Performa Kru" di A2 — ranking
+  tugas selesai, rating, total nilai order dikerjakan (dihitung dari orders
+  yang sudah dimuat, tanpa query tambahan).
+- **Belum**: agregasi harian `stats/{yyyymmdd}` via Cloud Function (untuk
+  skala ribuan order), AOV & konversi batal, on-time rate (butuh timestamp
+  mulai/selesai per tahap).
 
-## 3. Superadmin: data klien & pemantauan chat
+## 3. Superadmin: data klien & pemantauan keluhan — ✅ v1 (13 Jul)
 
-- Role `superadmin` (field `users.role`) — admin biasa tidak melihat menu ini.
-- **Kelola klien**: tabel `users role==pelanggan` (telepon, jumlah order,
-  total belanja, terakhir aktif) + detail riwayat.
-- **Pantau chat & keluhan**: rules `orders/*/messages` sudah mengizinkan
-  admin membaca; tambah layar inbox agregat (Cloud Function menulis index
-  `chatIndex/{orderId}` berisi pesan terakhir + flag "belum dibalas kru").
-- Keluhan: koleksi `disputes` sudah ada — tampilkan feed + status tindak
-  lanjut.
+- **Kelola klien**: ✅ menu **Klien** (A9) — tabel pelanggan (nama, telepon,
+  jumlah order, selesai, batal, total belanja, terakhir aktif) diturunkan
+  dari orders.
+- **Keluhan**: ✅ feed `disputes` (pengaju, pesanan, alasan, status, waktu).
+- **Belum**: role `superadmin` terpisah dari `admin` (kini menu tampil untuk
+  semua admin; data tetap admin-gated di rules). Inbox chat agregat
+  (`chatIndex/{orderId}` + flag "belum dibalas kru") — pesan chat sudah bisa
+  dibaca admin lewat rules, tinggal layar inbox.
 
 ## 4. AI / Machine Learning
 
