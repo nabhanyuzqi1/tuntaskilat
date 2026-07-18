@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand palette — pixel-identical to packages/tk_core/lib/theme/tk_colors.dart */
+  --color-primary: #0a874d;
+  --color-primary-dark: #006542;
+  --color-accent: #fbcc14;
+  --color-accent-alt: #f9a22b;
+  --color-ink: #000000;
+  --color-ink-soft: #10251a;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f6f8f5;
+  --color-surface-variant: #f1f5f2;
+  --color-error: #d32f2f;
+  --color-text-secondary: #5b665f;
+  --color-text-muted: #8a948e;
+  --color-border: #dce3de;
+  --color-divider: #e3e8e4;
+  --color-on-accent: #4a3a00;
+
+  /* Per-role identity */
+  --color-role-pelanggan: #0a874d;
+  --color-role-kru: #006542;
+  --color-role-admin: #0f5c3e;
+
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-card: 16px;
+  --radius-sheet: 24px;
+  --radius-button: 12px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-ink-soft);
+  background: var(--color-surface);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+.prose-manual h2,
+.prose-manual h3 {
+  scroll-margin-top: 6rem;
+}

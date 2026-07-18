@@ -57,3 +57,7 @@ node_modules/
 firebase/functions/node_modules/
 firebase/functions/.npm/
 firebase/functions/lib/
+
+# Docs sites (Vite build output — deployed via firebase deploy, not committed)
+docs-site/*/dist/
+docs-site/*/.vite/
