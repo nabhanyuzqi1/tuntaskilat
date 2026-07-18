@@ -22,6 +22,7 @@ coverage/
 # Build artifacts / rilis
 *.apk
 *.aab
+admin-web.zip
 
 # Signing rilis (RAHASIA — jangan pernah di-commit)
 *.jks

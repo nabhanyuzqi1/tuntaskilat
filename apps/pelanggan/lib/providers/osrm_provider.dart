@@ -42,3 +42,23 @@ final reverseGeocodeProvider = FutureProvider.autoDispose
   }
   return '';
 });
+
+/// Forward-geocode OSM Nominatim — pencarian alamat → koordinat.
+final forwardGeocodeProvider = FutureProvider.autoDispose
+    .family<LatLng?, String>((ref, query) async {
+  if (query.isEmpty) return null;
+  final url = Uri.parse('https://nominatim.openstreetmap.org/search'
+      '?q=${Uri.encodeComponent(query)}&format=jsonv2&limit=1');
+  final res = await http.get(url, headers: {
+    'User-Agent': 'Tuntaskilat/1.0 (layanan kebersihan Sampit)'
+  }).timeout(const Duration(seconds: 8));
+  if (res.statusCode == 200) {
+    final data = jsonDecode(res.body) as List<dynamic>;
+    if (data.isNotEmpty) {
+      final lat = double.tryParse(data[0]['lat']?.toString() ?? '');
+      final lon = double.tryParse(data[0]['lon']?.toString() ?? '');
+      if (lat != null && lon != null) return LatLng(lat, lon);
+    }
+  }
+  return null;
+});

@@ -33,6 +33,7 @@ class _P5FormPemesananScreenState
   int? _jamPilih;
   GeoPoint? _lokasi;
   var _mencariLokasi = false;
+  var _isRemoteLokasi = false;
   var _cobaSubmit = false; // tandai field wajib yang belum diisi
   final _alamat = TextEditingController();
   final _catatan = TextEditingController();
@@ -54,6 +55,7 @@ class _P5FormPemesananScreenState
       if (draft.tanggal != null) {
         _bulanTampil = DateTime(draft.tanggal!.year, draft.tanggal!.month);
       }
+      _isRemoteLokasi = draft.isRemoteLokasi;
     }
   }
 
@@ -83,7 +85,10 @@ class _P5FormPemesananScreenState
           'Range). Pilih titik dalam kota.');
       return;
     }
-    setState(() => _lokasi = GeoPoint(titik.latitude, titik.longitude));
+    setState(() {
+      _lokasi = GeoPoint(titik.latitude, titik.longitude);
+      _isRemoteLokasi = true;
+    });
   }
 
   /// Buka peta fullscreen (pin geser + alamat otomatis). Isi lokasi + alamat.
@@ -101,6 +106,7 @@ class _P5FormPemesananScreenState
     setState(() {
       _lokasi = hasil.lokasi;
       if (hasil.alamat.isNotEmpty) _alamat.text = hasil.alamat;
+      _isRemoteLokasi = hasil.isRemote;
     });
     _mapCtrl.move(
         LatLng(hasil.lokasi.latitude, hasil.lokasi.longitude), 16);
@@ -111,6 +117,7 @@ class _P5FormPemesananScreenState
     setState(() {
       _lokasi = a.lokasi;
       _alamat.text = a.alamat;
+      _isRemoteLokasi = true; // Alamat tersimpan dianggap remote
     });
     _mapCtrl.move(LatLng(a.lokasi.latitude, a.lokasi.longitude), 16);
   }
@@ -147,7 +154,10 @@ class _P5FormPemesananScreenState
             '(Out of Delivery Range).');
         return;
       }
-      setState(() => _lokasi = GeoPoint(titik.latitude, titik.longitude));
+      setState(() {
+        _lokasi = GeoPoint(titik.latitude, titik.longitude);
+        _isRemoteLokasi = false;
+      });
       _mapCtrl.move(titik, 16);
     } catch (_) {
       _snack('Gagal mendapatkan lokasi GPS. Ketuk peta untuk memilih titik '
@@ -170,6 +180,7 @@ class _P5FormPemesananScreenState
       // Pertahankan voucher yang mungkin sudah dipasang di P6.
       voucherKode: sebelumnya?.voucherKode ?? '',
       voucher: sebelumnya?.voucher,
+      isRemoteLokasi: _isRemoteLokasi,
     );
   }
 
@@ -259,7 +270,7 @@ class _P5FormPemesananScreenState
                   ]),
                   const SizedBox(height: 6),
                   Text('Pilih alamat tersimpan, buka peta, atau ketuk peta '
-                      'kecil di bawah.',
+                      'kecil di bawah. Catatan: Jika memilih metode pembayaran Tunai nanti, pastikan wajib ada orang di rumah/lokasi!',
                       style: GoogleFonts.montserrat(
                           fontSize: 12, color: TkColors.textMuted)),
                   const SizedBox(height: 12),

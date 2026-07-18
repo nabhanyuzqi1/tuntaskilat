@@ -204,8 +204,14 @@ class _P7FormPembayaranScreenState
     // Metode yang tampil & tipe (statis/dinamis) diatur admin.
     final konfig = ref.watch(konfigPembayaranProvider).valueOrNull ??
         KonfigPembayaran.bawaan;
-    final metodeAktif = konfig.aktif;
-    // Jika metode terpilih dinonaktifkan admin, jatuh ke metode aktif pertama.
+    var metodeAktif = konfig.aktif.toList();
+
+    // Sembunyikan opsi Tunai jika pengguna menggunakan Peta/Ketik Alamat.
+    if (draft.isRemoteLokasi) {
+      metodeAktif.removeWhere((m) => m.kode == 'tunai');
+    }
+
+    // Jika metode terpilih dinonaktifkan admin (atau karena remote), jatuh ke metode aktif pertama.
     if (metodeAktif.isNotEmpty &&
         !metodeAktif.any((m) => m.kode == _metode.wire)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

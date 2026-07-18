@@ -41,6 +41,10 @@ class _K3DetailPenugasanScreenState
   StreamSubscription<Position>? _posisiSub;
   var _memulaiStream = false;
   var _memproses = false;
+  
+  // Flag SOP Tunai
+  var _sudahKontakPelanggan = false;
+  var _sudahTerimaTunai = false;
 
   @override
   void dispose() {
@@ -104,6 +108,94 @@ class _K3DetailPenugasanScreenState
       }
     } finally {
       if (mounted) setState(() => _memproses = false);
+    }
+  }
+
+  Future<void> _dialogKendala(OrderModel order) async {
+    final alasan = await showDialog<String>(
+      context: context,
+      builder: (c) {
+        String? pilih;
+        return StatefulBuilder(builder: (context, setModalState) {
+          return AlertDialog(
+            title: const Text('Laporkan Kendala'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('Pelanggan tidak di rumah'),
+                  leading: Icon(pilih == 'Pelanggan tidak di rumah' ? Icons.radio_button_checked : Icons.radio_button_off),
+                  onTap: () => setModalState(() => pilih = 'Pelanggan tidak di rumah'),
+                ),
+                if (order.tunai)
+                  ListTile(
+                    title: const Text('Gagal bayar tunai'),
+                    leading: Icon(pilih == 'Gagal bayar tunai' ? Icons.radio_button_checked : Icons.radio_button_off),
+                    onTap: () => setModalState(() => pilih = 'Gagal bayar tunai'),
+                  ),
+                ListTile(
+                  title: const Text('Lainnya'),
+                  leading: Icon(pilih == 'Lainnya' ? Icons.radio_button_checked : Icons.radio_button_off),
+                  onTap: () => setModalState(() => pilih = 'Lainnya'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(c).pop(),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed:
+                    pilih == null ? null : () => Navigator.of(c).pop(pilih),
+                child: const Text('Batalkan Pesanan'),
+              ),
+            ],
+          );
+        });
+      },
+    );
+
+    if (alasan != null && mounted) {
+      setState(() => _memproses = true);
+      try {
+        await ref
+            .read(firestoreServiceProvider)
+            .batalkanOlehKru(order.orderId, alasan);
+        if (mounted) Navigator.of(context).pop();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Gagal: $e')));
+        }
+      } finally {
+        if (mounted) setState(() => _memproses = false);
+      }
+    }
+  }
+
+  Future<void> _dialogTerimaTunai(OrderModel order) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Terima Tunai'),
+        content: Text('Sudah terima pembayaran tunai sejumlah '
+            '${PriceBadge.formatRupiah(order.totalHarga)} dari pelanggan?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(false),
+            child: const Text('Belum'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(c).pop(true),
+            child: const Text('Ya, Sudah'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      setState(() => _sudahTerimaTunai = true);
+      _majukanStatus(order);
     }
   }
 
@@ -434,6 +526,7 @@ class _K3DetailPenugasanScreenState
                       Icons.call_rounded,
                       true,
                       () async {
+                        setState(() => _sudahKontakPelanggan = true);
                         final phone = order.teleponPelanggan.startsWith('0') 
                             ? order.teleponPelanggan.substring(1) 
                             : order.teleponPelanggan;
@@ -449,6 +542,7 @@ class _K3DetailPenugasanScreenState
                       Icons.chat_bubble_outline_rounded,
                       false,
                       () {
+                        setState(() => _sudahKontakPelanggan = true);
                         Navigator.of(context).pushNamed('/k7', arguments: {
                           'orderId': order.orderId,
                           'namaPelanggan': order.namaPelanggan,
@@ -537,18 +631,92 @@ class _K3DetailPenugasanScreenState
     }
     if (order.status.tahapBerikutKru == null) return const SizedBox.shrink();
     if (isLead) {
-      return SizedBox(
-        height: 58,
-        child: TkButton(
-          label: switch (order.status) {
-            OrderStatus.ditugaskan => 'Mulai Menuju Lokasi',
-            OrderStatus.dalamPerjalanan => 'Mulai Pengerjaan',
-            OrderStatus.diproses => 'Selesai & Buat Laporan',
-            _ => 'Lanjut',
-          },
-          loading: _memproses,
-          onPressed: () => _majukanStatus(order),
-        ),
+      bool terkunci = false;
+      String pesanKunci = '';
+      if (order.tunai) {
+        if (order.status == OrderStatus.ditugaskan && !_sudahKontakPelanggan) {
+          terkunci = true;
+          pesanKunci = 'Hubungi pelanggan dulu sebelum berangkat';
+        } else if (order.status == OrderStatus.dalamPerjalanan &&
+            !_sudahTerimaTunai) {
+          terkunci = true;
+          pesanKunci = 'Terima uang tunai dulu sebelum kerja';
+        }
+      }
+
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (terkunci)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded,
+                      size: 16, color: TkColors.error),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(pesanKunci,
+                        style: GoogleFonts.montserrat(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: TkColors.error)),
+                  ),
+                ],
+              ),
+            ),
+          Row(
+            children: [
+              if (order.status == OrderStatus.ditugaskan ||
+                  order.status == OrderStatus.dalamPerjalanan)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: OutlinedButton(
+                    onPressed: _memproses ? null : () => _dialogKendala(order),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: TkColors.error,
+                      side: const BorderSide(color: TkColors.error),
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                    ),
+                    child: const Text('Kendala'),
+                  ),
+                ),
+              Expanded(
+                child: SizedBox(
+                  height: 52,
+                  child: TkButton(
+                    label: switch (order.status) {
+                      OrderStatus.ditugaskan => 'Mulai Menuju Lokasi',
+                      OrderStatus.dalamPerjalanan =>
+                          (order.tunai && !_sudahTerimaTunai)
+                              ? 'Terima Tunai'
+                              : 'Mulai Pengerjaan',
+                      OrderStatus.diproses => 'Selesai & Buat Laporan',
+                      _ => 'Lanjut',
+                    },
+                    loading: _memproses,
+                    onPressed: terkunci &&
+                            !(order.tunai &&
+                                order.status == OrderStatus.dalamPerjalanan)
+                        ? null
+                        : () {
+                            if (order.tunai &&
+                                order.status == OrderStatus.dalamPerjalanan &&
+                                !_sudahTerimaTunai) {
+                              _dialogTerimaTunai(order);
+                              return;
+                            }
+                            _majukanStatus(order);
+                          },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       );
     }
     return Container(

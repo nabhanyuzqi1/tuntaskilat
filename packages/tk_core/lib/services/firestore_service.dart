@@ -481,6 +481,37 @@ class FirestoreService {
         'status': OrderStatus.menungguPenugasan.wire,
       });
 
+  /// Kru melaporkan kendala (gagal bayar tunai / tak di rumah) dan membatalkan
+  /// pesanan (SOP Tunai).
+  Future<void> batalkanOlehKru(String orderId, String alasan) async {
+    final orderRef = _orders.doc(orderId);
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(orderRef);
+      if (!snap.exists) throw StateError('Order tidak ditemukan.');
+      final order = OrderModel.fromMap(snap.id, snap.data()!);
+
+      // Bebaskan slot (kurangi counter `terisi`) agar bisa dipesan orang lain.
+      final slotId = snap.data()?['slotId'] as String?;
+      if (slotId != null) {
+        final slotRef = _slots.doc(slotId);
+        final sSnap = await tx.get(slotRef);
+        if (sSnap.exists) {
+          final terisi = ((sSnap.data()?['terisi'] as num?)?.toInt() ??
+              (sSnap.data()?['taken'] == true ? 1 : 0));
+          if (terisi > 0) {
+            tx.update(slotRef, {'terisi': terisi - 1});
+          }
+        }
+      }
+
+      // Update status menjadi dibatalkan
+      tx.update(orderRef, {
+        'status': OrderStatus.dibatalkan.wire,
+        'catatan': '${order.catatan}\n\n[Dibatalkan Kru]: $alasan'.trim(),
+      });
+    });
+  }
+
   // ---------------------------------------------------------------- vouchers
 
   /// Cari voucher by kode (untuk pratinjau di klien; validasi final tetap di

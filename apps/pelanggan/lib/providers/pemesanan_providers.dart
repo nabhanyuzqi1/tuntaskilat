@@ -32,6 +32,7 @@ class DraftPesanan {
     this.catatan = '',
     this.voucherKode = '',
     this.voucher,
+    this.isRemoteLokasi = false,
   });
 
   final ServiceModel layanan;
@@ -47,6 +48,10 @@ class DraftPesanan {
   /// Voucher yang diterapkan pelanggan (kosong bila tak ada).
   final String voucherKode;
   final VoucherModel? voucher;
+  
+  /// Penanda apakah lokasi dipilih manual (peta/ketik) alih-alih GPS langsung.
+  /// Dipakai untuk mengunci metode pembayaran Tunai.
+  final bool isRemoteLokasi;
 
   DateTime? get jadwal => tanggal == null || jam == null
       ? null
@@ -79,6 +84,7 @@ class DraftPesanan {
     VoucherModel? voucher,
     bool hapusJam = false,
     bool hapusVoucher = false,
+    bool? isRemoteLokasi,
   }) =>
       DraftPesanan(
         layanan: layanan,
@@ -90,6 +96,7 @@ class DraftPesanan {
         catatan: catatan ?? this.catatan,
         voucherKode: hapusVoucher ? '' : (voucherKode ?? this.voucherKode),
         voucher: hapusVoucher ? null : (voucher ?? this.voucher),
+        isRemoteLokasi: isRemoteLokasi ?? this.isRemoteLokasi,
       );
 }
 

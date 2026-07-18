@@ -1,0 +1,9 @@
+## Dev Build Updates
+- Latest snapshot of the `dev` branch.
+- Includes the newest changes for Pelanggan, Kru, and Admin apps.
+- Built according to the project specifications.
+
+**Apps included:**
+- `Tuntaskilat-Pelanggan-Release.apk` (Android Release)
+- `Tuntaskilat-Kru-Release.apk` (Android Release)
+- `admin-web.zip` (Web Release)

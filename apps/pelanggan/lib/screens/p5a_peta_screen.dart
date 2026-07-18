@@ -12,7 +12,7 @@ import 'package:tk_core/tk_core.dart';
 import '../providers/osrm_provider.dart';
 
 /// Hasil pemilihan titik dari peta fullscreen.
-typedef HasilPeta = ({GeoPoint lokasi, String alamat});
+typedef HasilPeta = ({GeoPoint lokasi, String alamat, bool isRemote});
 
 /// P5a — Peta Fullscreen untuk memilih titik lokasi (gaya Google/Gojek):
 /// pin tetap di tengah, geser peta → pin pindah, alamat terisi otomatis
@@ -37,6 +37,9 @@ class _P5aPetaScreenState extends ConsumerState<P5aPetaScreen> {
   String _alamat = '';
   bool _memuatAlamat = false;
   bool _cariGps = false;
+  bool _isRemote = true; // Default true (karena geser manual)
+  final _searchCtrl = TextEditingController();
+  bool _mencariAlamat = false;
   Timer? _debounce;
 
   @override
@@ -55,6 +58,7 @@ class _P5aPetaScreenState extends ConsumerState<P5aPetaScreen> {
   void _onGeser(MapCamera cam, bool selesai) {
     _tengah = cam.center;
     if (selesai) {
+      _isRemote = true; // Digeser manual berarti remote
       // Debounce reverse-geocode (kebijakan Nominatim ~1 req/detik).
       _debounce?.cancel();
       _debounce = Timer(const Duration(milliseconds: 700), _perbaruiAlamat);
@@ -97,12 +101,35 @@ class _P5aPetaScreenState extends ConsumerState<P5aPetaScreen> {
             const LocationSettings(accuracy: LocationAccuracy.high),
       ).timeout(const Duration(seconds: 12));
       _tengah = LatLng(p.latitude, p.longitude);
+      _isRemote = false; // Lokasi dari GPS
       _mapCtrl.move(_tengah, 17);
       _perbaruiAlamat();
     } catch (_) {
       _snack('Gagal mendapatkan lokasi. Geser peta untuk memilih titik.');
     } finally {
       if (mounted) setState(() => _cariGps = false);
+    }
+  }
+
+  Future<void> _cariAlamat() async {
+    final query = _searchCtrl.text.trim();
+    if (query.isEmpty) return;
+    FocusScope.of(context).unfocus();
+    setState(() => _mencariAlamat = true);
+    try {
+      final hasil = await ref.read(forwardGeocodeProvider(query).future);
+      if (hasil != null) {
+        _tengah = hasil;
+        _isRemote = true; // Hasil pencarian adalah remote
+        _mapCtrl.move(_tengah, 17);
+        _perbaruiAlamat();
+      } else {
+        _snack('Alamat tidak ditemukan.');
+      }
+    } catch (_) {
+      _snack('Gagal mencari alamat.');
+    } finally {
+      if (mounted) setState(() => _mencariAlamat = false);
     }
   }
 
@@ -119,6 +146,7 @@ class _P5aPetaScreenState extends ConsumerState<P5aPetaScreen> {
     Navigator.of(context).pop<HasilPeta>((
       lokasi: GeoPoint(_tengah.latitude, _tengah.longitude),
       alamat: _alamat,
+      isRemote: _isRemote,
     ));
   }
 
@@ -163,12 +191,56 @@ class _P5aPetaScreenState extends ConsumerState<P5aPetaScreen> {
         SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: _TombolBulat(
-                ikon: Icons.arrow_back_ios_new_rounded,
-                onTap: () => Navigator.of(context).pop(),
-              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _TombolBulat(
+                  ikon: Icons.arrow_back_ios_new_rounded,
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Material(
+                    color: TkColors.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    elevation: 3,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _searchCtrl,
+                              textInputAction: TextInputAction.search,
+                              onSubmitted: (_) => _cariAlamat(),
+                              decoration: const InputDecoration(
+                                hintText: 'Cari alamat / kota lain...',
+                                border: InputBorder.none,
+                                isDense: true,
+                              ),
+                              style: GoogleFonts.montserrat(fontSize: 14),
+                            ),
+                          ),
+                          if (_mencariAlamat)
+                            const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          else
+                            IconButton(
+                              icon: const Icon(Icons.search, color: TkColors.primary),
+                              onPressed: _cariAlamat,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

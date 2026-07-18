@@ -10,6 +10,9 @@
         ],
         "prototype": [
           "tuntaskilat-prototype"
+        ],
+        "canvas": [
+          "tuntaskilat-canvas"
         ]
       }
     }

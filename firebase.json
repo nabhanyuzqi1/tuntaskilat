@@ -52,6 +52,15 @@
         "**/.*",
         "**/node_modules/**"
       ]
+    },
+    {
+      "target": "canvas",
+      "public": "apps/canvas",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
     }
   ]
 }
