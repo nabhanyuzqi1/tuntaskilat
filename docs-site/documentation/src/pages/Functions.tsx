@@ -34,7 +34,7 @@ export default function Functions() {
         <Code>firebase/functions/src/index.ts</Code>.
       </Callout>
 
-      <div className="mb-8 flex items-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-subtle)] px-3.5 py-2.5">
+      <div className="mb-8 flex items-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-subtle)] px-3.5 py-2.5 print:hidden">
         <Search size={15} className="text-[color:var(--fg-faint)]" />
         <input
           value={query}
@@ -52,7 +52,7 @@ export default function Functions() {
               <div
                 key={fn.id}
                 id={fn.id}
-                className="scroll-mt-20 rounded-xl border border-[color:var(--border)] p-4"
+                className="print-avoid-break scroll-mt-20 rounded-xl border border-[color:var(--border)] p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <code className="font-mono text-[14px] font-bold text-primary">{fn.name}</code>

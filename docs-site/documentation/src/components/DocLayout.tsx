@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Menu, X, ExternalLink, BookOpen } from 'lucide-react'
+import { Menu, X, ExternalLink, BookOpen, Download } from 'lucide-react'
 import Sidebar from './Sidebar'
 import ThemeToggle from './ThemeToggle'
 
@@ -44,6 +44,14 @@ export default function DocLayout({ children }: { children: ReactNode }) {
             <BookOpen size={13} />
             Buku Panduan
             <ExternalLink size={11} />
+          </a>
+          <a
+            href="/documentation.pdf"
+            download
+            className="hidden items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-primary-dark sm:flex"
+          >
+            <Download size={13} />
+            Download PDF
           </a>
           <ThemeToggle />
         </div>

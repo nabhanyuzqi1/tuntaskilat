@@ -43,7 +43,7 @@ export function PageHero({
   const s = ROLE_STYLE[role]
   return (
     <section className={`relative overflow-hidden border-b border-border ${s.bg}`}>
-      <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/40 blur-3xl" aria-hidden />
+      <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/40 blur-3xl print:hidden" aria-hidden />
       <div className="relative mx-auto max-w-4xl px-5 py-16 md:px-8 md:py-20">
         <Reveal>
           <Eyebrow role={role}>{eyebrow}</Eyebrow>
@@ -97,7 +97,7 @@ export function Steps({ items }: { items: { title: string; desc: string }[] }) {
     <ol className="space-y-3">
       {items.map((item, i) => (
         <Reveal key={item.title} delay={i * 0.05}>
-          <li className="flex gap-4 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_2px_rgba(16,37,26,0.04)] transition-shadow hover:shadow-[0_4px_16px_rgba(16,37,26,0.06)]">
+          <li className="print-avoid-break flex gap-4 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_2px_rgba(16,37,26,0.04)] transition-shadow hover:shadow-[0_4px_16px_rgba(16,37,26,0.06)]">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-white">
               {i + 1}
             </span>
@@ -124,7 +124,7 @@ export function FeatureGrid({
           <motion.div
             whileHover={{ y: -3 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className="h-full rounded-2xl border border-border bg-white p-4"
+            className="print-avoid-break h-full rounded-2xl border border-border bg-white p-4"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-muted text-primary">
               {item.icon}
@@ -152,7 +152,7 @@ export function Callout({
   }[type]
   const Icon = cfg.icon
   return (
-    <div className={`flex gap-3 rounded-xl border ${cfg.border} ${cfg.bg} p-4`}>
+    <div className={`print-avoid-break flex gap-3 rounded-xl border ${cfg.border} ${cfg.bg} p-4`}>
       <Icon size={18} className={`mt-0.5 shrink-0 ${cfg.iconColor}`} />
       <div className={`text-[13.5px] leading-relaxed ${cfg.text}`}>{children}</div>
     </div>
@@ -187,7 +187,7 @@ export function GuidePage({
 
 export function TOC({ items }: { items: { id: string; label: string }[] }) {
   return (
-    <nav className="sticky top-24 hidden max-h-[calc(100vh-8rem)] w-56 shrink-0 overflow-y-auto pb-10 lg:block">
+    <nav className="sticky top-24 hidden max-h-[calc(100vh-8rem)] w-56 shrink-0 overflow-y-auto pb-10 lg:block print:hidden">
       <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-text-muted">
         Di halaman ini
       </p>

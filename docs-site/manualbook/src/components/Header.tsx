@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Menu, X, ExternalLink } from 'lucide-react'
+import { Menu, X, ExternalLink, Download } from 'lucide-react'
 
 const NAV = [
   { to: '/', label: 'Beranda', end: true },
@@ -77,7 +77,7 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-2">
           <a
             href="https://tuntaskilat-documentation.web.app"
             target="_blank"
@@ -86,6 +86,14 @@ export default function Header() {
           >
             Dokumentasi Teknis
             <ExternalLink size={13} strokeWidth={2.4} />
+          </a>
+          <a
+            href="/manual-book.pdf"
+            download
+            className="flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary-dark"
+          >
+            <Download size={13} strokeWidth={2.4} />
+            Unduh PDF
           </a>
         </div>
 
@@ -133,6 +141,14 @@ export default function Header() {
               >
                 Dokumentasi Teknis
                 <ExternalLink size={13} />
+              </a>
+              <a
+                href="/manual-book.pdf"
+                download
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-white"
+              >
+                <Download size={13} />
+                Unduh PDF
               </a>
             </nav>
           </motion.div>

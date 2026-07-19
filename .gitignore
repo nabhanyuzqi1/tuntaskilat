@@ -61,3 +61,7 @@ firebase/functions/lib/
 # Docs sites (Vite build output — deployed via firebase deploy, not committed)
 docs-site/*/dist/
 docs-site/*/.vite/
+
+# PDF export scratch output (regenerate via docs-site/pdf-export/export.mjs;
+# the deliverable copies live in each site's public/ and ARE committed)
+/pdf-output/

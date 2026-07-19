@@ -65,3 +65,42 @@ body {
 .prose-manual h3 {
   scroll-margin-top: 6rem;
 }
+
+/* ============================== PDF / print (corporate book) ============ */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  /* Framer Motion sets opacity/transform via inline style for scroll-reveal
+     (whileInView) — headless PDF capture never scrolls, so anything not yet
+     "in view" would stay invisible. Force everything to its settled state. */
+  [style*="opacity"] {
+    opacity: 1 !important;
+  }
+  [style*="transform"] {
+    transform: none !important;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .print-chapter {
+    break-before: page;
+  }
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+  .print-cover,
+  .print-toc {
+    break-after: page;
+  }
+}

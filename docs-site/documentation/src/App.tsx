@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Outlet } from 'react-router-dom'
 import DocLayout from './components/DocLayout'
 import Home from './pages/Home'
 import GettingStarted from './pages/GettingStarted'
@@ -12,11 +12,20 @@ import Ai from './pages/Ai'
 import Notifications from './pages/Notifications'
 import Deployment from './pages/Deployment'
 import Changelog from './pages/Changelog'
+import Print from './pages/Print'
+
+function SiteLayout() {
+  return (
+    <DocLayout>
+      <Outlet />
+    </DocLayout>
+  )
+}
 
 function App() {
   return (
-    <DocLayout>
-      <Routes>
+    <Routes>
+      <Route element={<SiteLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/getting-started" element={<GettingStarted />} />
         <Route path="/architecture" element={<Architecture />} />
@@ -29,8 +38,10 @@ function App() {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/deployment" element={<Deployment />} />
         <Route path="/changelog" element={<Changelog />} />
-      </Routes>
-    </DocLayout>
+      </Route>
+      {/* /print is a standalone print-optimized document — no site chrome */}
+      <Route path="/print" element={<Print />} />
+    </Routes>
   )
 }
 

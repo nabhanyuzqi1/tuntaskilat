@@ -74,7 +74,7 @@ export function Table({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-[color:var(--border)] last:border-b-0">
+            <tr key={i} className="print-avoid-break border-b border-[color:var(--border)] last:border-b-0">
               {row.map((cell, j) => (
                 <td key={j} className="px-3.5 py-2.5 align-top text-[color:var(--fg-muted)]">
                   {cell}
@@ -128,7 +128,7 @@ export function Callout({
   }[type]
   const Icon = cfg.icon
   return (
-    <div className={`mb-5 flex gap-3 rounded-xl border p-4 ${cfg.cls}`}>
+    <div className={`print-avoid-break mb-5 flex gap-3 rounded-xl border p-4 ${cfg.cls}`}>
       <Icon size={17} className="mt-0.5 shrink-0" />
       <div className="text-[13.5px] leading-relaxed text-[color:var(--fg)]">{children}</div>
     </div>
@@ -170,7 +170,7 @@ export function DocPage({
 
 export function PageTOC({ items }: { items: { id: string; label: string }[] }) {
   return (
-    <nav className="sticky top-20 hidden max-h-[calc(100vh-6rem)] w-52 shrink-0 overflow-y-auto pb-10 xl:block">
+    <nav className="sticky top-20 hidden max-h-[calc(100vh-6rem)] w-52 shrink-0 overflow-y-auto pb-10 xl:block print:hidden">
       <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-[color:var(--fg-faint)]">
         Di halaman ini
       </p>
