@@ -20,7 +20,7 @@ export default function CodeBlock({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-code)]">
+    <div className="print-avoid-break overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-code)]">
       {title && (
         <div className="flex items-center justify-between border-b border-[color:var(--border)] px-4 py-2">
           <span className="font-mono text-[11px] text-[color:var(--fg-muted)]">{title}</span>

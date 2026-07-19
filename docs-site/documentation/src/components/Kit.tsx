@@ -198,7 +198,7 @@ export function PrevNext({
   next?: { to: string; label: string }
 }) {
   return (
-    <div className="mt-16 flex items-center justify-between gap-4 border-t border-[color:var(--border)] pt-6">
+    <div className="print:hidden mt-16 flex items-center justify-between gap-4 border-t border-[color:var(--border)] pt-6">
       {prev ? (
         <Link to={prev.to} className="group flex flex-col text-left">
           <span className="text-[11px] text-[color:var(--fg-faint)]">Previous</span>
