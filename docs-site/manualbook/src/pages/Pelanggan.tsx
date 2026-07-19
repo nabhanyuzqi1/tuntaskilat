@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Smartphone,
 } from 'lucide-react'
-import { GuidePage, Section, Steps, FeatureGrid, Callout } from '../components/GuideKit'
+import { GuidePage, Section, Steps, FeatureGrid, Callout, ScreenFigure, WithScreen } from '../components/GuideKit'
 
 const TOC = [
   { id: 'memulai', label: 'Memulai' },
@@ -37,33 +37,35 @@ export default function Pelanggan() {
       toc={TOC}
     >
       <Section id="memulai" icon={<Rocket size={18} />} title="Memulai">
-        <p className="text-[14.5px] leading-relaxed text-text-secondary">
-          Anda bisa mendaftar dengan email & kata sandi, atau langsung
-          masuk dengan akun Google. Pengguna baru wajib melengkapi profil
-          sebelum dapat memesan layanan.
-        </p>
-        <div className="mt-5">
-          <Steps
-            items={[
-              {
-                title: 'Unduh & buka aplikasi',
-                desc: 'Layar pembuka menampilkan pengenalan singkat (onboarding) tentang cara kerja Tuntaskilat.',
-              },
-              {
-                title: 'Daftar atau Masuk',
-                desc: 'Gunakan email + kata sandi (minimal 8 karakter), atau tombol "Masuk dengan Google". Punya kode referal dari teman? Masukkan saat mendaftar untuk aktivasi hadiah nanti.',
-              },
-              {
-                title: 'Berikan izin lokasi',
-                desc: 'Diperlukan agar aplikasi bisa menyarankan alamat & menghitung jarak layanan secara akurat.',
-              },
-              {
-                title: 'Lengkapi profil',
-                desc: 'Nama, nomor telepon, dan alamat wajib diisi (khusus akun Google yang baru pertama kali masuk) sebelum dapat memesan.',
-              },
-            ]}
-          />
-        </div>
+        <WithScreen screen={<ScreenFigure src="/hifi/p2.webp" caption="P2 — Masuk / Registrasi" />}>
+          <p className="text-[14.5px] leading-relaxed text-text-secondary">
+            Anda bisa mendaftar dengan email & kata sandi, atau langsung
+            masuk dengan akun Google. Pengguna baru wajib melengkapi profil
+            sebelum dapat memesan layanan.
+          </p>
+          <div className="mt-5">
+            <Steps
+              items={[
+                {
+                  title: 'Unduh & buka aplikasi',
+                  desc: 'Layar pembuka menampilkan pengenalan singkat (onboarding) tentang cara kerja Tuntaskilat.',
+                },
+                {
+                  title: 'Daftar atau Masuk',
+                  desc: 'Gunakan email + kata sandi (minimal 8 karakter), atau tombol "Masuk dengan Google". Punya kode referal dari teman? Masukkan saat mendaftar untuk aktivasi hadiah nanti.',
+                },
+                {
+                  title: 'Berikan izin lokasi',
+                  desc: 'Diperlukan agar aplikasi bisa menyarankan alamat & menghitung jarak layanan secara akurat.',
+                },
+                {
+                  title: 'Lengkapi profil',
+                  desc: 'Nama, nomor telepon, dan alamat wajib diisi (khusus akun Google yang baru pertama kali masuk) sebelum dapat memesan.',
+                },
+              ]}
+            />
+          </div>
+        </WithScreen>
       </Section>
 
       <Section
@@ -72,30 +74,32 @@ export default function Pelanggan() {
         title="Menjelajahi Layanan"
         subtitle="Beranda menampilkan katalog layanan, promo berjalan, dan pesanan aktif Anda dalam satu tampilan."
       >
-        <FeatureGrid
-          items={[
-            {
-              icon: <LayoutGrid size={17} />,
-              title: 'Katalog Lengkap',
-              desc: 'Ketuk "Lihat Semua Layanan" untuk menjelajah berdasarkan kategori (rumah, umum, dsb).',
-            },
-            {
-              icon: <MapPin size={17} />,
-              title: 'Detail Layanan',
-              desc: 'Setiap layanan menampilkan deskripsi, satuan harga, dan struktur harga (paket/per m²/mulai dari).',
-            },
-            {
-              icon: <BellRing size={17} />,
-              title: 'Banner Promo',
-              desc: 'Ketuk banner di beranda untuk melihat detail promo dan tautan terkait.',
-            },
-            {
-              icon: <CalendarCheck size={17} />,
-              title: 'Pesanan Aktif',
-              desc: 'Kartu pesanan aktif muncul otomatis di beranda — ketuk untuk melacak progresnya.',
-            },
-          ]}
-        />
+        <WithScreen screen={<ScreenFigure src="/hifi/p3.webp" caption="P3 — Beranda" />}>
+          <FeatureGrid
+            items={[
+              {
+                icon: <LayoutGrid size={17} />,
+                title: 'Katalog Lengkap',
+                desc: 'Ketuk "Lihat Semua Layanan" untuk menjelajah berdasarkan kategori (rumah, umum, dsb).',
+              },
+              {
+                icon: <MapPin size={17} />,
+                title: 'Detail Layanan',
+                desc: 'Setiap layanan menampilkan deskripsi, satuan harga, dan struktur harga (paket/per m²/mulai dari).',
+              },
+              {
+                icon: <BellRing size={17} />,
+                title: 'Banner Promo',
+                desc: 'Ketuk banner di beranda untuk melihat detail promo dan tautan terkait.',
+              },
+              {
+                icon: <CalendarCheck size={17} />,
+                title: 'Pesanan Aktif',
+                desc: 'Kartu pesanan aktif muncul otomatis di beranda — ketuk untuk melacak progresnya.',
+              },
+            ]}
+          />
+        </WithScreen>
       </Section>
 
       <Section
@@ -104,50 +108,52 @@ export default function Pelanggan() {
         title="Membuat Pesanan"
         subtitle="Form pemesanan menyesuaikan skema harga masing-masing layanan."
       >
-        <div className="space-y-4">
-          <p className="text-[14.5px] leading-relaxed text-text-secondary">
-            Tiga skema harga yang mungkin Anda temui:
-          </p>
-          <ul className="grid gap-3 sm:grid-cols-3">
-            <li className="rounded-xl border border-border bg-white p-4">
-              <p className="text-[13px] font-bold text-ink-soft">Per Luas</p>
-              <p className="mt-1 text-[12.5px] text-text-secondary">Pilih jenis area (mis. rumput ringan/tinggi) lalu masukkan luas dalam m².</p>
-            </li>
-            <li className="rounded-xl border border-border bg-white p-4">
-              <p className="text-[13px] font-bold text-ink-soft">Paket</p>
-              <p className="mt-1 text-[12.5px] text-text-secondary">Pilih paket & durasi jam, tambah jam ekstra atau add-on bila perlu.</p>
-            </li>
-            <li className="rounded-xl border border-border bg-white p-4">
-              <p className="text-[13px] font-bold text-ink-soft">Mulai Dari</p>
-              <p className="mt-1 text-[12.5px] text-text-secondary">Harga per unit dikalikan jumlah/kuantitas yang Anda pilih.</p>
-            </li>
-          </ul>
-          <Steps
-            items={[
-              {
-                title: 'Pilih jadwal',
-                desc: 'Tanggal & jam kedatangan kru. Slot yang penuh (kapasitas kru habis) otomatis dinonaktifkan.',
-              },
-              {
-                title: 'Tentukan lokasi',
-                desc: 'Pilih titik di peta atau gunakan "Lokasi Saya" — alamat terisi otomatis (reverse-geocoding), atau pilih dari alamat tersimpan.',
-              },
-              {
-                title: 'Tinjau rincian tagihan',
-                desc: 'Subtotal, potongan voucher (jika ada), dan total akhir dihitung ulang oleh server — angka yang Anda lihat selalu akurat.',
-              },
-              {
-                title: 'Lanjut ke pembayaran',
-                desc: 'Slot jadwal baru dikunci saat Anda menekan bayar — draf yang ditinggalkan tidak menyandera jadwal orang lain.',
-              },
-            ]}
-          />
-          <Callout type="info">
-            Jika layanan yang Anda pilih sedang tidak punya kru aktif tersedia,
-            slot jadwalnya otomatis terkunci dan tidak bisa dipesan sampai ada
-            kru yang aktif kembali.
-          </Callout>
-        </div>
+        <WithScreen screen={<ScreenFigure src="/hifi/p5.webp" caption="P5 — Form Pemesanan" />}>
+          <div className="space-y-4">
+            <p className="text-[14.5px] leading-relaxed text-text-secondary">
+              Tiga skema harga yang mungkin Anda temui:
+            </p>
+            <ul className="grid gap-3 sm:grid-cols-3">
+              <li className="rounded-xl border border-border bg-white p-4">
+                <p className="text-[13px] font-bold text-ink-soft">Per Luas</p>
+                <p className="mt-1 text-[12.5px] text-text-secondary">Pilih jenis area (mis. rumput ringan/tinggi) lalu masukkan luas dalam m².</p>
+              </li>
+              <li className="rounded-xl border border-border bg-white p-4">
+                <p className="text-[13px] font-bold text-ink-soft">Paket</p>
+                <p className="mt-1 text-[12.5px] text-text-secondary">Pilih paket & durasi jam, tambah jam ekstra atau add-on bila perlu.</p>
+              </li>
+              <li className="rounded-xl border border-border bg-white p-4">
+                <p className="text-[13px] font-bold text-ink-soft">Mulai Dari</p>
+                <p className="mt-1 text-[12.5px] text-text-secondary">Harga per unit dikalikan jumlah/kuantitas yang Anda pilih.</p>
+              </li>
+            </ul>
+            <Steps
+              items={[
+                {
+                  title: 'Pilih jadwal',
+                  desc: 'Tanggal & jam kedatangan kru. Slot yang penuh (kapasitas kru habis) otomatis dinonaktifkan.',
+                },
+                {
+                  title: 'Tentukan lokasi',
+                  desc: 'Pilih titik di peta atau gunakan "Lokasi Saya" — alamat terisi otomatis (reverse-geocoding), atau pilih dari alamat tersimpan.',
+                },
+                {
+                  title: 'Tinjau rincian tagihan',
+                  desc: 'Subtotal, potongan voucher (jika ada), dan total akhir dihitung ulang oleh server — angka yang Anda lihat selalu akurat.',
+                },
+                {
+                  title: 'Lanjut ke pembayaran',
+                  desc: 'Slot jadwal baru dikunci saat Anda menekan bayar — draf yang ditinggalkan tidak menyandera jadwal orang lain.',
+                },
+              ]}
+            />
+            <Callout type="info">
+              Jika layanan yang Anda pilih sedang tidak punya kru aktif tersedia,
+              slot jadwalnya otomatis terkunci dan tidak bisa dipesan sampai ada
+              kru yang aktif kembali.
+            </Callout>
+          </div>
+        </WithScreen>
       </Section>
 
       <Section
@@ -156,27 +162,29 @@ export default function Pelanggan() {
         title="Pembayaran"
         subtitle="Tiga metode tersedia — admin dapat mengaktifkan/menonaktifkan salah satunya."
       >
-        <FeatureGrid
-          items={[
-            { icon: <CreditCard size={17} />, title: 'Transfer Bank', desc: 'Transfer ke rekening resmi, lalu unggah bukti transfer untuk diverifikasi admin.' },
-            { icon: <Smartphone size={17} />, title: 'QRIS', desc: 'Pindai kode QRIS yang tersedia — unggah bukti pembayaran setelahnya.' },
-            { icon: <ShieldCheck size={17} />, title: 'Tunai', desc: 'Bayar langsung ke kru saat pekerjaan selesai — pesanan tetap diproses tanpa unggah bukti.' },
-          ]}
-        />
-        <div className="mt-5 space-y-3">
-          <p className="text-[14.5px] leading-relaxed text-text-secondary">
-            Untuk transfer/QRIS: setelah bukti diunggah, status pesanan menjadi
-            <strong className="text-ink-soft"> "Menunggu Verifikasi"</strong> hingga admin memeriksanya.
-            Jika ditolak (mis. bukti tidak jelas), Anda dapat mengunggah ulang
-            dari halaman Riwayat.
-          </p>
-          <Callout type="tip">
-            Beberapa metode pembayaran mungkin diproses otomatis melalui
-            payment gateway (VA/QRIS dinamis) — jika tersedia, status akan
-            terverifikasi otomatis begitu pembayaran diterima, tanpa perlu
-            mengunggah bukti manual.
-          </Callout>
-        </div>
+        <WithScreen screen={<ScreenFigure src="/hifi/p7.webp" caption="P7 — Form Pembayaran" />}>
+          <FeatureGrid
+            items={[
+              { icon: <CreditCard size={17} />, title: 'Transfer Bank', desc: 'Transfer ke rekening resmi, lalu unggah bukti transfer untuk diverifikasi admin.' },
+              { icon: <Smartphone size={17} />, title: 'QRIS', desc: 'Pindai kode QRIS yang tersedia — unggah bukti pembayaran setelahnya.' },
+              { icon: <ShieldCheck size={17} />, title: 'Tunai', desc: 'Bayar langsung ke kru saat pekerjaan selesai — pesanan tetap diproses tanpa unggah bukti.' },
+            ]}
+          />
+          <div className="mt-5 space-y-3">
+            <p className="text-[14.5px] leading-relaxed text-text-secondary">
+              Untuk transfer/QRIS: setelah bukti diunggah, status pesanan menjadi
+              <strong className="text-ink-soft"> "Menunggu Verifikasi"</strong> hingga admin memeriksanya.
+              Jika ditolak (mis. bukti tidak jelas), Anda dapat mengunggah ulang
+              dari halaman Riwayat.
+            </p>
+            <Callout type="tip">
+              Beberapa metode pembayaran mungkin diproses otomatis melalui
+              payment gateway (VA/QRIS dinamis) — jika tersedia, status akan
+              terverifikasi otomatis begitu pembayaran diterima, tanpa perlu
+              mengunggah bukti manual.
+            </Callout>
+          </div>
+        </WithScreen>
       </Section>
 
       <Section
@@ -185,13 +193,15 @@ export default function Pelanggan() {
         title="Melacak Pesanan"
         subtitle="Pantau posisi kru secara real-time begitu mereka mulai perjalanan."
       >
-        <p className="text-[14.5px] leading-relaxed text-text-secondary">
-          Halaman Lacak Pesanan menampilkan peta dengan penanda posisi kru,
-          status pesanan terkini (Ditugaskan → Dalam Perjalanan → Diproses →
-          Selesai), dan tombol cepat untuk menghubungi kru via chat atau CS
-          via WhatsApp. Anda dapat membatalkan pesanan selama kru belum
-          ditugaskan.
-        </p>
+        <WithScreen screen={<ScreenFigure src="/hifi/p8.webp" caption="P8 — Lacak Pesanan" />}>
+          <p className="text-[14.5px] leading-relaxed text-text-secondary">
+            Halaman Lacak Pesanan menampilkan peta dengan penanda posisi kru,
+            status pesanan terkini (Ditugaskan → Dalam Perjalanan → Diproses →
+            Selesai), dan tombol cepat untuk menghubungi kru via chat atau CS
+            via WhatsApp. Anda dapat membatalkan pesanan selama kru belum
+            ditugaskan.
+          </p>
+        </WithScreen>
       </Section>
 
       <Section
@@ -238,23 +248,27 @@ export default function Pelanggan() {
       </Section>
 
       <Section id="notifikasi" icon={<BellRing size={18} />} title="Notifikasi">
-        <p className="text-[14.5px] leading-relaxed text-text-secondary">
-          Setiap perubahan status penting (terverifikasi, ditugaskan, dalam
-          perjalanan, selesai) mengirim notifikasi push ke ponsel Anda dan
-          tercatat di halaman Notifikasi — ketuk untuk langsung membuka
-          pesanan terkait.
-        </p>
+        <WithScreen screen={<ScreenFigure src="/hifi/p12.webp" caption="P12 — Notifikasi" />}>
+          <p className="text-[14.5px] leading-relaxed text-text-secondary">
+            Setiap perubahan status penting (terverifikasi, ditugaskan, dalam
+            perjalanan, selesai) mengirim notifikasi push ke ponsel Anda dan
+            tercatat di halaman Notifikasi — ketuk untuk langsung membuka
+            pesanan terkait.
+          </p>
+        </WithScreen>
       </Section>
 
       <Section id="profil" icon={<UserCog size={18} />} title="Profil & Akun">
-        <FeatureGrid
-          items={[
-            { icon: <UserCog size={17} />, title: 'Edit Profil', desc: 'Ubah nama, telepon, alamat, dan foto profil kapan saja.' },
-            { icon: <MapPin size={17} />, title: 'Alamat Tersimpan', desc: 'Simpan beberapa alamat berlabel untuk dipilih cepat saat memesan.' },
-            { icon: <ShieldCheck size={17} />, title: 'Ubah Kata Sandi', desc: 'Perbarui kata sandi akun secara berkala demi keamanan.' },
-            { icon: <MessageCircle size={17} />, title: 'Bantuan', desc: 'Akses FAQ, kontak CS, dan Asisten AI dari satu halaman.' },
-          ]}
-        />
+        <WithScreen screen={<ScreenFigure src="/hifi/p11.webp" caption="P11 — Profil" />}>
+          <FeatureGrid
+            items={[
+              { icon: <UserCog size={17} />, title: 'Edit Profil', desc: 'Ubah nama, telepon, alamat, dan foto profil kapan saja.' },
+              { icon: <MapPin size={17} />, title: 'Alamat Tersimpan', desc: 'Simpan beberapa alamat berlabel untuk dipilih cepat saat memesan.' },
+              { icon: <ShieldCheck size={17} />, title: 'Ubah Kata Sandi', desc: 'Perbarui kata sandi akun secara berkala demi keamanan.' },
+              { icon: <MessageCircle size={17} />, title: 'Bantuan', desc: 'Akses FAQ, kontak CS, dan Asisten AI dari satu halaman.' },
+            ]}
+          />
+        </WithScreen>
       </Section>
     </GuidePage>
   )

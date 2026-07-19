@@ -33,6 +33,20 @@ async function exportOne(browser, job) {
   // Wait for web fonts (Montserrat/JetBrains Mono) to finish loading so
   // text doesn't fall back to system fonts in the render.
   await page.evaluate(() => document.fonts.ready);
+
+  // Wait for every <img> (screenshots, brand assets) to finish loading —
+  // Puppeteer never scrolls the page, so anything relying on viewport-based
+  // lazy-loading would otherwise render as a blank box.
+  await page.evaluate(() =>
+    Promise.all(
+      Array.from(document.images)
+        .filter((img) => !img.complete)
+        .map((img) => new Promise((resolve) => {
+          img.addEventListener('load', resolve);
+          img.addEventListener('error', resolve);
+        }))
+    )
+  );
   await new Promise((r) => setTimeout(r, 400));
 
   console.log(`  rendering PDF → ${job.outFile}`);

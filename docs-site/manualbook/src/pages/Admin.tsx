@@ -16,7 +16,7 @@ import {
   Power,
   Bot,
 } from 'lucide-react'
-import { GuidePage, Section, Steps, FeatureGrid, Callout } from '../components/GuideKit'
+import { GuidePage, Section, Steps, FeatureGrid, Callout, ScreenFigure, WithScreen } from '../components/GuideKit'
 
 const TOC = [
   { id: 'masuk', label: 'Masuk & Keamanan' },
@@ -41,12 +41,14 @@ export default function Admin() {
       toc={TOC}
     >
       <Section id="masuk" icon={<ShieldCheck size={18} />} title="Masuk & Keamanan">
-        <p className="text-[14.5px] leading-relaxed text-text-secondary">
-          Panel Admin diakses lewat browser (desktop). Login memerlukan email
-          & kata sandi; jika Autentikasi Dua Faktor (2FA) diaktifkan, Anda
-          juga perlu memasukkan kode 6 digit dari aplikasi authenticator
-          (Google Authenticator, dsb).
-        </p>
+        <WithScreen screen={<ScreenFigure variant="admin" src="/hifi/a1.webp" caption="A1 — Login Admin" />}>
+          <p className="text-[14.5px] leading-relaxed text-text-secondary">
+            Panel Admin diakses lewat browser (desktop). Login memerlukan email
+            & kata sandi; jika Autentikasi Dua Faktor (2FA) diaktifkan, Anda
+            juga perlu memasukkan kode 6 digit dari aplikasi authenticator
+            (Google Authenticator, dsb).
+          </p>
+        </WithScreen>
       </Section>
 
       <Section
@@ -55,14 +57,16 @@ export default function Admin() {
         title="Dashboard"
         subtitle="Ringkasan performa bisnis dalam satu layar."
       >
-        <FeatureGrid
-          items={[
-            { icon: <LayoutDashboard size={17} />, title: 'KPI Utama', desc: 'Total pesanan, omzet, dan metrik kunci lain diperbarui real-time.' },
-            { icon: <Receipt size={17} />, title: 'Grafik Pendapatan', desc: 'Tren pendapatan 7 hari terakhir dalam bentuk grafik.' },
-            { icon: <Grid3x3 size={17} />, title: 'Sebaran Status', desc: 'Diagram donat menunjukkan proporsi pesanan per status, berwarna per kategori.' },
-            { icon: <Receipt size={17} />, title: 'Transaksi Terbaru', desc: 'Daftar transaksi terakhir untuk pemantauan cepat.' },
-          ]}
-        />
+        <WithScreen screen={<ScreenFigure variant="admin" src="/hifi/a2.webp" caption="A2 — Dashboard" />}>
+          <FeatureGrid
+            items={[
+              { icon: <LayoutDashboard size={17} />, title: 'KPI Utama', desc: 'Total pesanan, omzet, dan metrik kunci lain diperbarui real-time.' },
+              { icon: <Receipt size={17} />, title: 'Grafik Pendapatan', desc: 'Tren pendapatan 7 hari terakhir dalam bentuk grafik.' },
+              { icon: <Grid3x3 size={17} />, title: 'Sebaran Status', desc: 'Diagram donat menunjukkan proporsi pesanan per status, berwarna per kategori.' },
+              { icon: <Receipt size={17} />, title: 'Transaksi Terbaru', desc: 'Daftar transaksi terakhir untuk pemantauan cepat.' },
+            ]}
+          />
+        </WithScreen>
       </Section>
 
       <Section
@@ -71,38 +75,44 @@ export default function Admin() {
         title="Kelola Pesanan"
         subtitle="Verifikasi pembayaran, tugaskan kru, dan pantau seluruh siklus pesanan."
       >
-        <Steps
-          items={[
-            { title: 'Verifikasi pembayaran', desc: 'Periksa bukti transfer/QRIS yang diunggah pelanggan, terima atau tolak dengan alasan.' },
-            { title: 'Tugaskan kru', desc: 'Sistem merekomendasikan kru yang cocok (keahlian sesuai layanan & tersedia); Anda bisa menugaskan 1 atau beberapa kru (worker + helper) sekaligus.' },
-            { title: 'Pantau progres', desc: 'Filter pesanan per status untuk menindaklanjuti yang butuh perhatian.' },
-          ]}
-        />
-        <Callout type="info">
-          Pesanan yang terverifikasi namun tidak kunjung mendapat kru dalam
-          24 jam akan dibatalkan otomatis oleh sistem, dan pelanggan diberi
-          tahu — kuota jadwalnya juga otomatis dikembalikan.
-        </Callout>
+        <WithScreen screen={<ScreenFigure variant="admin" src="/hifi/a3.webp" caption="A3 — Kelola Pesanan" />}>
+          <Steps
+            items={[
+              { title: 'Verifikasi pembayaran', desc: 'Periksa bukti transfer/QRIS yang diunggah pelanggan, terima atau tolak dengan alasan.' },
+              { title: 'Tugaskan kru', desc: 'Sistem merekomendasikan kru yang cocok (keahlian sesuai layanan & tersedia); Anda bisa menugaskan 1 atau beberapa kru (worker + helper) sekaligus.' },
+              { title: 'Pantau progres', desc: 'Filter pesanan per status untuk menindaklanjuti yang butuh perhatian.' },
+            ]}
+          />
+          <Callout type="info">
+            Pesanan yang terverifikasi namun tidak kunjung mendapat kru dalam
+            24 jam akan dibatalkan otomatis oleh sistem, dan pelanggan diberi
+            tahu — kuota jadwalnya juga otomatis dikembalikan.
+          </Callout>
+        </WithScreen>
       </Section>
 
       <Section id="layanan" icon={<Grid3x3 size={18} />} title="Kelola Layanan">
-        <p className="text-[14.5px] leading-relaxed text-text-secondary">
-          Tambah/ubah layanan lengkap dengan struktur harga dinamis: tarif
-          per m² (dengan beberapa tingkatan/tier), paket (durasi + tambah jam
-          + add-on), atau harga mulai-dari per unit. Kapasitas slot per jam
-          untuk sebuah layanan dihitung otomatis dari jumlah kru aktif yang
-          memiliki keahlian terkait — tidak perlu diatur manual.
-        </p>
+        <WithScreen screen={<ScreenFigure variant="admin" src="/hifi/a4.webp" caption="A4 — Kelola Layanan" />}>
+          <p className="text-[14.5px] leading-relaxed text-text-secondary">
+            Tambah/ubah layanan lengkap dengan struktur harga dinamis: tarif
+            per m² (dengan beberapa tingkatan/tier), paket (durasi + tambah jam
+            + add-on), atau harga mulai-dari per unit. Kapasitas slot per jam
+            untuk sebuah layanan dihitung otomatis dari jumlah kru aktif yang
+            memiliki keahlian terkait — tidak perlu diatur manual.
+          </p>
+        </WithScreen>
       </Section>
 
       <Section id="kru" icon={<Users size={18} />} title="Kelola Kru">
-        <FeatureGrid
-          items={[
-            { icon: <UserPlus size={17} />, title: 'Buat Akun Kru', desc: 'Admin membuat akun kru baru langsung dari panel — tidak mengganggu sesi login admin yang aktif.' },
-            { icon: <Users size={17} />, title: 'Keahlian & Tipe', desc: 'Tandai keahlian kru per kategori layanan, dan tipe hubungan kerja (kru tetap/mitra/vendor).' },
-            { icon: <Power size={17} />, title: 'Status Kepegawaian', desc: 'Aktif, Nonaktif, atau Diberhentikan — hanya kru Aktif yang bisa ditugaskan.' },
-          ]}
-        />
+        <WithScreen screen={<ScreenFigure variant="admin" src="/hifi/a5.webp" caption="A5 — Kelola Kru" />}>
+          <FeatureGrid
+            items={[
+              { icon: <UserPlus size={17} />, title: 'Buat Akun Kru', desc: 'Admin membuat akun kru baru langsung dari panel — tidak mengganggu sesi login admin yang aktif.' },
+              { icon: <Users size={17} />, title: 'Keahlian & Tipe', desc: 'Tandai keahlian kru per kategori layanan, dan tipe hubungan kerja (kru tetap/mitra/vendor).' },
+              { icon: <Power size={17} />, title: 'Status Kepegawaian', desc: 'Aktif, Nonaktif, atau Diberhentikan — hanya kru Aktif yang bisa ditugaskan.' },
+            ]}
+          />
+        </WithScreen>
       </Section>
 
       <Section id="voucher" icon={<Ticket size={18} />} title="Kelola Voucher">
@@ -147,16 +157,18 @@ export default function Admin() {
         title="Pengaturan"
         subtitle="Pusat konfigurasi bisnis dan keamanan panel."
       >
-        <FeatureGrid
-          items={[
-            { icon: <Percent size={17} />, title: 'Biaya & Komisi', desc: 'Atur persentase komisi platform secara global, atau override per layanan tertentu.' },
-            { icon: <CreditCard size={17} />, title: 'Rekening & Pembayaran', desc: 'Kelola rekening bank/QRIS untuk tampil ke pelanggan, dan aktifkan/nonaktifkan tiap metode bayar.' },
-            { icon: <Power size={17} />, title: 'Mode Aplikasi', desc: 'Aktifkan mode pemeliharaan atau paksa update versi minimum untuk seluruh pengguna.' },
-            { icon: <Bot size={17} />, title: 'Asisten AI', desc: 'Konfigurasi penyedia & kunci API untuk fitur AI (CS otomatis & analisis bisnis).' },
-            { icon: <KeyRound size={17} />, title: 'Autentikasi 2FA', desc: 'Aktifkan verifikasi dua langkah untuk akun admin Anda sendiri.' },
-            { icon: <UserPlus size={17} />, title: 'Manajemen Tim Admin', desc: 'Undang admin baru atau nonaktifkan akses admin lain.' },
-          ]}
-        />
+        <WithScreen screen={<ScreenFigure variant="admin" src="/hifi/a6.webp" caption="A6 — Pengaturan" />}>
+          <FeatureGrid
+            items={[
+              { icon: <Percent size={17} />, title: 'Biaya & Komisi', desc: 'Atur persentase komisi platform secara global, atau override per layanan tertentu.' },
+              { icon: <CreditCard size={17} />, title: 'Rekening & Pembayaran', desc: 'Kelola rekening bank/QRIS untuk tampil ke pelanggan, dan aktifkan/nonaktifkan tiap metode bayar.' },
+              { icon: <Power size={17} />, title: 'Mode Aplikasi', desc: 'Aktifkan mode pemeliharaan atau paksa update versi minimum untuk seluruh pengguna.' },
+              { icon: <Bot size={17} />, title: 'Asisten AI', desc: 'Konfigurasi penyedia & kunci API untuk fitur AI (CS otomatis & analisis bisnis).' },
+              { icon: <KeyRound size={17} />, title: 'Autentikasi 2FA', desc: 'Aktifkan verifikasi dua langkah untuk akun admin Anda sendiri.' },
+              { icon: <UserPlus size={17} />, title: 'Manajemen Tim Admin', desc: 'Undang admin baru atau nonaktifkan akses admin lain.' },
+            ]}
+          />
+        </WithScreen>
       </Section>
     </GuidePage>
   )

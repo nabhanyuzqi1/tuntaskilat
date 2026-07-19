@@ -138,6 +138,48 @@ export function FeatureGrid({
   )
 }
 
+export function ScreenFigure({
+  src,
+  caption,
+  variant = 'phone',
+}: {
+  src: string
+  caption: string
+  variant?: 'phone' | 'admin'
+}) {
+  return (
+    <figure
+      className={`print-avoid-break mx-auto shrink-0 overflow-hidden rounded-2xl border border-border bg-surface-muted p-2.5 shadow-[0_1px_2px_rgba(16,37,26,0.04)] lg:mx-0 ${
+        variant === 'phone' ? 'w-[168px]' : 'w-full max-w-[340px]'
+      }`}
+    >
+      <img
+        src={src}
+        alt={caption}
+        className={`w-full rounded-xl ${variant === 'phone' ? 'aspect-[390/844] object-cover' : 'aspect-[1440/900] object-cover'}`}
+      />
+      <figcaption className="mt-2 text-center text-[10.5px] font-semibold uppercase tracking-wide text-text-muted">
+        {caption}
+      </figcaption>
+    </figure>
+  )
+}
+
+export function WithScreen({
+  screen,
+  children,
+}: {
+  screen: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+      <div className="min-w-0 flex-1">{children}</div>
+      {screen}
+    </div>
+  )
+}
+
 export function Callout({
   type = 'info',
   children,

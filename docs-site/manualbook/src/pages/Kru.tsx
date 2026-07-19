@@ -10,7 +10,7 @@ import {
   Star,
   ShieldAlert,
 } from 'lucide-react'
-import { GuidePage, Section, Steps, FeatureGrid, Callout } from '../components/GuideKit'
+import { GuidePage, Section, Steps, FeatureGrid, Callout, ScreenFigure, WithScreen } from '../components/GuideKit'
 
 const TOC = [
   { id: 'memulai', label: 'Memulai' },
@@ -34,64 +34,72 @@ export default function Kru() {
       toc={TOC}
     >
       <Section id="memulai" icon={<LogIn size={18} />} title="Memulai">
-        <Callout type="info">
-          Akun kru <strong>tidak bisa didaftarkan sendiri</strong> — dibuat oleh
-          admin melalui Panel Admin. Hubungi kantor Tuntaskilat untuk aktivasi akun.
-        </Callout>
-        <div className="mt-5">
-          <Steps
-            items={[
-              { title: 'Masuk dengan akun dari admin', desc: 'Gunakan email & kata sandi awal yang diberikan admin saat pendaftaran.' },
-              { title: 'Selesaikan onboarding', desc: 'Layar pengenalan singkat khusus kru (cara terima tugas, laporan kerja, setoran).' },
-              { title: 'Berikan izin Lokasi & Kamera', desc: 'Lokasi untuk navigasi & status "online", Kamera untuk foto laporan kerja sebelum/sesudah.' },
-            ]}
-          />
-        </div>
+        <WithScreen screen={<ScreenFigure src="/hifi/k1.webp" caption="K1 — Login Kru" />}>
+          <Callout type="info">
+            Akun kru <strong>tidak bisa didaftarkan sendiri</strong> — dibuat oleh
+            admin melalui Panel Admin. Hubungi kantor Tuntaskilat untuk aktivasi akun.
+          </Callout>
+          <div className="mt-5">
+            <Steps
+              items={[
+                { title: 'Masuk dengan akun dari admin', desc: 'Gunakan email & kata sandi awal yang diberikan admin saat pendaftaran.' },
+                { title: 'Selesaikan onboarding', desc: 'Layar pengenalan singkat khusus kru (cara terima tugas, laporan kerja, setoran).' },
+                { title: 'Berikan izin Lokasi & Kamera', desc: 'Lokasi untuk navigasi & status "online", Kamera untuk foto laporan kerja sebelum/sesudah.' },
+              ]}
+            />
+          </div>
+        </WithScreen>
       </Section>
 
       <Section id="tugas" icon={<ListChecks size={18} />} title="Daftar Tugas">
-        <p className="text-[14.5px] leading-relaxed text-text-secondary">
-          Halaman utama menampilkan daftar penugasan dengan filter Semua /
-          Aktif / Terjadwal / Selesai. Saat admin menugaskan Anda ke sebuah
-          pesanan, notifikasi push langsung masuk beserta pengingat otomatis
-          sekitar 2 jam sebelum jadwal.
-        </p>
-        <Callout type="tip">
-          Untuk pesanan yang dibayar <strong>tunai</strong>, admin hanya bisa
-          menugaskan Anda jika saldo setoran tunai Anda masih di bawah batas
-          nunggak (default Rp200.000). Setor rutin agar tetap bisa menerima
-          tugas tunai baru.
-        </Callout>
+        <WithScreen screen={<ScreenFigure src="/hifi/k2.webp" caption="K2 — Daftar Penugasan" />}>
+          <p className="text-[14.5px] leading-relaxed text-text-secondary">
+            Halaman utama menampilkan daftar penugasan dengan filter Semua /
+            Aktif / Terjadwal / Selesai. Saat admin menugaskan Anda ke sebuah
+            pesanan, notifikasi push langsung masuk beserta pengingat otomatis
+            sekitar 2 jam sebelum jadwal.
+          </p>
+          <Callout type="tip">
+            Untuk pesanan yang dibayar <strong>tunai</strong>, admin hanya bisa
+            menugaskan Anda jika saldo setoran tunai Anda masih di bawah batas
+            nunggak (default Rp200.000). Setor rutin agar tetap bisa menerima
+            tugas tunai baru.
+          </Callout>
+        </WithScreen>
       </Section>
 
       <Section id="navigasi" icon={<Navigation size={18} />} title="Navigasi & Detail Tugas">
-        <FeatureGrid
-          items={[
-            { icon: <Navigation size={17} />, title: 'Rute Real-Time', desc: 'Peta menampilkan rute jalan nyata dari posisi Anda ke lokasi pelanggan.' },
-            { icon: <ListChecks size={17} />, title: 'Info Lengkap', desc: 'Nama pelanggan, alamat, catatan tambahan, dan detail layanan yang dipesan.' },
-            { icon: <MessageCircle size={17} />, title: 'Kontak Pelanggan', desc: 'Chat langsung atau telepon via WhatsApp bila perlu konfirmasi di lapangan.' },
-          ]}
-        />
-        <p className="mt-4 text-[14.5px] leading-relaxed text-text-secondary">
-          Perbarui status pekerjaan secara berurutan: Ditugaskan → Dalam
-          Perjalanan → Diproses → Selesai. Status tidak bisa dilompati —
-          pastikan tiap tahap ditandai sesuai kondisi sebenarnya di lapangan.
-        </p>
+        <WithScreen screen={<ScreenFigure src="/hifi/k3.webp" caption="K3 — Detail Penugasan" />}>
+          <FeatureGrid
+            items={[
+              { icon: <Navigation size={17} />, title: 'Rute Real-Time', desc: 'Peta menampilkan rute jalan nyata dari posisi Anda ke lokasi pelanggan.' },
+              { icon: <ListChecks size={17} />, title: 'Info Lengkap', desc: 'Nama pelanggan, alamat, catatan tambahan, dan detail layanan yang dipesan.' },
+              { icon: <MessageCircle size={17} />, title: 'Kontak Pelanggan', desc: 'Chat langsung atau telepon via WhatsApp bila perlu konfirmasi di lapangan.' },
+            ]}
+          />
+          <p className="mt-4 text-[14.5px] leading-relaxed text-text-secondary">
+            Perbarui status pekerjaan secara berurutan: Ditugaskan → Dalam
+            Perjalanan → Diproses → Selesai. Status tidak bisa dilompati —
+            pastikan tiap tahap ditandai sesuai kondisi sebenarnya di lapangan.
+          </p>
+        </WithScreen>
       </Section>
 
       <Section id="laporan" icon={<Camera size={18} />} title="Laporan Kerja">
-        <p className="text-[14.5px] leading-relaxed text-text-secondary">
-          Sebelum menandai pesanan selesai, unggah minimal satu foto{' '}
-          <strong className="text-ink-soft">sebelum</strong> dan{' '}
-          <strong className="text-ink-soft">sesudah</strong> pengerjaan. Ini
-          jadi bukti kualitas kerja sekaligus dasar bila ada keluhan/banding
-          dari pelanggan.
-        </p>
-        <Callout type="warning">
-          Upah (payout) untuk pesanan dihitung otomatis oleh sistem begitu
-          status berubah menjadi Selesai — pastikan laporan diunggah dengan
-          benar karena data ini bersifat final.
-        </Callout>
+        <WithScreen screen={<ScreenFigure src="/hifi/k4.webp" caption="K4 — Form Laporan Kerja" />}>
+          <p className="text-[14.5px] leading-relaxed text-text-secondary">
+            Sebelum menandai pesanan selesai, unggah minimal satu foto{' '}
+            <strong className="text-ink-soft">sebelum</strong> dan{' '}
+            <strong className="text-ink-soft">sesudah</strong> pengerjaan. Ini
+            jadi bukti kualitas kerja sekaligus dasar bila ada keluhan/banding
+            dari pelanggan.
+          </p>
+          <Callout type="warning">
+            Upah (payout) untuk pesanan dihitung otomatis oleh sistem begitu
+            status berubah menjadi Selesai — pastikan laporan diunggah dengan
+            benar karena data ini bersifat final.
+          </Callout>
+        </WithScreen>
       </Section>
 
       <Section id="setoran" icon={<Wallet size={18} />} title="Setoran Tunai">
