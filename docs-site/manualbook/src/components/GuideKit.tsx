@@ -173,9 +173,12 @@ export function WithScreen({
   children: ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-      <div className="min-w-0 flex-1">{children}</div>
-      {screen}
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start print:block print:overflow-hidden">
+      {/* Print uses a float instead of flex — Chromium's flexbox page-break
+          fragmentation is unreliable and was cutting/overlapping content
+          across page boundaries. Floats paginate correctly. */}
+      <div className="shrink-0 lg:order-2 print:float-right print:ml-8 print:mb-4">{screen}</div>
+      <div className="min-w-0 flex-1 lg:order-1 print:block">{children}</div>
     </div>
   )
 }
