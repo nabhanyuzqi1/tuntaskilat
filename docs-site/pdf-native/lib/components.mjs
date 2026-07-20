@@ -56,6 +56,7 @@ export function chapterHero({ eyebrow, title, description, bgColor = COLOR.surfa
   return {
     table: {
       widths: [CONTENT_WIDTH],
+      dontBreakRows: true,
       body: [[
         {
           stack: [
@@ -184,6 +185,7 @@ export function callout(text, type = 'info') {
   return {
     table: {
       widths: [CONTENT_WIDTH - 28],
+      dontBreakRows: true,
       body: [[
         {
           stack: [
@@ -233,6 +235,7 @@ export function screenFigure(imagePath, caption, variant = 'phone') {
   return {
     table: {
       widths: ['*'],
+      dontBreakRows: true,
       body: [[
         {
           stack: [
@@ -352,6 +355,7 @@ export function contactBlock(items) {
   return {
     table: {
       widths: items.map(() => '*'),
+      dontBreakRows: true,
       body: [items.map((item) => ({ text: item, font: 'MontserratMedium', fontSize: 9.5, color: COLOR.inkSoft }))],
     },
     layout: cardLayout({ fillColor: COLOR.surfaceMuted, borderColor: COLOR.border, pad: 14 }),

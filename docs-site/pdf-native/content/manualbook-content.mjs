@@ -126,18 +126,24 @@ export const KRU = {
     {
       title: 'Memulai',
       image: { src: 'images/hifi/k1.png', caption: 'K1 — Login Kru', variant: 'phone' },
+      // pairCount excludes the callout from the image-paired column — a
+      // callout() nested inside withScreen's text column, itself inside the
+      // keepTogether wrapper, triggers a pdfmake column-width bug that
+      // shoves the image off the page edge. Steps are safe to pair.
+      pairCount: 1,
       blocks: [
-        { type: 'callout', kind: 'info', text: 'Akun kru tidak bisa didaftarkan sendiri — dibuat oleh admin melalui Panel Admin. Hubungi kantor Tuntaskilat untuk aktivasi akun.' },
         { type: 'steps', items: [
           { title: 'Masuk dengan akun dari admin', desc: 'Gunakan email & kata sandi awal yang diberikan admin saat pendaftaran.' },
           { title: 'Selesaikan onboarding', desc: 'Layar pengenalan singkat khusus kru (cara terima tugas, laporan kerja, setoran).' },
           { title: 'Berikan izin Lokasi & Kamera', desc: 'Lokasi untuk navigasi & status "online", Kamera untuk foto laporan kerja sebelum/sesudah.' },
         ] },
+        { type: 'callout', kind: 'info', text: 'Akun kru tidak bisa didaftarkan sendiri — dibuat oleh admin melalui Panel Admin. Hubungi kantor Tuntaskilat untuk aktivasi akun.' },
       ],
     },
     {
       title: 'Daftar Tugas',
       image: { src: 'images/hifi/k2.png', caption: 'K2 — Daftar Penugasan', variant: 'phone' },
+      pairCount: 1,
       blocks: [
         { type: 'paragraph', text: 'Halaman utama menampilkan daftar penugasan dengan filter Semua / Aktif / Terjadwal / Selesai. Saat admin menugaskan Anda ke sebuah pesanan, notifikasi push langsung masuk beserta pengingat otomatis sekitar 2 jam sebelum jadwal.' },
         { type: 'callout', kind: 'tip', text: 'Untuk pesanan yang dibayar tunai, admin hanya bisa menugaskan Anda jika saldo setoran tunai Anda masih di bawah batas nunggak (default Rp200.000). Setor rutin agar tetap bisa menerima tugas tunai baru.' },
@@ -158,6 +164,7 @@ export const KRU = {
     {
       title: 'Laporan Kerja',
       image: { src: 'images/hifi/k4.png', caption: 'K4 — Form Laporan Kerja', variant: 'phone' },
+      pairCount: 1,
       blocks: [
         { type: 'paragraph', text: 'Sebelum menandai pesanan selesai, unggah minimal satu foto sebelum dan sesudah pengerjaan. Ini jadi bukti kualitas kerja sekaligus dasar bila ada keluhan/banding dari pelanggan.' },
         { type: 'callout', kind: 'warning', text: 'Upah (payout) untuk pesanan dihitung otomatis oleh sistem begitu status berubah menjadi Selesai — pastikan laporan diunggah dengan benar karena data ini bersifat final.' },
@@ -237,6 +244,7 @@ export const ADMIN = {
     {
       title: 'Kelola Pesanan',
       image: { src: 'images/hifi/a3.png', caption: 'A3 — Kelola Pesanan', variant: 'admin' },
+      pairCount: 2,
       blocks: [
         { type: 'paragraph', text: 'Verifikasi pembayaran, tugaskan kru, dan pantau seluruh siklus pesanan.' },
         { type: 'steps', items: [
