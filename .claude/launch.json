@@ -6,6 +6,20 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "5601", "--directory", "/Users/nabhan/tkapps/apps/admin/build/web"],
       "port": 5601
+    },
+    {
+      "name": "manualbook-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5602", "--strictPort"],
+      "cwd": "/Users/nabhan/tkapps/docs-site/manualbook",
+      "port": 5602
+    },
+    {
+      "name": "documentation-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5603", "--strictPort"],
+      "cwd": "/Users/nabhan/tkapps/docs-site/documentation",
+      "port": 5603
     }
   ]
 }

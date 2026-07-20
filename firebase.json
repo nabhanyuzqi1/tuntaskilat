@@ -61,6 +61,36 @@
         "**/.*",
         "**/node_modules/**"
       ]
+    },
+    {
+      "target": "manualbook",
+      "public": "docs-site/manualbook/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "documentation",
+      "public": "docs-site/documentation/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
     }
   ]
 }
